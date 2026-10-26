@@ -1,0 +1,19 @@
+[Unit]
+Description=RakuOS bootstrap (pilih desktop & aplikasi dasar)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/var/lib/rakuos/bootstrap.done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/rakuos-bootstrap --first-boot
+StandardInput=tty-force
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+
+[Install]
+WantedBy=multi-user.target

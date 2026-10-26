@@ -1,0 +1,154 @@
+# Katalog rakuos-bootstrap.
+#
+# Menambah/mengubah pilihan cukup edit file ini; binary tidak perlu di-rebuild.
+# `available = false` menyembunyikan pilihan dari daftar (belum ada paketnya).
+#
+# Semua paket di bawah sudah dicek ada di Fedora 45 atau repo RakuOS 45
+# (2026-10-26). Lihat PLAN.md bagian 5 untuk catatan verifikasi.
+
+# Lapisan dasar: selalu dipasang, apa pun pilihan user.
+base = [
+    "pipewire",
+    "pipewire-pulseaudio",
+    "wireplumber",
+    "mesa-dri-drivers",
+    "mesa-vulkan-drivers",
+    "libva",
+    "polkit",
+    "lxpolkit",
+    "xdg-desktop-portal",
+    "xdg-desktop-portal-gtk",
+    "dbus-tools",
+    "default-fonts",
+    "google-noto-sans-fonts",
+    "google-noto-color-emoji-fonts",
+    "fuzzel",
+    "gvfs",
+    "gvfs-mtp",
+]
+
+# ---------------------------------------------------------------- terminal ---
+[[terminals]]
+id = "kitty"
+name = "Kitty"
+description = "GPU-accelerated, paling umum dipakai di Hyprland"
+packages = ["kitty"]
+
+[[terminals]]
+id = "foot"
+name = "Foot"
+description = "Ringan, Wayland-only, cocok untuk sistem minimal"
+packages = ["foot"]
+
+[[terminals]]
+id = "alacritty"
+name = "Alacritty"
+description = "GPU-accelerated, konfigurasi YAML sederhana"
+packages = ["alacritty"]
+
+[[terminals]]
+id = "ghostty"
+name = "Ghostty"
+description = "Belum ada di Fedora 45 (butuh COPR)"
+available = false
+
+# ----------------------------------------------------------------- browser ---
+[[browsers]]
+id = "firefox-rpm"
+name = "Firefox (RPM)"
+description = "Native RPM lewat overlay, tanpa Flatpak"
+packages = ["firefox"]
+
+[[browsers]]
+id = "firefox-flatpak"
+name = "Firefox (Flatpak)"
+description = "Terisolasi, update otomatis, unduhan pertama besar"
+flatpak = "org.mozilla.firefox"
+
+[[browsers]]
+id = "chromium"
+name = "Chromium (RPM)"
+description = "Native RPM, tanpa sinkronisasi akun Google"
+packages = ["chromium"]
+
+[[browsers]]
+id = "brave"
+name = "Brave (RPM)"
+description = "Dari repo RakuOS, pemblokir iklan bawaan"
+packages = ["brave-browser"]
+
+# ----------------------------------------------------------------- desktop ---
+[[desktops]]
+id = "hyprland"
+name = "Hyprland"
+description = "Tiling dinamis, config minimal tanpa bar"
+packages = ["hyprland", "hyprland-uwsm", "xdg-desktop-portal-hyprland"]
+skel = "hyprland"
+autologin_cmd = "Hyprland"
+
+[[desktops]]
+id = "niri"
+name = "Niri"
+description = "Scrollable tiling, config minimal tanpa bar"
+packages = ["niri"]
+skel = "niri"
+autologin_cmd = "niri-session"
+
+[[desktops]]
+id = "labwc"
+name = "Labwc"
+description = "Stacking compositor ringan (ala Openbox), tanpa config tambahan"
+packages = ["labwc"]
+autologin_cmd = "labwc"
+
+[[desktops]]
+id = "mangowm"
+name = "MangoWM"
+description = "Belum dipaketkan untuk Fedora/RakuOS"
+available = false
+
+# ------------------------------------------------------------ file manager ---
+[[file_managers]]
+id = "nautilus"
+name = "Nautilus"
+description = "File manager GNOME, ringan untuk pemakaian dasar"
+packages = ["nautilus"]
+
+[[file_managers]]
+id = "dolphin"
+name = "Dolphin"
+description = "File manager KDE, fitur lengkap (menarik Qt/KDE stack)"
+packages = ["dolphin"]
+
+[[file_managers]]
+id = "thunar"
+name = "Thunar"
+description = "File manager Xfce, ringan dan cepat"
+packages = ["thunar", "thunar-volman"]
+
+# ------------------------------------------------------------------- login ---
+[[logins]]
+id = "greetd-tuigreet"
+name = "greetd + tuigreet"
+description = "Greeter TUI paling ringan, cocok untuk Wayland minimal"
+packages = ["greetd", "tuigreet"]
+unit = "greetd.service"
+
+[[logins]]
+id = "sddm"
+name = "SDDM"
+description = "Display manager grafis, paling familiar"
+packages = ["sddm"]
+unit = "sddm.service"
+
+[[logins]]
+id = "ly"
+name = "Ly"
+description = "Display manager TUI, ringan"
+packages = ["ly"]
+unit = "ly.service"
+
+[[logins]]
+id = "none"
+name = "Tanpa login manager"
+description = "Autologin user langsung ke desktop di tty1"

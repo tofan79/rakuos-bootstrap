@@ -1,0 +1,29 @@
+// Config minimal dari rakuos-bootstrap.
+// Tanpa bar: desktop pure, keybind dasar supaya langsung bisa dipakai.
+
+input {
+    keyboard {
+        xkb {
+            layout "us"
+        }
+    }
+
+    touchpad {
+        natural-scroll
+    }
+}
+
+layout {
+    gaps 8
+}
+
+spawn-at-startup "dbus-update-activation-environment" "--systemd" "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP"
+spawn-at-startup "lxpolkit"
+
+binds {
+    Mod+Return { spawn "@TERMINAL@"; }
+    Mod+D { spawn "fuzzel"; }
+    Mod+Q { close-window; }
+    Mod+F { fullscreen-window; }
+    Mod+Shift+E { quit; }
+}
