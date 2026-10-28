@@ -50,6 +50,9 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
     println!("\n{}", style("Menyiapkan repo pihak ketiga").bold());
     enable_repos(cat, dry_run)?;
 
+    println!("\n{}", style("Menyegarkan metadata repo").bold());
+    refresh_metadata(dry_run)?;
+
     println!("\n{}", style("Memasang paket").bold());
     install_packages(&pkgs, dry_run)?;
 
@@ -98,6 +101,17 @@ fn enable_repos(cat: &Catalog, dry_run: bool) -> Result<()> {
         run("rum", &args, dry_run)?;
     }
     Ok(())
+}
+
+/// Segarkan metadata setelah repo pihak ketiga dinyalakan. `rum make-cache`
+/// hanya mengambil metadata (tidak menyentuh paket overlay seperti
+/// `rum update`), jadi aman dijalankan sebelum instalasi.
+fn refresh_metadata(dry_run: bool) -> Result<()> {
+    if command_exists("rum") {
+        run("rum", &["make-cache".into()], dry_run)
+    } else {
+        run("dnf", &["makecache".into()], dry_run)
+    }
 }
 
 /// Argumen `rum config-manager` untuk RPM Fusion, mengikuti rakuos-welcome.
