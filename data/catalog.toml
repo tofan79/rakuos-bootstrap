@@ -167,13 +167,6 @@ packages = ["kineticwe-git"]
 autologin_cmd = "start-kineticwe"
 
 [[desktops]]
-id = "labwc"
-name = "Labwc"
-description = "Stacking compositor ringan (ala Openbox), tanpa config tambahan"
-packages = ["labwc"]
-autologin_cmd = "labwc"
-
-[[desktops]]
 id = "mangowm"
 name = "MangoWM"
 description = "Tiling ringan berbasis dwl (wlroots)"

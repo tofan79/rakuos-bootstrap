@@ -167,7 +167,6 @@ di terminal tinggi semua pilihan tampil sekaligus.
  ────────────────────────────────────────────────────────────────────────────
  ❯ Hyprland             Tiling dinamis, config minimal tanpa bar
    KineticWE            Tiling berbasis KWin, shell Noctalia
-   Labwc                Stacking compositor ringan (ala Openbox), tanpa con…
    MangoWM              Tiling ringan berbasis dwl (wlroots)
    Niri                 Scrollable tiling, config minimal tanpa bar
 ```

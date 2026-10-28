@@ -140,7 +140,6 @@ Boleh centang lebih dari satu. Ukuran = paket utamanya saja.
 |---|---|---|---|
 | Hyprland | Tiling dinamis, config minimal tanpa bar | `hyprland`, `hyprland-guiutils`, `hyprland-uwsm`, `uwsm`, `egl-wayland`, `xdg-desktop-portal-hyprland` | ✅ |
 | KineticWE | Tiling berbasis KWin, shell Noctalia | `kineticwe-git` | |
-| Labwc | Stacking compositor ringan (ala Openbox), tanpa config tambahan | `labwc` | |
 | MangoWM | Tiling ringan berbasis dwl (wlroots) | `mangowm`, `scenefx`, `wlroots`, `xorg-x11-server-Xwayland`, `xdg-desktop-portal-wlr` | |
 | Niri | Scrollable tiling, config minimal tanpa bar | `niri`, `xdg-desktop-portal-gnome` | |
 

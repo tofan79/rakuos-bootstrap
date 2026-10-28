@@ -139,7 +139,6 @@ tanpa recompile.
 | desktop | `kineticwe` | kineticwe-git | ✅ repo RakuOS 45 (menarik kineticwe-noctalia, xdg-desktop-portal-kwe, Xwayland) |
 | desktop | `mangowm` | mangowm, scenefx, wlroots, xorg-x11-server-Xwayland, xdg-desktop-portal-wlr | ✅ Terra (`mangowm`, `scenefx`) + Fedora 45 |
 | desktop | `niri` | niri, xdg-desktop-portal-gnome | ✅ Fedora 45 (menarik xwayland-satellite) |
-| desktop | `labwc` | labwc | ✅ Fedora 45 |
 | desktop | `mangowm` | — | ⏳ belum dipaketkan |
 | file manager | `dolphin` | dolphin | ✅ Fedora 45 (menarik Qt/KDE) |
 | file manager | `hyprfm` | hyprfm | ✅ repo RakuOS 45 |
@@ -243,13 +242,13 @@ user pindah ke login manager lain.
 Greeter berbasis greetd (`greetd-tuigreet`, `dms-greeter`, `noctalia-greeter`)
 menulis `/etc/greetd/config.toml`; config lama disimpan sekali sebagai
 `config.toml.bak`. `@COMPOSITOR@` diganti sesuai desktop yang dipilih
-(hyprland, niri, labwc, mango). User `greeter` dibuat kalau belum ada dan
+(hyprland, niri, mango). User `greeter` dibuat kalau belum ada dan
 dimasukkan ke grup video/render/input (best-effort).
 
 Autologin user (bukan root) untuk pilihan `none`. Jangan pernah autologin root
 di sistem ter-install.
 
-`autologin_cmd` per desktop: `Hyprland`, `start-kineticwe`, `labwc`, `mango`,
+`autologin_cmd` per desktop: `Hyprland`, `start-kineticwe`, `mango`,
 `niri-session`.
 
 ### 6.5 Marker & state
