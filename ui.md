@@ -166,6 +166,7 @@ Semua langkah berubah jadi `✔`, lalu:
  Browser        Firefox (RPM)
  Login          greetd + tuigreet
  Desktop        Hyprland
+ Repo pihak ketiga terra, rpmfusion
  User target    mindset
  Paket RPM (25)
    dbus-tools, default-fonts, firefox, fuzzel, google-noto-color-emoji-fonts

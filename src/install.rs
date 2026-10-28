@@ -29,6 +29,9 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
     let user = target_user();
     let pkgs = packages(cat, picks);
 
+    println!("\n{}", style("Menyiapkan repo pihak ketiga").bold());
+    enable_repos(cat, dry_run)?;
+
     println!("\n{}", style("Memasang paket").bold());
     install_packages(&pkgs, dry_run)?;
 
@@ -44,8 +47,57 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
     println!("\n{}", style("Menyiapkan login manager").bold());
     configure_login(picks.login, picks.desktop, &user, dry_run)?;
 
-    write_state(picks, &user, dry_run)?;
+    write_state(cat, picks, &user, dry_run)?;
     Ok(())
+}
+
+/// Menyalakan repo pihak ketiga yang diminta katalog.
+///
+/// Terra dan RPM Fusion dibawa image dalam keadaan `enabled=0`. Perilakunya
+/// disamakan dengan rakuos-welcome: Terra cukup satu id, RPM Fusion memakai
+/// daftar di `/usr/share/rakuos/rpmfusion-default-repos` (ditulis
+/// rakuos-base) supaya tidak ikut menyalakan repo source/debuginfo.
+fn enable_repos(cat: &Catalog, dry_run: bool) -> Result<()> {
+    if cat.repos.is_empty() {
+        println!("  (tidak ada repo pihak ketiga yang diminta)");
+        return Ok(());
+    }
+
+    if !command_exists("rum") {
+        eprintln!(
+            "{} rum tidak ditemukan; repo pihak ketiga dilewati",
+            style("peringatan:").yellow().bold()
+        );
+        return Ok(());
+    }
+
+    for repo in &cat.repos {
+        let args = match repo.as_str() {
+            "terra" => vec!["config-manager".into(), "--set-enabled".into(), "terra".into()],
+            "rpmfusion" => rpmfusion_args(),
+            other => bail!("repo pihak ketiga tidak dikenal: {other}"),
+        };
+        run("rum", &args, dry_run)?;
+    }
+    Ok(())
+}
+
+/// Argumen `rum config-manager` untuk RPM Fusion, mengikuti rakuos-welcome.
+fn rpmfusion_args() -> Vec<String> {
+    const DEFAULTS: &str = "/usr/share/rakuos/rpmfusion-default-repos";
+
+    let mut args: Vec<String> = vec!["config-manager".into(), "--set-enabled".into()];
+    let defaults: Vec<String> = fs::read_to_string(DEFAULTS)
+        .unwrap_or_default()
+        .split_whitespace()
+        .map(str::to_string)
+        .collect();
+    if defaults.is_empty() {
+        args.push("rpmfusion-*".into());
+    } else {
+        args.extend(defaults);
+    }
+    args
 }
 
 fn install_packages(pkgs: &BTreeSet<String>, dry_run: bool) -> Result<()> {
@@ -187,13 +239,13 @@ fn configure_login(
     Ok(())
 }
 
-fn write_state(picks: &Picks, user: &str, dry_run: bool) -> Result<()> {
+fn write_state(cat: &Catalog, picks: &Picks, user: &str, dry_run: bool) -> Result<()> {
     let dir = Path::new("/var/lib/rakuos");
     let state = dir.join("bootstrap.toml");
     let done = dir.join("bootstrap.done");
 
     let body = format!(
-        "# ditulis oleh rakuos-bootstrap\ntime = \"{}\"\ntarget_user = \"{}\"\nterminal = \"{}\"\nbrowser = \"{}\"\ndesktop = \"{}\"\nfile_manager = \"{}\"\nlogin = \"{}\"\n",
+        "# ditulis oleh rakuos-bootstrap\ntime = \"{}\"\ntarget_user = \"{}\"\nterminal = \"{}\"\nbrowser = \"{}\"\ndesktop = \"{}\"\nfile_manager = \"{}\"\nlogin = \"{}\"\nrepos = \"{}\"\n",
         iso8601_now(),
         user,
         picks.terminal.id,
@@ -201,6 +253,7 @@ fn write_state(picks: &Picks, user: &str, dry_run: bool) -> Result<()> {
         picks.desktop.id,
         picks.file_manager.id,
         picks.login.id,
+        cat.repos.join(" "),
     );
 
     if dry_run {

@@ -6,6 +6,17 @@
 # Semua paket di bawah sudah dicek ada di Fedora 45 atau repo RakuOS 45
 # (2026-10-26). Lihat PLAN.md bagian 5 untuk catatan verifikasi.
 
+# Repo pihak ketiga yang diaktifkan sebelum paket dipasang.
+#
+# Image RakuOS membawa Terra dan RPM Fusion dalam keadaan nonaktif. Wizard
+# menyalakannya hanya kalau user memintanya, dengan cara yang sama seperti
+# halaman "Third-Party Repositories" di rakuos-welcome:
+#   terra     -> `rum config-manager --set-enabled terra`
+#   rpmfusion -> id yang tercatat di /usr/share/rakuos/rpmfusion-default-repos,
+#                fallback `rpmfusion-*`
+# Kosongkan daftar ini kalau tidak ingin repo pihak ketiga disentuh.
+repos = ["terra", "rpmfusion"]
+
 # Lapisan dasar: selalu dipasang, apa pun pilihan user.
 base = [
     "pipewire",
@@ -49,8 +60,8 @@ packages = ["alacritty"]
 [[terminals]]
 id = "ghostty"
 name = "Ghostty"
-description = "Belum ada di Fedora 45 (butuh COPR)"
-available = false
+description = "Dari repo Terra, diaktifkan otomatis saat instalasi"
+packages = ["ghostty"]
 
 # ----------------------------------------------------------------- browser ---
 [[browsers]]

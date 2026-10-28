@@ -35,6 +35,10 @@ pub struct Catalog {
     /// Paket yang selalu dipasang, apa pun pilihannya (audio, GPU, portal...).
     #[serde(default)]
     pub base: Vec<String>,
+    /// Repo pihak ketiga yang diaktifkan sebelum instalasi. Kunci yang
+    /// dikenal: `terra`, `rpmfusion` (lihat `install::enable_repos`).
+    #[serde(default)]
+    pub repos: Vec<String>,
     #[serde(default)]
     pub terminals: Vec<Choice>,
     #[serde(default)]

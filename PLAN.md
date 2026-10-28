@@ -37,7 +37,8 @@ kapan saja dengan `sudo rakuos-bootstrap`.
 - `kineticwe` — belum jelas paket/hulunya; tunggu link.
 - Singularity OS / Singularity Desktop (`singularityos-lab`) — ini DE GTK4/Vala
   untuk distro lain (Sinty OS), belum ada paket Fedora. Bukan pekerjaan wizard.
-- `ghostty` — tidak ada di Fedora 45 (sudah dicek). Kandidat COPR.
+- `ghostty` — sekarang tersedia lewat repo Terra (lihat §6.2); COPR sendiri
+  baru perlu kalau Terra mau dilepas.
 - Desktop penuh (KDE/GNOME/Xfce/Cinnamon/LXQt/Budgie/COSMIC) — bukan "pure",
   dan akan menarik banyak app. Boleh masuk nanti sebagai kategori terpisah.
 
@@ -121,7 +122,7 @@ tanpa recompile.
 | terminal | `kitty` | kitty | ✅ Fedora 45 |
 | terminal | `foot` | foot | ✅ Fedora 45 |
 | terminal | `alacritty` | alacritty | ✅ Fedora 45 |
-| terminal | `ghostty` | — | ❌ tidak ada di Fedora 45 |
+| terminal | `ghostty` | ghostty | ✅ repo Terra (diaktifkan otomatis) |
 | browser | `firefox-rpm` | firefox | ✅ Fedora 45 |
 | browser | `chromium` | chromium | ✅ Fedora 45 |
 | browser | `brave` | brave-browser | ✅ repo RakuOS 45 |
@@ -157,6 +158,29 @@ Catatan verifikasi: dicek dengan `dnf repoquery --available` di container
   tapi eksplisit `rum` lebih jelas di log.
 - Kalau `rum` tidak ada (uji di distro lain), fallback ke `dnf`, tapi tulis
   peringatan bahwa overlay tidak aktif.
+
+### 6.2 Repo pihak ketiga
+
+Terra dan RPM Fusion dibawa image dalam keadaan `enabled=0`. Wizard
+menyalakannya sebelum paket dipasang, mengikuti halaman *Third-Party
+Repositories* di `rakuos-welcome`:
+
+| Kunci di `catalog.toml` | Perintah |
+|---|---|
+| `terra` | `rum config-manager --set-enabled terra` |
+| `rpmfusion` | `rum config-manager --set-enabled <isi /usr/share/rakuos/rpmfusion-default-repos>`; fallback `rpmfusion-*` |
+
+- Daftar repo ada di level atas `catalog.toml` (`repos = [...]`). Kosongkan
+  kalau tidak ingin repo pihak ketiga disentuh.
+- Ghostty hanya ada di Terra. Tanpa langkah ini `rum install ghostty` gagal
+  dengan "No match for argument".
+- `--set-enabled <id eksplisit>` menyalakan repo persis seperti yang
+  ditulis, termasuk `rpmfusion-*-updates-testing` (rakuos-base mencatatnya
+  sebagai default RPM Fusion).
+- Wildcard `rpmfusion-*` justru melewati source/debuginfo/testing; itu
+  sebabnya fallback tidak sama dengan daftar default.
+- Kalau `rum` tidak ada, langkah ini dilewati dengan peringatan (bukan
+  gagal), karena `dnf` tidak mengenal overlay RakuOS.
 
 ### 6.3 Config minimal (skel)
 
@@ -331,7 +355,7 @@ sistem.
 ## 12. Backlog (setelah 5 pilihan dasar stabil)
 
 1. Bar opsional (waybar) + tema.
-2. `ghostty` via COPR.
+2. `ghostty` via COPR sendiri (sekarang masih dari Terra).
 3. `mangowm` (spec sendiri) — kalau memang mau.
 4. Desktop penuh (KDE/Xfce/Cinnamon/LXQt/Budgie/COSMIC) sebagai kategori
    "full desktop", ditandai jelas bukan pure.

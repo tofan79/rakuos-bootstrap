@@ -79,12 +79,18 @@ fn run() -> Result<()> {
     };
 
     let packages: Vec<String> = install::packages(&catalog, &picks).into_iter().collect();
+    let repos = if catalog.repos.is_empty() {
+        "tidak ada".to_string()
+    } else {
+        catalog.repos.join(", ")
+    };
     let rows = [
         ("Terminal", picks.terminal.name.clone()),
         ("File manager", picks.file_manager.name.clone()),
         ("Browser", picks.browser.name.clone()),
         ("Login", picks.login.name.clone()),
         ("Desktop", picks.desktop.name.clone()),
+        ("Repo pihak ketiga", repos),
         ("User target", install::target_user()),
     ];
 
