@@ -137,18 +137,25 @@ Boleh centang lebih dari satu. Ukuran = paket utamanya saja.
 
 | Nama | Deskripsi | Paket | Default |
 |---|---|---|---|
-| Hyprland | Tiling dinamis, config minimal tanpa bar | `hyprland`, `hyprland-guiutils`, `hyprland-uwsm`, `uwsm`, `egl-wayland`, `xdg-desktop-portal-hyprland` | ✅ |
+| Hyprland | Tiling dinamis, config minimal tanpa bar | `hyprland`, `hyprland-guiutils`, `hyprland-uwsm`, `xdg-desktop-portal-hyprland`, `hyprland-preview-share-picker` | ✅ |
 | KineticWE | Tiling berbasis KWin, shell Noctalia | `kineticwe-git` | |
 | MangoWM | Tiling ringan berbasis dwl (wlroots) | `mangowm`, `scenefx`, `wlroots`, `xorg-x11-server-Xwayland`, `xdg-desktop-portal-wlr` | |
 | Niri | Scrollable tiling, config minimal tanpa bar | `niri`, `xdg-desktop-portal-gnome` | |
 
 ### Lapisan dasar
 
-Selalu dipasang, apa pun pilihannya: audio (`pipewire`, `wireplumber`), GPU dan
-video (`mesa-dri-drivers`, `mesa-vulkan-drivers`, `libva`), polkit
-(`polkit`, `lxpolkit`), portal (`xdg-desktop-portal`, `xdg-desktop-portal-gtk`,
-`xdg-user-dirs-gtk`),
-font, launcher `fuzzel`, serta `gvfs` + `gvfs-mtp` untuk mount USB/HP.
+Base image RakuOS sudah memasang audio (`pipewire`, `wireplumber`), GPU/video
+(`mesa-*`, `libva`; image NVIDIA memakai driver sendiri), polkit, portal
+(`xdg-desktop-portal`, `xdg-desktop-portal-gtk`, `xdg-user-dirs-gtk`), font,
+`gvfs` + `gvfs-mtp`, `wl-clipboard`, dan `xorg-x11-server-Xwayland`. Wizard
+tidak memasang ulang paket-paket itu.
+
+Yang selalu ditambahkan wizard, apa pun pilihannya:
+
+| Paket | Alasan |
+|---|---|
+| `dbus-daemon` | menyediakan `dbus-run-session`; image hanya membawa `dbus-broker` |
+| `egl-wayland` | platform EGL Wayland, aman untuk Mesa maupun NVIDIA |
 
 ## Repo pihak ketiga
 
@@ -172,6 +179,8 @@ tidak ingin repo pihak ketiga disentuh.
 - `/var/lib/rakuos/bootstrap.done` — marker selesai; unit first-boot berhenti
   ditawarkan.
 - `$HOME/.config/...` untuk user target (`SUDO_USER`, fallback `root`).
+- `/usr/share/wayland-sessions/hyprland-uwsm.desktop` — sesi uwsm versi resmi
+  (hanya kalau desktop = Hyprland).
 - Drop-in `getty@tty1` + `~/.bash_profile` hanya kalau login = tanpa login
   manager.
 
@@ -194,6 +203,7 @@ Field khusus:
 | Field | Untuk | Arti |
 |---|---|---|
 | `skel` | desktop | folder di `data/skel/` yang disalin ke `$HOME` |
+| `session_file` | desktop | file di `data/sessions/` yang ditulis ke `/usr/share/wayland-sessions/` |
 | `autologin_cmd` | desktop | perintah yang dijalankan saat login = tanpa login manager |
 | `unit` | login | unit systemd display manager yang di-enable |
 

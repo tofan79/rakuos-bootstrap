@@ -758,7 +758,7 @@ impl Ui {
         let mut used = 0usize;
         for item in items {
             let need = measure_text_width(item) + 2; // ", "
-            if used + need > width + 2 && !lines.last().map_or(true, |l| l.is_empty()) {
+            if used + need > width + 2 && !lines.last().is_none_or(|l| l.is_empty()) {
                 lines.push(Vec::new());
                 used = 0;
             }

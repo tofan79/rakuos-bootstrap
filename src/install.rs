@@ -64,6 +64,7 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
         &user,
         dry_run,
     )?;
+    install_session_file(picks.desktop, base_dir, dry_run)?;
 
     println!("\n{}", style("Menyiapkan login manager").bold());
     configure_login(picks.login, picks.desktop, &user, dry_run)?;
@@ -202,6 +203,39 @@ fn install_skel(
     if !status.success() {
         bail!("chown -R {user}:{user} {} gagal", config_dir.display());
     }
+    Ok(())
+}
+
+/// Timpa file sesi Wayland milik paket (mis. `hyprland-uwsm.desktop`) dengan
+/// versi yang kita bawa di `data/sessions/`. Dipakai kalau file bawaan paket
+/// kurang pas — mis. `hyprland-uwsm` belum menyetel `UWSM_SILENT_START=2`,
+/// sehingga log uwsm sempat tampil di VT sebelum compositor muncul.
+fn install_session_file(desktop: &Choice, base_dir: &Path, dry_run: bool) -> Result<()> {
+    let Some(name) = &desktop.session_file else {
+        return Ok(());
+    };
+
+    let src = base_dir.join("sessions").join(name);
+    if !src.is_file() {
+        eprintln!(
+            "{} sesi {} tidak ada; file sesi dilewati",
+            style("peringatan:").yellow().bold(),
+            src.display()
+        );
+        return Ok(());
+    }
+
+    let dst = Path::new("/usr/share/wayland-sessions").join(name);
+    if dry_run {
+        println!("  + salin {} -> {}", src.display(), dst.display());
+        return Ok(());
+    }
+
+    if let Some(parent) = dst.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("tidak bisa membuat {}", parent.display()))?;
+    }
+    fs::copy(&src, &dst).with_context(|| format!("tidak bisa menulis {}", dst.display()))?;
     Ok(())
 }
 

@@ -25,6 +25,10 @@ pub struct Choice {
     /// Nama direktori di `data/skel/` yang disalin ke `$HOME` user.
     #[serde(default)]
     pub skel: Option<String>,
+    /// Nama file di `data/sessions/` yang ditulis ke
+    /// `/usr/share/wayland-sessions/` (mis. `hyprland-uwsm.desktop`).
+    #[serde(default)]
+    pub session_file: Option<String>,
     /// Perintah yang dijalankan `dbus-run-session` saat login = `none`.
     #[serde(default)]
     pub autologin_cmd: Option<String>,
@@ -80,7 +84,7 @@ impl Catalog {
 
     /// Urutan layar selalu A-Z, tidak bergantung urutan di TOML.
     fn sort_by_name(&mut self) {
-        fn sort(list: &mut Vec<Choice>) {
+        fn sort(list: &mut [Choice]) {
             list.sort_by_key(|c| c.name.to_lowercase());
         }
         sort(&mut self.terminals);
