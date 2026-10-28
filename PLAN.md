@@ -25,7 +25,7 @@ kapan saja dengan `sudo rakuos-bootstrap`.
 |---|---|---|
 | Nama paket/binary | `rakuos-bootstrap` | `rakuos-setup.service` sudah dipakai `rakuos-core`; `rakuos-install-dasar` menyesatkan (kedengaran seperti installer OS) |
 | Bahasa | Rust | konsisten dengan `rakuos-installer` (backend yang sama), satu binary statis, tanpa runtime script |
-| TUI | `dialoguer` + `console` (tema `ColorfulTheme`) | crate yang sama dengan `rakuos-installer-cli`, jadi tampilan dan navigasi (↑/↓, Enter) identik |
+| TUI | modul `ui` sendiri di atas `console` | tidak butuh `dialoguer`; mendeteksi UTF-8/console VT/ASCII dan warna 256/16/none, jadi tetap rapi di `TERM=linux` |
 | Model instalasi | `rum` (overlay) | tidak rebase, tidak ubah base image, persisten setelah update |
 | Browser | RPM **atau** Flatpak (user pilih) | Flatpak lebih aman untuk app yang update cepat; RPM lebih ringan |
 | Desktop "pure" | compositor + config minimal | tanpa paket meta/app bawaan; tapi tetap diberi keybind dasar supaya tidak terlihat rusak |
@@ -328,7 +328,7 @@ sistem.
 ## 11. Checklist eksekusi
 
 - [x] Tentukan nama & alasan (`rakuos-bootstrap`)
-- [x] Tentukan TUI (`dialoguer`, konsisten dengan installer-cli)
+- [x] Tentukan TUI (modul `ui` sendiri, aman di console VT)
 - [x] Verifikasi ketersediaan paket Fedora 45 + RakuOS 45
 - [x] Scaffold Rust + katalog TOML + skel
 - [ ] `cargo build` bersih di mesin ini

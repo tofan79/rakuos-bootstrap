@@ -1,13 +1,14 @@
 mod catalog;
 mod install;
+mod ui;
 
 use std::path::PathBuf;
 use std::process::Command;
 
 use anyhow::{bail, Result};
-use catalog::{Catalog, Choice};
-use console::style;
-use dialoguer::{theme::ColorfulTheme, Confirm, Select};
+use catalog::Catalog;
+use console::Term;
+use ui::{Cancelled, Ui};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const DEFAULT_BASE_DIR: &str = "/usr/share/rakuos/bootstrap";
@@ -15,13 +16,18 @@ const DEFAULT_BASE_DIR: &str = "/usr/share/rakuos/bootstrap";
 struct Opts {
     dry_run: bool,
     first_boot: bool,
+    ascii: bool,
     catalog: Option<PathBuf>,
     base_dir: PathBuf,
 }
 
 fn main() {
     if let Err(err) = run() {
-        eprintln!("{} {err:#}", style("error:").red().bold());
+        if err.downcast_ref::<Cancelled>().is_some() {
+            println!("\nDibatalkan. Tidak ada yang diubah.");
+            std::process::exit(130);
+        }
+        eprintln!("error: {err:#}");
         std::process::exit(1);
     }
 }
@@ -33,143 +39,79 @@ fn run() -> Result<()> {
         bail!("jalankan dengan sudo: sudo rakuos-bootstrap");
     }
 
-    let catalog = Catalog::load(opts.catalog.as_deref())?;
-    banner(&opts);
+    let term = Term::stdout();
+    if !term.is_term() {
+        bail!("butuh terminal interaktif (TTY)");
+    }
 
-    let terminal = ask("Terminal", &catalog.terminals)?;
-    let browser = ask("Browser", &catalog.browsers)?;
-    let desktop = ask("Desktop", &catalog.desktops)?;
-    let file_manager = ask("File manager", &catalog.file_managers)?;
-    let login = ask("Login manager", &catalog.logins)?;
+    let catalog = Catalog::load(opts.catalog.as_deref())?;
+    let badge = if opts.dry_run {
+        Some("DRY-RUN".to_string())
+    } else if opts.first_boot {
+        Some("BOOT PERTAMA".to_string())
+    } else {
+        None
+    };
+    let ui = Ui::new(&term, opts.ascii, VERSION, badge);
+
+    // Urutan fase = urutan tampil. Ubah di sini (dan STEPS di ui.rs) kalau mau ganti.
+    let phases: [(&str, &str, &[catalog::Choice]); 5] = [
+        ("Terminal", "Tempat mengetik perintah", &catalog.terminals),
+        ("File manager", "Menjelajah file dan mount USB/HP", &catalog.file_managers),
+        ("Browser", "Untuk web; RPM lebih ringan, Flatpak lebih terisolasi", &catalog.browsers),
+        ("Login manager", "Layar masuk setelah boot", &catalog.logins),
+        ("Desktop", "Compositor Wayland; config minimal tanpa bar", &catalog.desktops),
+    ];
+
+    let mut idx = [0usize; 5];
+    let mut picked: Vec<String> = Vec::new();
+    for (i, (title, hint, choices)) in phases.iter().enumerate() {
+        idx[i] = ui.select(&term, i, title, hint, choices, &picked)?;
+        picked.push(choices[idx[i]].name.clone());
+    }
 
     let picks = install::Picks {
-        terminal: &catalog.terminals[terminal],
-        browser: &catalog.browsers[browser],
-        desktop: &catalog.desktops[desktop],
-        file_manager: &catalog.file_managers[file_manager],
-        login: &catalog.logins[login],
+        terminal: &catalog.terminals[idx[0]],
+        file_manager: &catalog.file_managers[idx[1]],
+        browser: &catalog.browsers[idx[2]],
+        login: &catalog.logins[idx[3]],
+        desktop: &catalog.desktops[idx[4]],
     };
 
-    summary(&catalog, &picks);
+    let packages: Vec<String> = install::packages(&catalog, &picks).into_iter().collect();
+    let rows = [
+        ("Terminal", picks.terminal.name.clone()),
+        ("File manager", picks.file_manager.name.clone()),
+        ("Browser", picks.browser.name.clone()),
+        ("Login", picks.login.name.clone()),
+        ("Desktop", picks.desktop.name.clone()),
+        ("User target", install::target_user()),
+    ];
 
-    let proceed = Confirm::with_theme(&theme())
-        .with_prompt("Lanjutkan instalasi?")
-        .default(true)
-        .interact()?;
-    if !proceed {
-        println!("Dibatalkan. Tidak ada yang diubah.");
+    if !ui.confirm_summary(&term, &rows, &packages, picks.browser.flatpak.as_deref())? {
+        println!("\nDibatalkan. Tidak ada yang diubah.");
         return Ok(());
     }
 
+    ui.begin_log(&term)?;
     install::apply(&catalog, &picks, opts.dry_run, &opts.base_dir)?;
 
-    println!("\n{}", style("Selesai.").green().bold());
+    println!("\n{}", ui.success("Selesai."));
     if opts.dry_run {
-        println!(
-            "{}",
-            style("(dry-run: tidak ada paket yang dipasang, tidak ada file yang ditulis)").dim()
-        );
+        println!("{}", ui.note("(dry-run: tidak ada paket yang dipasang, tidak ada file yang ditulis)"));
         return Ok(());
     }
 
     if opts.first_boot {
         println!("Sistem akan reboot untuk masuk ke desktop...");
         let _ = Command::new("systemctl").arg("reboot").status();
+    } else if ui.inline_confirm(&term, "Reboot sekarang?", true)? {
+        let _ = Command::new("systemctl").arg("reboot").status();
     } else {
-        let reboot = Confirm::with_theme(&theme())
-            .with_prompt("Reboot sekarang?")
-            .default(true)
-            .interact()?;
-        if reboot {
-            let _ = Command::new("systemctl").arg("reboot").status();
-        } else {
-            println!("Reboot nanti dengan: systemctl reboot");
-        }
+        println!("Reboot nanti dengan: systemctl reboot");
     }
 
     Ok(())
-}
-
-fn theme() -> ColorfulTheme {
-    ColorfulTheme::default()
-}
-
-fn banner(opts: &Opts) {
-    println!();
-    println!(
-        "{} {}",
-        style("RakuOS bootstrap").bold().cyan(),
-        style(format!("v{VERSION}")).dim()
-    );
-    println!(
-        "{}",
-        style("Pilih 5 hal dasar; sisanya bisa diubah kapan saja dengan `sudo rakuos-bootstrap`.").dim()
-    );
-    if opts.first_boot {
-        println!("{}", style("Mode boot pertama: wizard berjalan di tty1.").yellow());
-    }
-    if opts.dry_run {
-        println!("{}", style("Mode dry-run: hanya menampilkan rencana.").yellow());
-    }
-    println!();
-}
-
-/// Kembalikan indeks pilihan di `choices` (bukan indeks di daftar yang tampil).
-fn ask(title: &str, choices: &[Choice]) -> Result<usize> {
-    let available: Vec<usize> = choices
-        .iter()
-        .enumerate()
-        .filter(|(_, choice)| choice.available)
-        .map(|(index, _)| index)
-        .collect();
-
-    if available.is_empty() {
-        bail!("tidak ada pilihan tersedia untuk {title}");
-    }
-
-    let items: Vec<String> = available
-        .iter()
-        .map(|&index| {
-            let choice = &choices[index];
-            format!(
-                "{:<20} {}",
-                choice.name,
-                style(choice.description.as_str()).dim()
-            )
-        })
-        .collect();
-
-    let selected = Select::with_theme(&theme())
-        .with_prompt(title)
-        .items(&items)
-        .default(0)
-        .interact()?;
-
-    Ok(available[selected])
-}
-
-fn summary(catalog: &Catalog, picks: &install::Picks) {
-    let packages = install::packages(catalog, picks);
-
-    println!("\n{}", style("Ringkasan").bold());
-    println!("  {:<14}{}", "Terminal", picks.terminal.name);
-    println!("  {:<14}{}", "Browser", picks.browser.name);
-    println!("  {:<14}{}", "Desktop", picks.desktop.name);
-    println!("  {:<14}{}", "File manager", picks.file_manager.name);
-    println!("  {:<14}{}", "Login", picks.login.name);
-    println!("  {:<14}{}", "User target", install::target_user());
-
-    if let Some(app_id) = &picks.browser.flatpak {
-        println!("  {:<14}{}", "Flatpak", app_id);
-    }
-
-    println!("\n  Paket RPM ({}):", packages.len());
-    for package in &packages {
-        println!("    - {package}");
-    }
-    if picks.browser.flatpak.is_some() {
-        println!("    - (flatpak: unduhan pertama bisa ratusan MB)");
-    }
 }
 
 fn is_root() -> bool {
@@ -184,6 +126,7 @@ fn parse_args() -> Result<Opts> {
     let mut opts = Opts {
         dry_run: false,
         first_boot: false,
+        ascii: false,
         catalog: None,
         base_dir: default_base_dir(),
     };
@@ -201,6 +144,7 @@ fn parse_args() -> Result<Opts> {
             }
             "--dry-run" => opts.dry_run = true,
             "--first-boot" => opts.first_boot = true,
+            "--ascii" => opts.ascii = true,
             "--catalog" => {
                 let path = args.next().ok_or_else(|| anyhow::anyhow!("--catalog butuh path"))?;
                 opts.catalog = Some(PathBuf::from(path));
@@ -237,6 +181,7 @@ USAGE:
 OPTIONS:
     --dry-run           Tampilkan rencana, jangan ubah sistem
     --first-boot        Dipakai unit systemd saat boot pertama (auto reboot)
+    --ascii             Paksa tampilan ASCII murni (juga: RAKUOS_ASCII=1)
     --catalog <PATH>    Pakai katalog TOML lain
     --base-dir <PATH>   Lokasi katalog/skel (default: {DEFAULT_BASE_DIR})
     -h, --help          Tampilkan bantuan

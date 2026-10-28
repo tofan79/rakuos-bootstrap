@@ -10,7 +10,7 @@ ini yang membuat sistem minimal itu **bisa dipakai**.
 - Rencana lengkap + checklist eksekusi: [`PLAN.md`](PLAN.md)
 - Mockup tampilan TUI: [`ui.md`](ui.md)
 - Katalog pilihan: [`data/catalog.toml`](data/catalog.toml)
-- Binary: `rakuos-bootstrap` (Rust, TUI `dialoguer`, tanpa dependensi GUI)
+- Binary: `rakuos-bootstrap` (Rust, TUI tanpa dependensi GUI, aman di console VT)
 
 ## Kenapa bukan `rakuos-setup` / `rakuos-install-dasar`
 
