@@ -72,12 +72,11 @@ systemd: rakuos-bootstrap.service  (TTY1, root)
         │  ConditionPathExists=!/var/lib/rakuos/bootstrap.done
         ▼
 ┌──────────────────────────────────────────────┐
-│ 1. Terminal   kitty / foot / alacritty       │
-│ 2. Browser    firefox / chromium / brave      │
-│ 3. Desktop    hyprland / niri / labwc         │
-│ 4. File mgr   nautilus / dolphin / thunar     │
-│ 5. Login      greetd+tuigreet / sddm / ly /   │
-│               tanpa login manager             │
+│ 1. Terminal     (boleh >1)                    │
+│ 2. File manager (boleh >1)                    │
+│ 3. Browser      (boleh >1)                    │
+│ 4. Login        (satu)                        │
+│ 5. Desktop      (satu)                        │
 └──────────────────────────────────────────────┘
         │
         ▼
@@ -131,10 +130,12 @@ tanpa recompile.
 | desktop | `labwc` | labwc | ✅ Fedora 45 |
 | desktop | `mangowm` | — | ⏳ belum dipaketkan |
 | file manager | `dolphin` | dolphin | ✅ Fedora 45 (menarik Qt/KDE) |
+| file manager | `hyprfm` | hyprfm | ✅ repo RakuOS 45 |
 | file manager | `nautilus` | nautilus | ✅ Fedora 45 (menarik GTK4) |
 | file manager | `nemo` | nemo | ✅ Fedora 45 (menarik xapps) |
-| file manager | `pcmanfm` | pcmanfm | ✅ Fedora 45 (paling ringan) |
+| file manager | `superfile` | superfile | ✅ Terra (TUI, binary `spf`) |
 | file manager | `thunar` | Thunar, thunar-volman | ✅ Fedora 45 (nama paket berhuruf besar) |
+| file manager | `yazi` | yazi | ✅ Terra (TUI) |
 | login | `greetd-tuigreet` | greetd, tuigreet | ✅ Fedora 45 |
 | login | `sddm` | sddm | ✅ Fedora 45 |
 | login | `ly` | ly | ✅ Fedora 45 |
@@ -193,7 +194,8 @@ Repositories* di `rakuos-welcome`:
 - Sumber: `/usr/share/rakuos/bootstrap/skel/<id>/.config/...`
 - Disalin ke `$HOME` user target (`SUDO_USER`, fallback `root`), lalu
   `chown -R user:user $HOME/.config`.
-- Placeholder `@TERMINAL@` diganti dengan terminal yang dipilih.
+- Placeholder `@TERMINAL@` diganti dengan terminal pertama menurut abjad
+  dari yang dicentang (boleh lebih dari satu terminal).
 - Isi Hyprland minimal: monitor auto, `$terminal`, `exec-once` polkit agent,
   `SUPER+Return` terminal, `SUPER+D` fuzzel, `SUPER+Q` close, `SUPER+M` exit.
 - Isi niri minimal: keybind yang sama + `spawn-at-startup` polkit agent.
@@ -216,6 +218,8 @@ di sistem ter-install.
 ### 6.5 Marker & state
 
 - `/var/lib/rakuos/bootstrap.toml` — pilihan terakhir (untuk audit/re-run).
+  Kunci: `terminals`, `file_managers`, `browsers` (dipisah spasi, boleh lebih
+  dari satu), `desktop`, `login`, `repos`, `target_user`, `time`.
 - `/var/lib/rakuos/bootstrap.done` — marker selesai; unit first-boot berhenti
   ditawarkan.
 - Kalau user membatalkan: jangan tulis marker.

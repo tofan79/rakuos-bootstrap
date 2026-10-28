@@ -37,8 +37,12 @@ Teks tetap aman walau locale `C`: yang berubah hanya glyph.
 
 Warna mati otomatis kalau output di-pipe, jadi log build tetap bersih.
 
-Tombol: `↑`/`↓` atau `j`/`k` pindah, `1`–`9` loncat, `Enter` pilih, `Esc`
-batal.
+Tombol: `↑`/`↓` atau `j`/`k` pindah, `Enter` lanjut, `Esc` batal.
+
+Fase 1–3 (Terminal, File manager, Browser) memakai **pilihan berganda**:
+`Space` mencentang item di bawah kursor, `1`–`9` mencentang item nomor itu,
+dan `Enter` maju kalau minimal satu sudah tercentang. Fase 4–5 (Login,
+Desktop) tetap tunggal karena hanya satu yang bisa aktif saat boot.
 
 ## Alur
 
@@ -72,29 +76,26 @@ batal.
  │ Menghidupkan sistem minimal sampai punya GUI                       DRY-RUN │
  ╰────────────────────────────────────────────────────────────────────────────╯
 
- ● Terminal ── ○ File mgr ── ○ Browser ── ○ Login ── ○ Desktop
+ ● Terminal ── ○ File manager ── ○ Browser ── ○ Login ── ○ Desktop
 
  Fase 1 dari 5 · Terminal
  Tempat mengetik perintah
  ────────────────────────────────────────────────────────────────────────────
- ❯ Kitty                GPU-accelerated, paling umum dipakai di Hyprland
-   Foot                 Ringan, Wayland-only, cocok untuk sistem minimal
-   Alacritty            GPU-accelerated, konfigurasi YAML sederhana
-   Ghostty              (belum tersedia) Belum ada di Fedora 45 (butuh COPR…)
+   [ ] Alacritty        GPU-accelerated, konfigurasi YAML sederhana
+   [ ] Foot             Ringan, Wayland-only, cocok untuk sistem minimal
+   [ ] Ghostty          Dari repo Terra, diaktifkan otomatis saat instalasi
+ ❯ [x] Kitty            GPU-accelerated, paling umum dipakai di Hyprland
 
- ↑↓ pilih   Enter lanjut   1-9 loncat   Esc batal
+ ↑↓ pilih   Space centang   Enter lanjut   1-9 centang   Esc batal
 ```
+
+`default = true` di katalog menentukan item yang sudah tercentang saat fase
+dibuka (Kitty). Boleh mencentang lebih dari satu; `@TERMINAL@` di config
+desktop memakai terminal pertama menurut abjad.
 
 Entri `(belum tersedia)` tetap terlihat supaya user tahu pilihannya ada tapi
-belum bisa dipakai. Kalau dipilih lalu `Enter`, baris kuning muncul dan daftar
-tidak maju:
-
-```
-   Ghostty              (belum tersedia) Belum ada di Fedora 45 (butuh COPR…)
- ❯ Ghostty              (belum tersedia) Belum ada di Fedora 45 (butuh COPR…)
-
- Ghostty belum tersedia; pilih yang lain.
-```
+belum bisa dipakai. Kalau dicentang, baris kuning muncul dan daftar tidak
+maju.
 
 Di bagian bawah layar, nama pilihan sebelumnya dirangkai sebagai jejak:
 
@@ -105,16 +106,16 @@ Di bagian bawah layar, nama pilihan sebelumnya dirangkai sebagai jejak:
 ## 2. File manager
 
 ```
- ✔ Terminal ── ● File manager ── ○ Browser ── ○ Login ── ○ Desktop
-
  Fase 2 dari 5 · File manager
  Menjelajah file dan mount USB/HP
  ────────────────────────────────────────────────────────────────────────────
-   Dolphin              File manager KDE, fitur lengkap (menarik Qt/KDE stack)
- ❯ Nautilus             File manager GNOME, ringan untuk pemakaian dasar
-   Nemo                 File manager Cinnamon, GTK3, dukungan gvfs-fuse
-   PCManFM              Paling ringan (GTK3 + libfm), cocok untuk sistem mi…
-   Thunar               File manager Xfce, ringan dan cepat
+   [ ] Dolphin          File manager KDE, fitur lengkap (menarik Qt/KDE stack)
+   [ ] HyprFM           Keyboard-first untuk Hyprland, dari repo RakuOS
+ ❯ [x] Nautilus         File manager GNOME, ringan untuk pemakaian dasar
+   [ ] Nemo             File manager Cinnamon, GTK3, dukungan gvfs-fuse
+   [ ] Superfile        File manager TUI modern (binary spf), dari repo Terra
+   [ ] Thunar           File manager Xfce, ringan dan cepat
+   [ ] Yazi             File manager TUI cepat, dari repo Terra
 ```
 
 ## 3. Browser
@@ -123,9 +124,9 @@ Di bagian bawah layar, nama pilihan sebelumnya dirangkai sebagai jejak:
  Fase 3 dari 5 · Browser
  Untuk web; semua pilihan berupa RPM
  ────────────────────────────────────────────────────────────────────────────
- ❯ Firefox (RPM)        Native RPM lewat overlay, tanpa sandbox Flatpak
-   Chromium (RPM)       Native RPM, tanpa sinkronisasi akun Google
-   Brave (RPM)          Dari repo RakuOS, pemblokir iklan bawaan
+   [ ] Brave (RPM)          Dari repo RakuOS, pemblokir iklan bawaan
+   [ ] Chromium (RPM)       Native RPM, tanpa sinkronisasi akun Google
+ ❯ [x] Firefox (RPM)        Native RPM lewat overlay, tanpa sandbox Flatpak
 ```
 
 ## 4. Login manager
@@ -159,13 +160,13 @@ Di bagian bawah layar, nama pilihan sebelumnya dirangkai sebagai jejak:
 Semua langkah berubah jadi `✔`, lalu:
 
 ```
- ✔ Terminal ── ✔ File mgr ── ✔ Browser ── ✔ Login ── ✔ Desktop
+ ✔ Terminal ── ✔ File manager ── ✔ Browser ── ✔ Login ── ✔ Desktop
 
  Ringkasan
  ────────────────────────────────────────────────────────────────────────────
- Terminal       Kitty
- File manager   Nautilus
- Browser        Firefox (RPM)
+ Terminal       Alacritty, Kitty
+ File manager   Dolphin, Nautilus
+ Browser        Brave (RPM), Firefox (RPM)
  Login          greetd + tuigreet
  Desktop        Hyprland
  Repo pihak ketiga terra, rpmfusion
@@ -193,7 +194,7 @@ progress bar — output `rum`/`dnf` yang tampil apa adanya):
  │ RAKUOS bootstrap                                                    v0.1.0 │
  ╰────────────────────────────────────────────────────────────────────────────╯
 
- ✔ Terminal ── ✔ File mgr ── ✔ Browser ── ✔ Login ── ✔ Desktop
+ ✔ Terminal ── ✔ File manager ── ✔ Browser ── ✔ Login ── ✔ Desktop
 
 Memasang paket
   → rum install -y dbus-tools default-fonts firefox fuzzel ...
@@ -264,13 +265,15 @@ tanpa tanya.
  | Menghidupkan sistem minimal sampai punya GUI                       DRY-RUN |
  +----------------------------------------------------------------------------+
 
- [>] Terminal -- [ ] File mgr -- [ ] Browser -- [ ] Login -- [ ] Desktop
+ [>] Terminal -- [ ] File manager -- [ ] Browser -- [ ] Login -- [ ] Desktop
 
  Fase 1 dari 5 - Terminal
  Tempat mengetik perintah
  ----------------------------------------------------------------------------
- > Kitty                GPU-accelerated, paling umum dipakai di Hyprland
-   Foot                 Ringan, Wayland-only, cocok untuk sistem minimal
+   [ ] Alacritty        GPU-accelerated, konfigurasi YAML sederhana
+   [ ] Foot             Ringan, Wayland-only, cocok untuk sistem minimal
+   [ ] Ghostty          Dari repo Terra, diaktifkan otomatis saat instalasi
+ > [x] Kitty            GPU-accelerated, paling umum dipakai di Hyprland
 ```
 
 ### Bukan root

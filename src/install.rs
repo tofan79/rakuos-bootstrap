@@ -9,17 +9,35 @@ use console::style;
 use crate::catalog::{Catalog, Choice};
 
 pub struct Picks<'a> {
-    pub terminal: &'a Choice,
-    pub browser: &'a Choice,
+    pub terminals: Vec<&'a Choice>,
+    pub browsers: Vec<&'a Choice>,
+    pub file_managers: Vec<&'a Choice>,
     pub desktop: &'a Choice,
-    pub file_manager: &'a Choice,
     pub login: &'a Choice,
+}
+
+impl Picks<'_> {
+    /// Terminal yang dipakai untuk placeholder `@TERMINAL@` di skel:
+    /// pilihan pertama menurut abjad (daftar sudah terurut).
+    fn primary_terminal(&self) -> &str {
+        self.terminals
+            .first()
+            .map(|c| c.id.as_str())
+            .unwrap_or("foot")
+    }
 }
 
 /// Semua paket RPM: lapisan dasar + paket dari tiap pilihan.
 pub fn packages(cat: &Catalog, p: &Picks) -> BTreeSet<String> {
     let mut set: BTreeSet<String> = cat.base.iter().cloned().collect();
-    for choice in [p.terminal, p.browser, p.desktop, p.file_manager, p.login] {
+    for choice in p
+        .terminals
+        .iter()
+        .chain(&p.browsers)
+        .chain(&p.file_managers)
+        .copied()
+        .chain([p.desktop, p.login])
+    {
         set.extend(choice.packages.iter().cloned());
     }
     set
@@ -38,7 +56,7 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
     println!("\n{}", style("Menyiapkan config desktop").bold());
     install_skel(
         picks.desktop,
-        &picks.terminal.id,
+        picks.primary_terminal(),
         base_dir,
         &user,
         dry_run,
@@ -244,14 +262,17 @@ fn write_state(cat: &Catalog, picks: &Picks, user: &str, dry_run: bool) -> Resul
     let state = dir.join("bootstrap.toml");
     let done = dir.join("bootstrap.done");
 
+    let ids = |list: &[&Choice]| -> String {
+        list.iter().map(|c| c.id.as_str()).collect::<Vec<_>>().join(" ")
+    };
     let body = format!(
-        "# ditulis oleh rakuos-bootstrap\ntime = \"{}\"\ntarget_user = \"{}\"\nterminal = \"{}\"\nbrowser = \"{}\"\ndesktop = \"{}\"\nfile_manager = \"{}\"\nlogin = \"{}\"\nrepos = \"{}\"\n",
+        "# ditulis oleh rakuos-bootstrap\ntime = \"{}\"\ntarget_user = \"{}\"\nterminals = \"{}\"\nbrowsers = \"{}\"\ndesktop = \"{}\"\nfile_managers = \"{}\"\nlogin = \"{}\"\nrepos = \"{}\"\n",
         iso8601_now(),
         user,
-        picks.terminal.id,
-        picks.browser.id,
+        ids(&picks.terminals),
+        ids(&picks.browsers),
         picks.desktop.id,
-        picks.file_manager.id,
+        ids(&picks.file_managers),
         picks.login.id,
         cat.repos.join(" "),
     );

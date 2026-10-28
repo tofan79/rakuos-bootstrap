@@ -63,19 +63,38 @@ fn run() -> Result<()> {
         ("Desktop", "Compositor Wayland; config minimal tanpa bar", &catalog.desktops),
     ];
 
-    let mut idx = [0usize; 5];
+    // Tiga fase pertama boleh lebih dari satu pilihan; login dan desktop
+    // tetap tunggal karena hanya satu yang bisa aktif saat boot.
     let mut picked: Vec<String> = Vec::new();
-    for (i, (title, hint, choices)) in phases.iter().enumerate() {
-        idx[i] = ui.select(&term, i, title, hint, choices, &picked)?;
-        picked.push(choices[idx[i]].name.clone());
-    }
+
+    let terminals = ui.multi_select(&term, 0, phases[0].0, phases[0].1, &catalog.terminals, &picked)?;
+    picked.extend(terminals.iter().map(|&i| catalog.terminals[i].name.clone()));
+
+    let file_managers =
+        ui.multi_select(&term, 1, phases[1].0, phases[1].1, &catalog.file_managers, &picked)?;
+    picked.extend(file_managers.iter().map(|&i| catalog.file_managers[i].name.clone()));
+
+    let browsers = ui.multi_select(&term, 2, phases[2].0, phases[2].1, &catalog.browsers, &picked)?;
+    picked.extend(browsers.iter().map(|&i| catalog.browsers[i].name.clone()));
+
+    let login = ui.select(&term, 3, phases[3].0, phases[3].1, &catalog.logins, &picked)?;
+    picked.push(catalog.logins[login].name.clone());
+
+    let desktop = ui.select(&term, 4, phases[4].0, phases[4].1, &catalog.desktops, &picked)?;
+
+    let chosen = |list: &[catalog::Choice], idx: &[usize]| -> Vec<String> {
+        idx.iter().map(|&i| list[i].name.clone()).collect()
+    };
 
     let picks = install::Picks {
-        terminal: &catalog.terminals[idx[0]],
-        file_manager: &catalog.file_managers[idx[1]],
-        browser: &catalog.browsers[idx[2]],
-        login: &catalog.logins[idx[3]],
-        desktop: &catalog.desktops[idx[4]],
+        terminals: terminals.iter().map(|&i| &catalog.terminals[i]).collect(),
+        file_managers: file_managers
+            .iter()
+            .map(|&i| &catalog.file_managers[i])
+            .collect(),
+        browsers: browsers.iter().map(|&i| &catalog.browsers[i]).collect(),
+        login: &catalog.logins[login],
+        desktop: &catalog.desktops[desktop],
     };
 
     let packages: Vec<String> = install::packages(&catalog, &picks).into_iter().collect();
@@ -85,9 +104,12 @@ fn run() -> Result<()> {
         catalog.repos.join(", ")
     };
     let rows = [
-        ("Terminal", picks.terminal.name.clone()),
-        ("File manager", picks.file_manager.name.clone()),
-        ("Browser", picks.browser.name.clone()),
+        ("Terminal", chosen(&catalog.terminals, &terminals).join(", ")),
+        (
+            "File manager",
+            chosen(&catalog.file_managers, &file_managers).join(", "),
+        ),
+        ("Browser", chosen(&catalog.browsers, &browsers).join(", ")),
         ("Login", picks.login.name.clone()),
         ("Desktop", picks.desktop.name.clone()),
         ("Repo pihak ketiga", repos),

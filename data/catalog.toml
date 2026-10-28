@@ -127,6 +127,12 @@ description = "File manager KDE, fitur lengkap (menarik Qt/KDE stack)"
 packages = ["dolphin"]
 
 [[file_managers]]
+id = "hyprfm"
+name = "HyprFM"
+description = "Keyboard-first untuk Hyprland, dari repo RakuOS"
+packages = ["hyprfm"]
+
+[[file_managers]]
 id = "nautilus"
 name = "Nautilus"
 description = "File manager GNOME, ringan untuk pemakaian dasar"
@@ -140,16 +146,22 @@ description = "File manager Cinnamon, GTK3, dukungan gvfs-fuse"
 packages = ["nemo"]
 
 [[file_managers]]
-id = "pcmanfm"
-name = "PCManFM"
-description = "Paling ringan (GTK3 + libfm), cocok untuk sistem minimal"
-packages = ["pcmanfm"]
+id = "superfile"
+name = "Superfile"
+description = "File manager TUI modern (binary spf), dari repo Terra"
+packages = ["superfile"]
 
 [[file_managers]]
 id = "thunar"
 name = "Thunar"
 description = "File manager Xfce, ringan dan cepat"
 packages = ["Thunar", "thunar-volman"]
+
+[[file_managers]]
+id = "yazi"
+name = "Yazi"
+description = "File manager TUI cepat, dari repo Terra"
+packages = ["yazi"]
 
 # ------------------------------------------------------------------- login ---
 [[logins]]

@@ -323,6 +323,13 @@ impl Ui {
         )
     }
 
+    fn footer_multi(&self) -> String {
+        format!(
+            "{} pilih   Space centang   Enter lanjut   1-9 centang   Esc batal",
+            self.g.updown
+        )
+    }
+
     // ------------------------------------------------------------- layar ---
 
     /// Layar pilihan satu fase. Mengembalikan indeks di `choices`.
@@ -347,7 +354,8 @@ impl Ui {
         let mut msg: Option<String> = None;
 
         loop {
-            let body = self.select_body(phase, title, hint, choices, sel, picked, msg.as_deref());
+            let body =
+                self.select_body(phase, title, hint, choices, sel, picked, msg.as_deref(), None);
             let lines = self.frame(phase, body, &self.footer_select());
             self.paint(term, &lines)?;
 
@@ -379,6 +387,93 @@ impl Ui {
         }
     }
 
+    /// Layar pilihan berganda (boleh lebih dari satu). Mengembalikan indeks
+    /// yang dicentang, urut sesuai tampilan. Minimal satu harus dipilih.
+    pub fn multi_select(
+        &self,
+        term: &Term,
+        phase: usize,
+        title: &str,
+        hint: &str,
+        choices: &[Choice],
+        picked: &[String],
+    ) -> Result<Vec<usize>> {
+        if choices.iter().all(|c| !c.available) {
+            bail!("tidak ada pilihan tersedia untuk {title}");
+        }
+        let _guard = CursorGuard::hide(term);
+
+        let mut checked: Vec<bool> = choices
+            .iter()
+            .map(|c| c.available && c.default)
+            .collect();
+        if !checked.iter().any(|&b| b) {
+            if let Some(i) = choices.iter().position(|c| c.available) {
+                checked[i] = true;
+            }
+        }
+        let mut sel = checked.iter().position(|&b| b).unwrap_or(0);
+        let mut msg: Option<String> = None;
+
+        loop {
+            let body = self.select_body(
+                phase,
+                title,
+                hint,
+                choices,
+                sel,
+                picked,
+                msg.as_deref(),
+                Some(&checked),
+            );
+            let lines = self.frame(phase, body, &self.footer_multi());
+            self.paint(term, &lines)?;
+
+            match term.read_key()? {
+                Key::ArrowUp | Key::Char('k') => {
+                    sel = (sel + choices.len() - 1) % choices.len();
+                    msg = None;
+                }
+                Key::ArrowDown | Key::Char('j') | Key::Tab => {
+                    sel = (sel + 1) % choices.len();
+                    msg = None;
+                }
+                Key::Char(' ') => {
+                    if choices[sel].available {
+                        checked[sel] = !checked[sel];
+                        msg = None;
+                    } else {
+                        msg = Some(format!("{} belum tersedia.", choices[sel].name));
+                    }
+                }
+                Key::Char(c) if c.is_ascii_digit() && c != '0' => {
+                    let n = c as usize - '1' as usize;
+                    if n < choices.len() {
+                        if choices[n].available {
+                            checked[n] = !checked[n];
+                            msg = None;
+                        } else {
+                            msg = Some(format!("{} belum tersedia.", choices[n].name));
+                        }
+                    }
+                }
+                Key::Enter => {
+                    if checked.iter().any(|&b| b) {
+                        return Ok(checked
+                            .iter()
+                            .enumerate()
+                            .filter(|(_, &b)| b)
+                            .map(|(i, _)| i)
+                            .collect());
+                    }
+                    msg = Some("pilih minimal satu.".to_string());
+                }
+                Key::Escape | Key::CtrlC => return Err(Cancelled.into()),
+                _ => {}
+            }
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn select_body(
         &self,
@@ -389,6 +484,7 @@ impl Ui {
         sel: usize,
         picked: &[String],
         msg: Option<&str>,
+        checked: Option<&[bool]>,
     ) -> Vec<String> {
         let p = &self.pal;
         let mut body = Vec::new();
@@ -403,13 +499,19 @@ impl Ui {
         body.push(format!(" {}", p.dim.apply_to(self.rule(self.width - 2))));
 
         let name_w = 20;
-        let desc_w = self.width.saturating_sub(name_w + 6);
+        let mark_w = if checked.is_some() { 4 } else { 0 };
+        let desc_w = self.width.saturating_sub(name_w + 6 + mark_w);
         for (i, c) in choices.iter().enumerate() {
             let active = i == sel;
             let cursor = if active {
                 p.accent_b.apply_to(self.g.cursor).to_string()
             } else {
                 " ".repeat(measure_text_width(self.g.cursor))
+            };
+            let mark = match checked {
+                Some(ch) if ch[i] => p.ok.apply_to("[x] ").to_string(),
+                Some(_) => p.dim.apply_to("[ ] ").to_string(),
+                None => String::new(),
             };
             let (name, desc) = if !c.available {
                 (
@@ -431,7 +533,7 @@ impl Ui {
                     p.dim.apply_to(self.fit(&c.description, desc_w)).to_string(),
                 )
             };
-            body.push(format!(" {cursor} {name} {desc}"));
+            body.push(format!(" {cursor} {mark}{name} {desc}"));
         }
 
         body.push(match choices.get(sel) {
