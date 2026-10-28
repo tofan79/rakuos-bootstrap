@@ -2,6 +2,10 @@
 #
 # Menambah/mengubah pilihan cukup edit file ini; binary tidak perlu di-rebuild.
 # `available = false` menyembunyikan pilihan dari daftar (belum ada paketnya).
+# `default = true` menentukan pilihan yang disorot saat fase dibuka.
+#
+# Urutan tampilan selalu A-Z (diurutkan ulang oleh kode), jadi urutan di file
+# ini tidak menentukan urutan di layar. Tetap ditulis A-Z supaya enak dibaca.
 #
 # Semua paket di bawah sudah dicek ada di Fedora 45 atau repo RakuOS 45
 # (2026-10-26). Lihat PLAN.md bagian 5 untuk catatan verifikasi.
@@ -40,35 +44,36 @@ base = [
 
 # ---------------------------------------------------------------- terminal ---
 [[terminals]]
-id = "kitty"
-name = "Kitty"
-description = "GPU-accelerated, paling umum dipakai di Hyprland"
-packages = ["kitty"]
-
-[[terminals]]
-id = "foot"
-name = "Foot"
-description = "Ringan, Wayland-only, cocok untuk sistem minimal"
-packages = ["foot"]
-
-[[terminals]]
 id = "alacritty"
 name = "Alacritty"
 description = "GPU-accelerated, konfigurasi YAML sederhana"
 packages = ["alacritty"]
 
 [[terminals]]
+id = "foot"
+name = "Foot"
+description = "Ringan, Wayland-only, cocok untuk sistem minimal"
+packages = ["foot", "foot-terminfo"]
+
+[[terminals]]
 id = "ghostty"
 name = "Ghostty"
 description = "Dari repo Terra, diaktifkan otomatis saat instalasi"
-packages = ["ghostty"]
+packages = ["ghostty", "ghostty-terminfo", "ghostty-shell-integration"]
+
+[[terminals]]
+id = "kitty"
+name = "Kitty"
+description = "GPU-accelerated, paling umum dipakai di Hyprland"
+packages = ["kitty", "kitty-kitten", "kitty-shell-integration", "kitty-terminfo"]
+default = true
 
 # ----------------------------------------------------------------- browser ---
 [[browsers]]
-id = "firefox-rpm"
-name = "Firefox (RPM)"
-description = "Native RPM lewat overlay, tanpa sandbox Flatpak"
-packages = ["firefox"]
+id = "brave"
+name = "Brave (RPM)"
+description = "Dari repo RakuOS, pemblokir iklan bawaan"
+packages = ["brave-browser"]
 
 [[browsers]]
 id = "chromium"
@@ -77,10 +82,11 @@ description = "Native RPM, tanpa sinkronisasi akun Google"
 packages = ["chromium"]
 
 [[browsers]]
-id = "brave"
-name = "Brave (RPM)"
-description = "Dari repo RakuOS, pemblokir iklan bawaan"
-packages = ["brave-browser"]
+id = "firefox-rpm"
+name = "Firefox (RPM)"
+description = "Native RPM lewat overlay, tanpa sandbox Flatpak"
+packages = ["firefox"]
+default = true
 
 # ----------------------------------------------------------------- desktop ---
 [[desktops]]
@@ -90,14 +96,7 @@ description = "Tiling dinamis, config minimal tanpa bar"
 packages = ["hyprland", "hyprland-uwsm", "xdg-desktop-portal-hyprland"]
 skel = "hyprland"
 autologin_cmd = "Hyprland"
-
-[[desktops]]
-id = "niri"
-name = "Niri"
-description = "Scrollable tiling, config minimal tanpa bar"
-packages = ["niri"]
-skel = "niri"
-autologin_cmd = "niri-session"
+default = true
 
 [[desktops]]
 id = "labwc"
@@ -112,18 +111,27 @@ name = "MangoWM"
 description = "Belum dipaketkan untuk Fedora/RakuOS"
 available = false
 
-# ------------------------------------------------------------ file manager ---
-[[file_managers]]
-id = "nautilus"
-name = "Nautilus"
-description = "File manager GNOME, ringan untuk pemakaian dasar"
-packages = ["nautilus"]
+[[desktops]]
+id = "niri"
+name = "Niri"
+description = "Scrollable tiling, config minimal tanpa bar"
+packages = ["niri"]
+skel = "niri"
+autologin_cmd = "niri-session"
 
+# ------------------------------------------------------------ file manager ---
 [[file_managers]]
 id = "dolphin"
 name = "Dolphin"
 description = "File manager KDE, fitur lengkap (menarik Qt/KDE stack)"
 packages = ["dolphin"]
+
+[[file_managers]]
+id = "nautilus"
+name = "Nautilus"
+description = "File manager GNOME, ringan untuk pemakaian dasar"
+packages = ["nautilus"]
+default = true
 
 [[file_managers]]
 id = "thunar"
@@ -138,13 +146,7 @@ name = "greetd + tuigreet"
 description = "Greeter TUI paling ringan, cocok untuk Wayland minimal"
 packages = ["greetd", "tuigreet"]
 unit = "greetd.service"
-
-[[logins]]
-id = "sddm"
-name = "SDDM"
-description = "Display manager grafis, paling familiar"
-packages = ["sddm"]
-unit = "sddm.service"
+default = true
 
 [[logins]]
 id = "ly"
@@ -152,6 +154,13 @@ name = "Ly"
 description = "Display manager TUI, ringan"
 packages = ["ly"]
 unit = "ly.service"
+
+[[logins]]
+id = "sddm"
+name = "SDDM"
+description = "Display manager grafis, paling familiar"
+packages = ["sddm"]
+unit = "sddm.service"
 
 [[logins]]
 id = "none"

@@ -339,7 +339,11 @@ impl Ui {
             bail!("tidak ada pilihan tersedia untuk {title}");
         }
         let _guard = CursorGuard::hide(term);
-        let mut sel = choices.iter().position(|c| c.available).unwrap_or(0);
+        let mut sel = choices
+            .iter()
+            .position(|c| c.available && c.default)
+            .or_else(|| choices.iter().position(|c| c.available))
+            .unwrap_or(0);
         let mut msg: Option<String> = None;
 
         loop {
