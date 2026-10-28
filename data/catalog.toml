@@ -156,7 +156,8 @@ autologin_cmd = "start-kineticwe"
 id = "mangowm"
 name = "MangoWM"
 description = "Tiling ringan berbasis dwl (wlroots)"
-packages = ["mangowm", "scenefx", "wlroots", "xorg-x11-server-Xwayland", "xdg-desktop-portal-wlr"]
+packages = ["fuzzel", "lxpolkit", "mangowm", "scenefx", "slurp", "wlroots", "xcb-util-wm", "xdg-desktop-portal-wlr"]
+skel = "mango"
 autologin_cmd = "mango"
 
 [[desktops]]

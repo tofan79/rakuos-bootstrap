@@ -146,13 +146,18 @@ bersama desktop KineticWE.
 |---|---|---|---|
 | Hyprland | Tiling dinamis, config minimal tanpa bar | `hyprland`, `hyprland-guiutils`, `hyprland-uwsm`, `xdg-desktop-portal-hyprland`, `hyprland-preview-share-picker` | ✅ |
 | KineticWE | Tiling berbasis KWin, shell Noctalia | `kineticwe-git` | |
-| MangoWM | Tiling ringan berbasis dwl (wlroots) | `mangowm`, `scenefx`, `wlroots`, `xorg-x11-server-Xwayland`, `xdg-desktop-portal-wlr` | |
+| MangoWM | Tiling ringan berbasis dwl (wlroots) | `mangowm`, `scenefx`, `wlroots`, `xcb-util-wm`, `xdg-desktop-portal-wlr`, `fuzzel`, `lxpolkit`, `slurp` | |
 | Niri | Scrollable tiling, config minimal tanpa bar | `niri`, `xdg-desktop-portal-gnome` | |
 
 `kineticwe-git` sudah `Requires` versi yang sama dari `kineticwe-noctalia` dan
 `xdg-desktop-portal-kwe`, jadi cukup satu paket. `hyprland-uwsm` menarik
 `uwsm`; `xdg-desktop-portal-hyprland` menarik `grim`, `slurp`, dan
 `qt6-qtwayland`.
+
+MangoWM memakai skel `data/skel/mango` (config TOML). `fuzzel` dipakai sebagai
+launcher, `lxpolkit` dijalankan lewat `exec_once`, dan `slurp` melengkapi
+screenshot interaktif dari `xdg-desktop-portal-wlr`. XWayland tidak diulang
+karena sudah ada di base image.
 
 ### Lapisan dasar
 

@@ -1,0 +1,69 @@
+# Config minimal dari rakuos-bootstrap.
+# Tanpa bar: desktop pure, keybind dasar supaya langsung bisa dipakai.
+# File ini milik user; aman diedit/dihapus.
+
+[global]
+tag_num = 9
+xkb_rules_layout = "us"
+
+gap_inner_horizontal = 5
+gap_inner_vertical = 5
+gap_outer_horizontal = 10
+gap_outer_vertical = 10
+border_px = 2
+border_radius = 6
+root_color = 0x1e1e2eff
+border_color = 0x313244ff
+focus_color = 0x89b4faff
+urgent_color = 0xf38ba8ff
+
+# Agen polkit supaya dialog izin muncul (paket lxpolkit).
+exec_once = ["lxpolkit"]
+
+[bind.default]
+"SUPER+Return" = "spawn,@TERMINAL@"
+"SUPER+d" = "spawn,fuzzel"
+"SUPER+r" = "reload_config"
+"SUPER+q" = "killclient,"
+"SUPER+Shift+e" = "quit"
+"SUPER+f" = "togglefullscreen,"
+"ALT+backslash" = "togglefloating,"
+"SUPER+n" = "switch_layout"
+
+"SUPER+Tab" = "focusstack,next"
+"SUPER+Shift+Tab" = "focusstack,prev"
+"ALT+Left" = "focusdir,left"
+"ALT+Right" = "focusdir,right"
+"ALT+Up" = "focusdir,up"
+"ALT+Down" = "focusdir,down"
+
+"SUPER+Shift+Left" = "move_client,left"
+"SUPER+Shift+Right" = "move_client,right"
+"SUPER+Shift+Up" = "move_client,up"
+"SUPER+Shift+Down" = "move_client,down"
+
+# Tag: Ctrl+1..9 melihat tag, Alt+1..9 memindahkan window.
+"Ctrl+1" = "view,1,0"
+"Ctrl+2" = "view,2,0"
+"Ctrl+3" = "view,3,0"
+"Ctrl+4" = "view,4,0"
+"Ctrl+5" = "view,5,0"
+"Ctrl+6" = "view,6,0"
+"Ctrl+7" = "view,7,0"
+"Ctrl+8" = "view,8,0"
+"Ctrl+9" = "view,9,0"
+
+"Alt+1" = "tag,1,0"
+"Alt+2" = "tag,2,0"
+"Alt+3" = "tag,3,0"
+"Alt+4" = "tag,4,0"
+"Alt+5" = "tag,5,0"
+"Alt+6" = "tag,6,0"
+"Alt+7" = "tag,7,0"
+"Alt+8" = "tag,8,0"
+"Alt+9" = "tag,9,0"
+
+[mousebind.default]
+"SUPER+btn_left" = "moveresize,curmove"
+"btn_middle" = "togglemaximizescreen,0"
+"SUPER+btn_right" = "moveresize,curresize"
