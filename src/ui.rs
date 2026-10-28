@@ -64,6 +64,8 @@ struct Glyphs {
     dot: &'static str,
     ellipsis: &'static str,
     updown: &'static str,
+    up: &'static str,
+    down: &'static str,
 }
 
 impl Glyphs {
@@ -72,17 +74,17 @@ impl Glyphs {
             Charset::Full => Glyphs {
                 tl: "╭", tr: "╮", bl: "╰", br: "╯", h: "─", v: "│",
                 cursor: "❯", done: "✔", current: "●", todo: "○",
-                link: "──", dot: "·", ellipsis: "…", updown: "↑↓",
+                link: "──", dot: "·", ellipsis: "…", updown: "↑↓", up: "↑", down: "↓",
             },
             Charset::Tty => Glyphs {
                 tl: "┌", tr: "┐", bl: "└", br: "┘", h: "─", v: "│",
                 cursor: ">", done: "[x]", current: "[>]", todo: "[ ]",
-                link: "──", dot: "·", ellipsis: "...", updown: "↑↓",
+                link: "──", dot: "·", ellipsis: "...", updown: "↑↓", up: "↑", down: "↓",
             },
             Charset::Ascii => Glyphs {
                 tl: "+", tr: "+", bl: "+", br: "+", h: "-", v: "|",
                 cursor: ">", done: "[x]", current: "[>]", todo: "[ ]",
-                link: "--", dot: "-", ellipsis: "...", updown: "Up/Down",
+                link: "--", dot: "-", ellipsis: "...", updown: "Up/Down", up: "^", down: "v",
             },
         }
     }
@@ -150,6 +152,7 @@ pub struct Ui {
     pal: Palette,
     g: Glyphs,
     width: usize,
+    height: usize,
     version: String,
     badge: Option<String>,
 }
@@ -183,13 +186,15 @@ impl Ui {
 
         // Console VT umumnya 80x25. Ambil lebar nyata, tapi jangan melebar
         // lebih dari 78 supaya tetap enak dibaca di terminal lebar.
-        let (_, cols) = term.size();
+        let (rows, cols) = term.size();
         let width = (cols as usize).saturating_sub(2).clamp(40, 78);
+        let height = (rows as usize).max(12);
 
         Ui {
             pal: Palette::for_level(color),
             g: Glyphs::for_charset(charset),
             width,
+            height,
             version: version.to_string(),
             badge,
         }
@@ -501,7 +506,22 @@ impl Ui {
         let name_w = 20;
         let mark_w = if checked.is_some() { 4 } else { 0 };
         let desc_w = self.width.saturating_sub(name_w + 6 + mark_w);
-        for (i, c) in choices.iter().enumerate() {
+
+        // Jendela daftar: sisakan ruang untuk header, stepper, jejak, dan
+        // footer, supaya layar 80x25 tidak menggulung saat pilihan banyak.
+        let max_items = self.height.saturating_sub(15).max(3);
+        let mut start = 0usize;
+        let mut end = choices.len();
+        if choices.len() > max_items {
+            start = sel.saturating_sub(max_items / 2);
+            if start + max_items > choices.len() {
+                start = choices.len() - max_items;
+            }
+            end = start + max_items;
+        }
+
+        for i in start..end {
+            let c = &choices[i];
             let active = i == sel;
             let cursor = if active {
                 p.accent_b.apply_to(self.g.cursor).to_string()
@@ -542,11 +562,22 @@ impl Ui {
             }
             _ => String::new(),
         });
+        let mut trail_parts: Vec<String> = Vec::new();
+        if start > 0 {
+            trail_parts.push(format!("{}{} lagi", self.g.up, start));
+        }
+        if end < choices.len() {
+            trail_parts.push(format!("{}{} lagi", self.g.down, choices.len() - end));
+        }
+        if !picked.is_empty() {
+            trail_parts.push(picked.join(&format!("  {}  ", self.g.dot)));
+        }
+
         body.push(match msg {
             Some(m) => format!(" {}", p.warn.apply_to(m)),
-            None if !picked.is_empty() => format!(
+            None if !trail_parts.is_empty() => format!(
                 " {}",
-                p.dim.apply_to(self.fit(&picked.join(&format!("  {}  ", self.g.dot)), self.width - 2))
+                p.dim.apply_to(self.fit(&trail_parts.join(&format!("  {}  ", self.g.dot)), self.width - 2))
             ),
             None => String::new(),
         });

@@ -122,9 +122,18 @@ tanpa recompile.
 | terminal | `foot` | foot | ✅ Fedora 45 |
 | terminal | `alacritty` | alacritty | ✅ Fedora 45 |
 | terminal | `ghostty` | ghostty | ✅ repo Terra (diaktifkan otomatis) |
-| browser | `firefox-rpm` | firefox | ✅ Fedora 45 |
-| browser | `chromium` | chromium | ✅ Fedora 45 |
 | browser | `brave` | brave-browser | ✅ repo RakuOS 45 |
+| browser | `chromium` | chromium | ✅ Fedora 45 |
+| browser | `epiphany` | epiphany | ✅ Fedora 45 (WebKitGTK, paling ringan) |
+| browser | `falkon` | falkon | ✅ Fedora 45 |
+| browser | `firefox` | firefox | ✅ Fedora 45 |
+| browser | `google-chrome` | google-chrome-stable | ✅ repo RakuOS 45 |
+| browser | `librewolf` | librewolf | ✅ repo RakuOS 45 |
+| browser | `microsoft-edge` | microsoft-edge-stable | ✅ repo RakuOS 45 |
+| browser | `qutebrowser` | qutebrowser | ✅ Fedora 45 |
+| browser | `vivaldi` | vivaldi-stable | ✅ repo RakuOS 45 |
+| browser | `waterfox` | waterfox | ✅ repo RakuOS 45 |
+| browser | `zen-browser` | zen-browser | ✅ Terra |
 | desktop | `hyprland` | hyprland, hyprland-uwsm, xdg-desktop-portal-hyprland | ✅ repo RakuOS 45 |
 | desktop | `niri` | niri | ✅ Fedora 45 |
 | desktop | `labwc` | labwc | ✅ Fedora 45 |

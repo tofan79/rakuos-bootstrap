@@ -122,12 +122,24 @@ Di bagian bawah layar, nama pilihan sebelumnya dirangkai sebagai jejak:
 
 ```
  Fase 3 dari 5 · Browser
- Untuk web; semua pilihan berupa RPM
+ Pilih satu atau lebih; semuanya paket RPM
  ────────────────────────────────────────────────────────────────────────────
-   [ ] Brave (RPM)          Dari repo RakuOS, pemblokir iklan bawaan
-   [ ] Chromium (RPM)       Native RPM, tanpa sinkronisasi akun Google
- ❯ [x] Firefox (RPM)        Native RPM lewat overlay, tanpa sandbox Flatpak
+   [ ] Brave                Chromium dengan pemblokir iklan bawaan
+   [ ] Chromium             Open source, tanpa sinkronisasi akun Google
+   [ ] Epiphany             GNOME Web (WebKitGTK), paling ringan
+   [ ] Falkon               Qt/Chromium ringan, cocok sistem minimal
+ ❯ [x] Firefox              Default, cepat, dan paling kompatibel
+   [ ] Google Chrome        Proprietary, sinkronisasi akun Google
+   [ ] LibreWolf            Firefox tanpa telemetri, fokus privasi
+   [ ] Microsoft Edge       Chromium Microsoft, paket paling besar
+   [ ] QuteBrowser          Keyboard-only, Qt/Python
+   [ ] Vivaldi              Fitur banyak, proprietary
+ ↓2 lagi
 ```
+
+Kalau daftar lebih panjang dari tinggi layar, hanya sebagian yang tampil dan
+baris jejak menampilkan `↑N lagi` / `↓N lagi`. Di layar 80x25 muat 10 baris;
+di terminal tinggi semua pilihan tampil sekaligus.
 
 ## 4. Login manager
 
@@ -166,7 +178,7 @@ Semua langkah berubah jadi `✔`, lalu:
  ────────────────────────────────────────────────────────────────────────────
  Terminal       Alacritty, Kitty
  File manager   Dolphin, Nautilus
- Browser        Brave (RPM), Firefox (RPM)
+ Browser        Brave, Firefox
  Login          greetd + tuigreet
  Desktop        Hyprland
  Repo pihak ketiga terra, rpmfusion

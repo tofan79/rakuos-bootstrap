@@ -71,22 +71,76 @@ default = true
 # ----------------------------------------------------------------- browser ---
 [[browsers]]
 id = "brave"
-name = "Brave (RPM)"
-description = "Dari repo RakuOS, pemblokir iklan bawaan"
+name = "Brave"
+description = "Chromium dengan pemblokir iklan bawaan"
 packages = ["brave-browser"]
 
 [[browsers]]
 id = "chromium"
-name = "Chromium (RPM)"
-description = "Native RPM, tanpa sinkronisasi akun Google"
+name = "Chromium"
+description = "Open source, tanpa sinkronisasi akun Google"
 packages = ["chromium"]
 
 [[browsers]]
-id = "firefox-rpm"
-name = "Firefox (RPM)"
-description = "Native RPM lewat overlay, tanpa sandbox Flatpak"
+id = "epiphany"
+name = "Epiphany"
+description = "GNOME Web (WebKitGTK), paling ringan"
+packages = ["epiphany"]
+
+[[browsers]]
+id = "falkon"
+name = "Falkon"
+description = "Qt/Chromium ringan, cocok sistem minimal"
+packages = ["falkon"]
+
+[[browsers]]
+id = "firefox"
+name = "Firefox"
+description = "Default, cepat, dan paling kompatibel"
 packages = ["firefox"]
 default = true
+
+[[browsers]]
+id = "google-chrome"
+name = "Google Chrome"
+description = "Proprietary, sinkronisasi akun Google"
+packages = ["google-chrome-stable"]
+
+[[browsers]]
+id = "librewolf"
+name = "LibreWolf"
+description = "Firefox tanpa telemetri, fokus privasi"
+packages = ["librewolf"]
+
+[[browsers]]
+id = "microsoft-edge"
+name = "Microsoft Edge"
+description = "Chromium Microsoft, paket paling besar"
+packages = ["microsoft-edge-stable"]
+
+[[browsers]]
+id = "qutebrowser"
+name = "QuteBrowser"
+description = "Keyboard-only, Qt/Python"
+packages = ["qutebrowser"]
+
+[[browsers]]
+id = "vivaldi"
+name = "Vivaldi"
+description = "Fitur banyak, proprietary"
+packages = ["vivaldi-stable"]
+
+[[browsers]]
+id = "waterfox"
+name = "Waterfox"
+description = "Firefox fork, fokus privasi"
+packages = ["waterfox"]
+
+[[browsers]]
+id = "zen-browser"
+name = "Zen Browser"
+description = "Firefox fork, vertical tabs, dari Terra"
+packages = ["zen-browser"]
 
 # ----------------------------------------------------------------- desktop ---
 [[desktops]]

@@ -101,13 +101,22 @@ besar.
 
 ### Browser
 
-| Nama | Deskripsi | Paket | Repo | Default |
-|---|---|---|---|---|
-| Brave (RPM) | Dari repo RakuOS, pemblokir iklan bawaan | `brave-browser` | RakuOS | |
-| Chromium (RPM) | Native RPM, tanpa sinkronisasi akun Google | `chromium` | Fedora | |
-| Firefox (RPM) | Native RPM lewat overlay, tanpa sandbox Flatpak | `firefox` | Fedora | ✅ |
+| Nama | Deskripsi | Paket | Repo | Ukuran | Default |
+|---|---|---|---|---|---|
+| Brave | Chromium dengan pemblokir iklan bawaan | `brave-browser` | RakuOS | 499 MB | |
+| Chromium | Open source, tanpa sinkronisasi akun Google | `chromium` | Fedora | 374 MB | |
+| Epiphany | GNOME Web (WebKitGTK), paling ringan | `epiphany` | Fedora | 11,5 MB | |
+| Falkon | Qt/Chromium ringan, cocok sistem minimal | `falkon` | Fedora | 14,5 MB | |
+| Firefox | Default, cepat, dan paling kompatibel | `firefox` | Fedora | 307 MB | ✅ |
+| Google Chrome | Proprietary, sinkronisasi akun Google | `google-chrome-stable` | RakuOS | 466 MB | |
+| LibreWolf | Firefox tanpa telemetri, fokus privasi | `librewolf` | RakuOS | 485 MB | |
+| Microsoft Edge | Chromium Microsoft, paket paling besar | `microsoft-edge-stable` | RakuOS | 704 MB | |
+| QuteBrowser | Keyboard-only, Qt/Python | `qutebrowser` | Fedora | 11 MB | |
+| Vivaldi | Fitur banyak, proprietary | `vivaldi-stable` | RakuOS | 476 MB | |
+| Waterfox | Firefox fork, fokus privasi | `waterfox` | RakuOS | 512 MB | |
+| Zen Browser | Firefox fork, vertical tabs, dari Terra | `zen-browser` | Terra | 305 MB | |
 
-Kategori ini sedang ditinjau; jumlah dan isinya bisa berubah.
+Boleh centang lebih dari satu. Ukuran = paket utamanya saja.
 
 ### Login manager
 

@@ -58,7 +58,7 @@ fn run() -> Result<()> {
     let phases: [(&str, &str, &[catalog::Choice]); 5] = [
         ("Terminal", "Tempat mengetik perintah", &catalog.terminals),
         ("File manager", "Menjelajah file dan mount USB/HP", &catalog.file_managers),
-        ("Browser", "Untuk web; semua pilihan berupa RPM", &catalog.browsers),
+        ("Browser", "Pilih satu atau lebih; semuanya paket RPM", &catalog.browsers),
         ("Login manager", "Layar masuk setelah boot", &catalog.logins),
         ("Desktop", "Compositor Wayland; config minimal tanpa bar", &catalog.desktops),
     ];
