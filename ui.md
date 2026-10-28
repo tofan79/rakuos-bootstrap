@@ -53,7 +53,6 @@ batal.
                 tidak            ya
                    │              ▼
                    │       rum install (overlay)
-                   │       flatpak install (opsional)
                    │       salin skel ke ~/.config
                    │       enable login / autologin
                    │       tulis bootstrap.toml + .done
@@ -120,10 +119,9 @@ Di bagian bawah layar, nama pilihan sebelumnya dirangkai sebagai jejak:
 
 ```
  Fase 3 dari 5 · Browser
- Untuk web; RPM lebih ringan, Flatpak lebih terisolasi
+ Untuk web; semua pilihan berupa RPM
  ────────────────────────────────────────────────────────────────────────────
- ❯ Firefox (RPM)        Native RPM lewat overlay, tanpa Flatpak
-   Firefox (Flatpak)    Terisolasi, update otomatis, unduhan pertama besar
+ ❯ Firefox (RPM)        Native RPM lewat overlay, tanpa sandbox Flatpak
    Chromium (RPM)       Native RPM, tanpa sinkronisasi akun Google
    Brave (RPM)          Dari repo RakuOS, pemblokir iklan bawaan
 ```
@@ -178,12 +176,7 @@ Semua langkah berubah jadi `✔`, lalu:
  Y/Enter lanjut   n/Esc batal   Ctrl-C keluar
 ```
 
-Daftar paket dipadatkan: maksimal 2 baris, sisanya `… +N lainnya`. Kalau
-browser Flatpak dipilih, muncul satu baris peringatan tambahan:
-
-```
- Flatpak: unduhan pertama bisa ratusan MB.
-```
+Daftar paket dipadatkan: maksimal 2 baris, sisanya `… +N lainnya`.
 
 `n` atau `Esc` → keluar tanpa mengubah apa pun.
 

@@ -16,9 +16,6 @@ pub struct Choice {
     /// Paket RPM yang dipasang lewat `rum`.
     #[serde(default)]
     pub packages: Vec<String>,
-    /// Kalau diisi, pilihan ini dipasang lewat Flatpak (bukan RPM).
-    #[serde(default)]
-    pub flatpak: Option<String>,
     /// `false` = disembunyikan dari daftar (belum tersedia di repo).
     #[serde(default = "default_true")]
     pub available: bool,

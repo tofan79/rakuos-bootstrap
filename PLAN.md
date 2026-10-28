@@ -27,7 +27,7 @@ kapan saja dengan `sudo rakuos-bootstrap`.
 | Bahasa | Rust | konsisten dengan `rakuos-installer` (backend yang sama), satu binary statis, tanpa runtime script |
 | TUI | modul `ui` sendiri di atas `console` | tidak butuh `dialoguer`; mendeteksi UTF-8/console VT/ASCII dan warna 256/16/none, jadi tetap rapi di `TERM=linux` |
 | Model instalasi | `rum` (overlay) | tidak rebase, tidak ubah base image, persisten setelah update |
-| Browser | RPM **atau** Flatpak (user pilih) | Flatpak lebih aman untuk app yang update cepat; RPM lebih ringan |
+| Browser | RPM saja | semua browser yang dipakai sudah tersedia sebagai RPM (Fedora/RakuOS), jadi tidak perlu Flatpak |
 | Desktop "pure" | compositor + config minimal | tanpa paket meta/app bawaan; tapi tetap diberi keybind dasar supaya tidak terlihat rusak |
 | Lokasi kode | `/var/home/mindset/Projects/rakuos-bootstrap/` | repo terpisah dulu; RPM menyusul di `Mindset-Apps` |
 
@@ -72,19 +72,17 @@ systemd: rakuos-bootstrap.service  (TTY1, root)
         ▼
 ┌──────────────────────────────────────────────┐
 │ 1. Terminal   kitty / foot / alacritty       │
-│ 2. Browser    firefox(rpm) / firefox(flatpak)│
-│               / chromium / brave             │
-│ 3. Desktop    hyprland / niri / labwc        │
-│ 4. File mgr   nautilus / dolphin / thunar    │
-│ 5. Login      greetd+tuigreet / sddm / ly /  │
-│               tanpa login manager            │
+│ 2. Browser    firefox / chromium / brave      │
+│ 3. Desktop    hyprland / niri / labwc         │
+│ 4. File mgr   nautilus / dolphin / thunar     │
+│ 5. Login      greetd+tuigreet / sddm / ly /   │
+│               tanpa login manager             │
 └──────────────────────────────────────────────┘
         │
         ▼
 ringkasan → konfirmasi → install
         │
         ├─ rum install <base + pilihan>
-        ├─ flatpak install (kalau browser flatpak)
         ├─ salin skel desktop ke ~/.config (chown ke user)
         ├─ enable greeter / siapkan autologin
         ├─ tulis /var/lib/rakuos/bootstrap.toml + .done
@@ -125,7 +123,6 @@ tanpa recompile.
 | terminal | `alacritty` | alacritty | ✅ Fedora 45 |
 | terminal | `ghostty` | — | ❌ tidak ada di Fedora 45 |
 | browser | `firefox-rpm` | firefox | ✅ Fedora 45 |
-| browser | `firefox-flatpak` | flatpak `org.mozilla.firefox` | ✅ Flathub |
 | browser | `chromium` | chromium | ✅ Fedora 45 |
 | browser | `brave` | brave-browser | ✅ repo RakuOS 45 |
 | desktop | `hyprland` | hyprland, hyprland-uwsm, xdg-desktop-portal-hyprland | ✅ repo RakuOS 45 |
@@ -160,15 +157,6 @@ Catatan verifikasi: dicek dengan `dnf repoquery --available` di container
   tapi eksplisit `rum` lebih jelas di log.
 - Kalau `rum` tidak ada (uji di distro lain), fallback ke `dnf`, tapi tulis
   peringatan bahwa overlay tidak aktif.
-
-### 6.2 Browser Flatpak
-
-```
-flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-flatpak install -y flathub org.mozilla.firefox
-```
-RakuOS base sudah membawa `flatpak` (dependency `rakuos-core`). Kalau tidak,
-pasang `flatpak` lebih dulu.
 
 ### 6.3 Config minimal (skel)
 
@@ -214,7 +202,7 @@ rakuos-bootstrap/
 ├── src/
 │   ├── main.rs                  <- argumen, langkah TUI, ringkasan
 │   ├── catalog.rs               <- struct + loader catalog.toml
-│   └── install.rs               <- rum/flatpak, skel, login, marker
+│   └── install.rs               <- rum, skel, login, marker
 ├── data/
 │   ├── catalog.toml
 │   ├── rakuos-bootstrap.service
@@ -306,7 +294,7 @@ sistem.
 | hyprland + greetd | masuk GUI, terminal keybind jalan, polkit prompt muncul |
 | niri + greetd | sama |
 | login `none` | autologin ke desktop tanpa layar login |
-| browser flatpak | firefox terpasang dan jalan |
+| browser RPM | firefox terpasang dan jalan |
 | batalkan di ringkasan | tidak ada `.done`, tidak ada paket terpasang |
 | jalankan ulang | pilihan lama muncul sebagai default |
 
@@ -319,7 +307,6 @@ sistem.
 | Overlay `rum` menolak paket yang sudah ada di base | deteksi output, jangan anggap gagal; log jelas |
 | `xdg-desktop-portal-hyprland` hanya ada di repo RakuOS | pastikan repo RakuOS aktif (sudah default di image) |
 | Config minimal tidak cocok versi Hyprland/niri | uji di image staging terbaru; config hanya keybind dasar |
-| Flatpak pertama kali besar | beri estimasi unduhan di ringkasan |
 | Wizard jalan sebagai root, file user jadi milik root | `chown -R` setelah salin skel |
 | Boot ke TTY tapi user tidak tahu harus apa | marker `.done` + pesan "jalankan sudo rakuos-bootstrap" di `/etc/motd` |
 

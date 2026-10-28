@@ -58,7 +58,7 @@ fn run() -> Result<()> {
     let phases: [(&str, &str, &[catalog::Choice]); 5] = [
         ("Terminal", "Tempat mengetik perintah", &catalog.terminals),
         ("File manager", "Menjelajah file dan mount USB/HP", &catalog.file_managers),
-        ("Browser", "Untuk web; RPM lebih ringan, Flatpak lebih terisolasi", &catalog.browsers),
+        ("Browser", "Untuk web; semua pilihan berupa RPM", &catalog.browsers),
         ("Login manager", "Layar masuk setelah boot", &catalog.logins),
         ("Desktop", "Compositor Wayland; config minimal tanpa bar", &catalog.desktops),
     ];
@@ -88,7 +88,7 @@ fn run() -> Result<()> {
         ("User target", install::target_user()),
     ];
 
-    if !ui.confirm_summary(&term, &rows, &packages, picks.browser.flatpak.as_deref())? {
+    if !ui.confirm_summary(&term, &rows, &packages)? {
         println!("\nDibatalkan. Tidak ada yang diubah.");
         return Ok(());
     }

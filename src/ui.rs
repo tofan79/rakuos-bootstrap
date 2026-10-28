@@ -453,7 +453,6 @@ impl Ui {
         term: &Term,
         rows: &[(&str, String)],
         packages: &[String],
-        flatpak: Option<&str>,
     ) -> Result<bool> {
         let _guard = CursorGuard::hide(term);
         let p = &self.pal;
@@ -471,10 +470,6 @@ impl Ui {
         for line in self.wrap_list(packages, self.width - 4, 2) {
             body.push(format!("   {}", p.dim.apply_to(line)));
         }
-        body.push(match flatpak {
-            Some(_) => format!(" {}", p.warn.apply_to("Flatpak: unduhan pertama bisa ratusan MB.")),
-            None => String::new(),
-        });
         body.push(format!(
             " {} {}",
             p.accent_b.apply_to("?"),

@@ -32,11 +32,6 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
     println!("\n{}", style("Memasang paket").bold());
     install_packages(&pkgs, dry_run)?;
 
-    if let Some(app_id) = &picks.browser.flatpak {
-        println!("\n{}", style("Memasang Flatpak").bold());
-        install_flatpak(app_id, dry_run)?;
-    }
-
     println!("\n{}", style("Menyiapkan config desktop").bold());
     install_skel(
         picks.desktop,
@@ -75,23 +70,6 @@ fn install_packages(pkgs: &BTreeSet<String>, dry_run: bool) -> Result<()> {
     run(pm, &args, dry_run)
 }
 
-fn install_flatpak(app_id: &str, dry_run: bool) -> Result<()> {
-    run(
-        "flatpak",
-        &[
-            "remote-add".into(),
-            "--if-not-exists".into(),
-            "flathub".into(),
-            "https://dl.flathub.org/repo/flathub.flatpakrepo".into(),
-        ],
-        dry_run,
-    )?;
-    run(
-        "flatpak",
-        &["install".into(), "-y".into(), "flathub".into(), app_id.into()],
-        dry_run,
-    )
-}
 
 fn install_skel(
     desktop: &Choice,

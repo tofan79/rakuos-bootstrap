@@ -56,14 +56,8 @@ available = false
 [[browsers]]
 id = "firefox-rpm"
 name = "Firefox (RPM)"
-description = "Native RPM lewat overlay, tanpa Flatpak"
+description = "Native RPM lewat overlay, tanpa sandbox Flatpak"
 packages = ["firefox"]
-
-[[browsers]]
-id = "firefox-flatpak"
-name = "Firefox (Flatpak)"
-description = "Terisolasi, update otomatis, unduhan pertama besar"
-flatpak = "org.mozilla.firefox"
 
 [[browsers]]
 id = "chromium"
