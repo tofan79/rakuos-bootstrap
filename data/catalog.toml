@@ -169,7 +169,7 @@ autologin_cmd = "mango"
 id = "niri"
 name = "Niri"
 description = "Scrollable tiling, config minimal tanpa bar"
-packages = ["niri", "xdg-desktop-portal-gnome"]
+packages = ["niri"]
 skel = "niri"
 autologin_cmd = "niri-session"
 

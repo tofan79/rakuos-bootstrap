@@ -18,12 +18,27 @@ layout {
 }
 
 spawn-at-startup "dbus-update-activation-environment" "--systemd" "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP"
-spawn-at-startup "lxpolkit"
 
 binds {
+    // Ganti "fuzzel" ke perintah launcher shell (Noctalia/DMS) kalau perlu.
     Mod+Return { spawn "@TERMINAL@"; }
     Mod+D { spawn "fuzzel"; }
+    Mod+B { spawn "@BROWSER@"; }
+    Mod+E { spawn "@FILEMANAGER@"; }
+
     Mod+Q { close-window; }
     Mod+F { fullscreen-window; }
     Mod+Shift+E { quit; }
+
+    // Fokus kolom/window.
+    Mod+Left { focus-column-left; }
+    Mod+Right { focus-column-right; }
+    Mod+Up { focus-window-up; }
+    Mod+Down { focus-window-down; }
+
+    // Pindahkan kolom/window.
+    Mod+Ctrl+Left { move-column-left; }
+    Mod+Ctrl+Right { move-column-right; }
+    Mod+Ctrl+Up { move-window-up; }
+    Mod+Ctrl+Down { move-window-down; }
 }

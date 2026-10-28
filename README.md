@@ -148,7 +148,7 @@ bersama desktop KineticWE.
 | Hyprland | Tiling dinamis, config minimal tanpa bar | `hyprland`, `hyprland-guiutils`, `hyprland-uwsm`, `xdg-desktop-portal-hyprland`, `hyprland-preview-share-picker` | ✅ |
 | KineticWE | Tiling berbasis KWin, shell Noctalia | `kineticwe-git` | |
 | MangoWM | Tiling ringan berbasis dwl (wlroots) | `mangowm`, `scenefx`, `wlroots`, `xcb-util-wm`, `xdg-desktop-portal-wlr`, `slurp` | |
-| Niri | Scrollable tiling, config minimal tanpa bar | `niri`, `xdg-desktop-portal-gnome` | |
+| Niri | Scrollable tiling, config minimal tanpa bar | `niri` | |
 
 `kineticwe-git` sudah `Requires` versi yang sama dari `kineticwe-noctalia` dan
 `xdg-desktop-portal-kwe`, jadi cukup satu paket. `hyprland-uwsm` menarik
@@ -163,6 +163,11 @@ perintah shell kalau perlu. `exec_once` menjalankan
 `dbus-update-activation-environment`; `slurp` melengkapi screenshot interaktif
 dari `xdg-desktop-portal-wlr`. XWayland tidak diulang karena sudah ada di base
 image.
+
+Niri cukup memakai paket `niri`; `xwayland-satellite` ditarik otomatis dan
+portal memakai `xdg-desktop-portal-gnome`/`gtk` yang sudah ada di base. Skel
+Niri memakai placeholder `@TERMINAL@`, `@BROWSER@`, dan `@FILEMANAGER@` yang
+sama; KDL tidak punya variabel, jadi perintah launcher ditulis langsung.
 
 ### Lapisan dasar
 
