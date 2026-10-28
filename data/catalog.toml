@@ -33,6 +33,7 @@ base = [
     "lxpolkit",
     "xdg-desktop-portal",
     "xdg-desktop-portal-gtk",
+    "xdg-user-dirs-gtk",
     "dbus-tools",
     "default-fonts",
     "google-noto-sans-fonts",
@@ -153,10 +154,17 @@ packages = ["zen-browser"]
 id = "hyprland"
 name = "Hyprland"
 description = "Tiling dinamis, config minimal tanpa bar"
-packages = ["hyprland", "hyprland-uwsm", "xdg-desktop-portal-hyprland"]
+packages = ["hyprland", "hyprland-guiutils", "hyprland-uwsm", "uwsm", "egl-wayland", "xdg-desktop-portal-hyprland"]
 skel = "hyprland"
 autologin_cmd = "Hyprland"
 default = true
+
+[[desktops]]
+id = "kineticwe"
+name = "KineticWE"
+description = "Tiling berbasis KWin, shell Noctalia"
+packages = ["kineticwe-git"]
+autologin_cmd = "start-kineticwe"
 
 [[desktops]]
 id = "labwc"
@@ -168,14 +176,15 @@ autologin_cmd = "labwc"
 [[desktops]]
 id = "mangowm"
 name = "MangoWM"
-description = "Belum dipaketkan untuk Fedora/RakuOS"
-available = false
+description = "Tiling ringan berbasis dwl (wlroots)"
+packages = ["mangowm", "scenefx", "wlroots", "xorg-x11-server-Xwayland", "xdg-desktop-portal-wlr"]
+autologin_cmd = "mango"
 
 [[desktops]]
 id = "niri"
 name = "Niri"
 description = "Scrollable tiling, config minimal tanpa bar"
-packages = ["niri"]
+packages = ["niri", "xdg-desktop-portal-gnome"]
 skel = "niri"
 autologin_cmd = "niri-session"
 

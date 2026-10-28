@@ -166,9 +166,10 @@ di terminal tinggi semua pilihan tampil sekaligus.
  Compositor Wayland; config minimal tanpa bar
  ────────────────────────────────────────────────────────────────────────────
  ❯ Hyprland             Tiling dinamis, config minimal tanpa bar
-   Niri                 Scrollable tiling, config minimal tanpa bar
+   KineticWE            Tiling berbasis KWin, shell Noctalia
    Labwc                Stacking compositor ringan (ala Openbox), tanpa con…
-   MangoWM              (belum tersedia) Belum dipaketkan untuk Fedora/RakuOS
+   MangoWM              Tiling ringan berbasis dwl (wlroots)
+   Niri                 Scrollable tiling, config minimal tanpa bar
 ```
 
 ---

@@ -138,16 +138,18 @@ Boleh centang lebih dari satu. Ukuran = paket utamanya saja.
 
 | Nama | Deskripsi | Paket | Default |
 |---|---|---|---|
-| Hyprland | Tiling dinamis, config minimal tanpa bar | `hyprland`, `hyprland-uwsm`, `xdg-desktop-portal-hyprland` | ✅ |
+| Hyprland | Tiling dinamis, config minimal tanpa bar | `hyprland`, `hyprland-guiutils`, `hyprland-uwsm`, `uwsm`, `egl-wayland`, `xdg-desktop-portal-hyprland` | ✅ |
+| KineticWE | Tiling berbasis KWin, shell Noctalia | `kineticwe-git` | |
 | Labwc | Stacking compositor ringan (ala Openbox), tanpa config tambahan | `labwc` | |
-| MangoWM | Belum dipaketkan untuk Fedora/RakuOS (**belum tersedia**) | — | |
-| Niri | Scrollable tiling, config minimal tanpa bar | `niri` | |
+| MangoWM | Tiling ringan berbasis dwl (wlroots) | `mangowm`, `scenefx`, `wlroots`, `xorg-x11-server-Xwayland`, `xdg-desktop-portal-wlr` | |
+| Niri | Scrollable tiling, config minimal tanpa bar | `niri`, `xdg-desktop-portal-gnome` | |
 
 ### Lapisan dasar
 
 Selalu dipasang, apa pun pilihannya: audio (`pipewire`, `wireplumber`), GPU dan
 video (`mesa-dri-drivers`, `mesa-vulkan-drivers`, `libva`), polkit
-(`polkit`, `lxpolkit`), portal (`xdg-desktop-portal`, `xdg-desktop-portal-gtk`),
+(`polkit`, `lxpolkit`), portal (`xdg-desktop-portal`, `xdg-desktop-portal-gtk`,
+`xdg-user-dirs-gtk`),
 font, launcher `fuzzel`, serta `gvfs` + `gvfs-mtp` untuk mount USB/HP.
 
 ## Repo pihak ketiga

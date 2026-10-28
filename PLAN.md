@@ -135,8 +135,10 @@ tanpa recompile.
 | browser | `vivaldi` | vivaldi-stable | ✅ repo RakuOS 45 |
 | browser | `waterfox` | waterfox | ✅ repo RakuOS 45 |
 | browser | `zen-browser` | zen-browser | ✅ Terra |
-| desktop | `hyprland` | hyprland, hyprland-uwsm, xdg-desktop-portal-hyprland | ✅ repo RakuOS 45 |
-| desktop | `niri` | niri | ✅ Fedora 45 |
+| desktop | `hyprland` | hyprland, hyprland-guiutils, hyprland-uwsm, uwsm, egl-wayland, xdg-desktop-portal-hyprland | ✅ repo RakuOS 45 + Terra (`uwsm`) |
+| desktop | `kineticwe` | kineticwe-git | ✅ repo RakuOS 45 (menarik kineticwe-noctalia, xdg-desktop-portal-kwe, Xwayland) |
+| desktop | `mangowm` | mangowm, scenefx, wlroots, xorg-x11-server-Xwayland, xdg-desktop-portal-wlr | ✅ Terra (`mangowm`, `scenefx`) + Fedora 45 |
+| desktop | `niri` | niri, xdg-desktop-portal-gnome | ✅ Fedora 45 (menarik xwayland-satellite) |
 | desktop | `labwc` | labwc | ✅ Fedora 45 |
 | desktop | `mangowm` | — | ⏳ belum dipaketkan |
 | file manager | `dolphin` | dolphin | ✅ Fedora 45 (menarik Qt/KDE) |
@@ -247,7 +249,8 @@ dimasukkan ke grup video/render/input (best-effort).
 Autologin user (bukan root) untuk pilihan `none`. Jangan pernah autologin root
 di sistem ter-install.
 
-`autologin_cmd` per desktop: `Hyprland`, `niri-session`, `labwc`.
+`autologin_cmd` per desktop: `Hyprland`, `start-kineticwe`, `labwc`, `mango`,
+`niri-session`.
 
 ### 6.5 Marker & state
 
