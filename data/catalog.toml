@@ -134,10 +134,22 @@ packages = ["nautilus"]
 default = true
 
 [[file_managers]]
+id = "nemo"
+name = "Nemo"
+description = "File manager Cinnamon, GTK3, dukungan gvfs-fuse"
+packages = ["nemo"]
+
+[[file_managers]]
+id = "pcmanfm"
+name = "PCManFM"
+description = "Paling ringan (GTK3 + libfm), cocok untuk sistem minimal"
+packages = ["pcmanfm"]
+
+[[file_managers]]
 id = "thunar"
 name = "Thunar"
 description = "File manager Xfce, ringan dan cepat"
-packages = ["thunar", "thunar-volman"]
+packages = ["Thunar", "thunar-volman"]
 
 # ------------------------------------------------------------------- login ---
 [[logins]]

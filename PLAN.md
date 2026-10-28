@@ -130,13 +130,19 @@ tanpa recompile.
 | desktop | `niri` | niri | ✅ Fedora 45 |
 | desktop | `labwc` | labwc | ✅ Fedora 45 |
 | desktop | `mangowm` | — | ⏳ belum dipaketkan |
-| file manager | `nautilus` | nautilus | ✅ Fedora 45 |
 | file manager | `dolphin` | dolphin | ✅ Fedora 45 (menarik Qt/KDE) |
-| file manager | `thunar` | thunar, thunar-volman | ✅ Fedora 45 |
+| file manager | `nautilus` | nautilus | ✅ Fedora 45 (menarik GTK4) |
+| file manager | `nemo` | nemo | ✅ Fedora 45 (menarik xapps) |
+| file manager | `pcmanfm` | pcmanfm | ✅ Fedora 45 (paling ringan) |
+| file manager | `thunar` | Thunar, thunar-volman | ✅ Fedora 45 (nama paket berhuruf besar) |
 | login | `greetd-tuigreet` | greetd, tuigreet | ✅ Fedora 45 |
 | login | `sddm` | sddm | ✅ Fedora 45 |
 | login | `ly` | ly | ✅ Fedora 45 |
 | login | `none` | — (autologin ke desktop) | ✅ |
+
+Catatan: `rum repoquery` mencocokkan nama paket **peka huruf besar**; paket
+Thunar memang bernama `Thunar` (huruf T besar). Nama di `packages` harus
+sama persis dengan nama RPM.
 
 Catatan verifikasi: dicek dengan `dnf repoquery --available` di container
 `quay.io/fedora/fedora:45` dan metadata `repo.rakuos.org/rakuos/45` pada

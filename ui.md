@@ -105,13 +105,15 @@ Di bagian bawah layar, nama pilihan sebelumnya dirangkai sebagai jejak:
 ## 2. File manager
 
 ```
- ● Terminal ── ● File mgr ── ○ Browser ── ○ Login ── ○ Desktop
+ ✔ Terminal ── ● File manager ── ○ Browser ── ○ Login ── ○ Desktop
 
  Fase 2 dari 5 · File manager
  Menjelajah file dan mount USB/HP
  ────────────────────────────────────────────────────────────────────────────
- ❯ Nautilus             File manager GNOME, ringan untuk pemakaian dasar
    Dolphin              File manager KDE, fitur lengkap (menarik Qt/KDE stack)
+ ❯ Nautilus             File manager GNOME, ringan untuk pemakaian dasar
+   Nemo                 File manager Cinnamon, GTK3, dukungan gvfs-fuse
+   PCManFM              Paling ringan (GTK3 + libfm), cocok untuk sistem mi…
    Thunar               File manager Xfce, ringan dan cepat
 ```
 
