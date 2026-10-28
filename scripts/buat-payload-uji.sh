@@ -3,8 +3,9 @@
 # minimal tanpa perlu jaringan atau build tool di dalam VM.
 #
 # Pakai:
-#   ./scripts/buat-payload-uji.sh
-#   -> output/rakuos-bootstrap-payload.iso
+#   ./scripts/buat-payload-uji.sh                    # output/rakuos-bootstrap-payload.iso
+#   ./scripts/buat-payload-uji.sh output/uji-2.iso   # nama lain, kalau yang lama
+#                                                    # sedang dipasang di VM
 #
 # Di VM: pasang ISO itu sebagai CD-ROM kedua, lalu
 #   sudo mount -o ro /dev/sr1 /mnt
@@ -33,10 +34,10 @@ exec sudo "$mnt/rakuos-bootstrap" --base-dir "$mnt/data" "$@"
 EOF
 chmod 0755 "$work/jalankan.sh"
 
-mkdir -p output
-iso="output/rakuos-bootstrap-payload.iso"
+iso="${1:-output/rakuos-bootstrap-payload.iso}"
+mkdir -p "$(dirname "$iso")"
 xorriso -as mkisofs -quiet -R -J -V RAKUBOOT -o "$iso" "$work"
-( cd output && sha256sum "$(basename "$iso")" > "$(basename "$iso").sha256" )
+( cd "$(dirname "$iso")" && sha256sum "$(basename "$iso")" > "$(basename "$iso").sha256" )
 
 ls -lh "$iso"
 echo "Pasang sebagai CD-ROM kedua di VM, lalu di dalam VM:"
