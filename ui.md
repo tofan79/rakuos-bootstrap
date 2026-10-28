@@ -148,10 +148,12 @@ di terminal tinggi semua pilihan tampil sekaligus.
  Layar masuk setelah boot
  ────────────────────────────────────────────────────────────────────────────
  ❯ COSMIC Greeter       Greeter COSMIC (greetd), butuh stack
+   DMS Greeter          Greeter Dux Shell (greetd), butuh quickshell
    GDM                  GNOME Display Manager, sudah ada di base image
    greetd + tuigreet    Greeter TUI paling ringan, cocok Wayland
    LightDM              Greeter Slick (GTK), sesi Wayland tetap bisa
    Ly                   Display manager TUI, ringan
+   Noctalia Greeter     Greeter minimal Noctalia (greetd, wlroots)
    Plasma Login         Greeter KDE modern (pengganti SDDM)
    SDDM                 Display manager grafis, paling familiar
    Tanpa login manager  Autologin user langsung ke desktop di tty1

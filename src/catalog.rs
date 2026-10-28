@@ -34,6 +34,13 @@ pub struct Choice {
     /// Greeter yang ditulis ke config display manager (khusus LightDM).
     #[serde(default)]
     pub greeter: Option<String>,
+    /// Perintah untuk `[default_session]` di `/etc/greetd/config.toml`.
+    /// `@COMPOSITOR@` diganti sesuai desktop yang dipilih.
+    #[serde(default)]
+    pub greetd_cmd: Option<String>,
+    /// User yang menjalankan greeter (default `greeter`).
+    #[serde(default)]
+    pub greetd_user: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -89,7 +96,9 @@ mod tests {
     use super::*;
 
     fn sorted(names: &[&str]) -> bool {
-        names.windows(2).all(|w| w[0].to_lowercase() <= w[1].to_lowercase())
+        names
+            .windows(2)
+            .all(|w| w[0].to_lowercase() <= w[1].to_lowercase())
     }
 
     fn names(list: &[Choice]) -> Vec<&str> {

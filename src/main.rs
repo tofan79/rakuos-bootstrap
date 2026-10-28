@@ -57,30 +57,73 @@ fn run() -> Result<()> {
     // Urutan fase = urutan tampil. Ubah di sini (dan STEPS di ui.rs) kalau mau ganti.
     let phases: [(&str, &str, &[catalog::Choice]); 5] = [
         ("Terminal", "Tempat mengetik perintah", &catalog.terminals),
-        ("File manager", "Menjelajah file dan mount USB/HP", &catalog.file_managers),
-        ("Browser", "Pilih satu atau lebih; semuanya paket RPM", &catalog.browsers),
+        (
+            "File manager",
+            "Menjelajah file dan mount USB/HP",
+            &catalog.file_managers,
+        ),
+        (
+            "Browser",
+            "Pilih satu atau lebih; semuanya paket RPM",
+            &catalog.browsers,
+        ),
         ("Login manager", "Layar masuk setelah boot", &catalog.logins),
-        ("Desktop", "Compositor Wayland; config minimal tanpa bar", &catalog.desktops),
+        (
+            "Desktop",
+            "Compositor Wayland; config minimal tanpa bar",
+            &catalog.desktops,
+        ),
     ];
 
     // Tiga fase pertama boleh lebih dari satu pilihan; login dan desktop
     // tetap tunggal karena hanya satu yang bisa aktif saat boot.
     let mut picked: Vec<String> = Vec::new();
 
-    let terminals = ui.multi_select(&term, 0, phases[0].0, phases[0].1, &catalog.terminals, &picked)?;
+    let terminals = ui.multi_select(
+        &term,
+        0,
+        phases[0].0,
+        phases[0].1,
+        &catalog.terminals,
+        &picked,
+    )?;
     picked.extend(terminals.iter().map(|&i| catalog.terminals[i].name.clone()));
 
-    let file_managers =
-        ui.multi_select(&term, 1, phases[1].0, phases[1].1, &catalog.file_managers, &picked)?;
-    picked.extend(file_managers.iter().map(|&i| catalog.file_managers[i].name.clone()));
+    let file_managers = ui.multi_select(
+        &term,
+        1,
+        phases[1].0,
+        phases[1].1,
+        &catalog.file_managers,
+        &picked,
+    )?;
+    picked.extend(
+        file_managers
+            .iter()
+            .map(|&i| catalog.file_managers[i].name.clone()),
+    );
 
-    let browsers = ui.multi_select(&term, 2, phases[2].0, phases[2].1, &catalog.browsers, &picked)?;
+    let browsers = ui.multi_select(
+        &term,
+        2,
+        phases[2].0,
+        phases[2].1,
+        &catalog.browsers,
+        &picked,
+    )?;
     picked.extend(browsers.iter().map(|&i| catalog.browsers[i].name.clone()));
 
     let login = ui.select(&term, 3, phases[3].0, phases[3].1, &catalog.logins, &picked)?;
     picked.push(catalog.logins[login].name.clone());
 
-    let desktop = ui.select(&term, 4, phases[4].0, phases[4].1, &catalog.desktops, &picked)?;
+    let desktop = ui.select(
+        &term,
+        4,
+        phases[4].0,
+        phases[4].1,
+        &catalog.desktops,
+        &picked,
+    )?;
 
     let chosen = |list: &[catalog::Choice], idx: &[usize]| -> Vec<String> {
         idx.iter().map(|&i| list[i].name.clone()).collect()
@@ -104,7 +147,10 @@ fn run() -> Result<()> {
         catalog.repos.join(", ")
     };
     let rows = [
-        ("Terminal", chosen(&catalog.terminals, &terminals).join(", ")),
+        (
+            "Terminal",
+            chosen(&catalog.terminals, &terminals).join(", "),
+        ),
         (
             "File manager",
             chosen(&catalog.file_managers, &file_managers).join(", "),
@@ -126,7 +172,10 @@ fn run() -> Result<()> {
 
     println!("\n{}", ui.success("Selesai."));
     if opts.dry_run {
-        println!("{}", ui.note("(dry-run: tidak ada paket yang dipasang, tidak ada file yang ditulis)"));
+        println!(
+            "{}",
+            ui.note("(dry-run: tidak ada paket yang dipasang, tidak ada file yang ditulis)")
+        );
         return Ok(());
     }
 
@@ -174,11 +223,15 @@ fn parse_args() -> Result<Opts> {
             "--first-boot" => opts.first_boot = true,
             "--ascii" => opts.ascii = true,
             "--catalog" => {
-                let path = args.next().ok_or_else(|| anyhow::anyhow!("--catalog butuh path"))?;
+                let path = args
+                    .next()
+                    .ok_or_else(|| anyhow::anyhow!("--catalog butuh path"))?;
                 opts.catalog = Some(PathBuf::from(path));
             }
             "--base-dir" => {
-                let path = args.next().ok_or_else(|| anyhow::anyhow!("--base-dir butuh path"))?;
+                let path = args
+                    .next()
+                    .ok_or_else(|| anyhow::anyhow!("--base-dir butuh path"))?;
                 opts.base_dir = PathBuf::from(path);
             }
             other => bail!("argumen tidak dikenal: {other}\nCoba `rakuos-bootstrap --help`."),

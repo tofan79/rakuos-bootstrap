@@ -94,7 +94,11 @@ fn enable_repos(cat: &Catalog, dry_run: bool) -> Result<()> {
 
     for repo in &cat.repos {
         let args = match repo.as_str() {
-            "terra" => vec!["config-manager".into(), "--set-enabled".into(), "terra".into()],
+            "terra" => vec![
+                "config-manager".into(),
+                "--set-enabled".into(),
+                "terra".into(),
+            ],
             "rpmfusion" => rpmfusion_args(),
             other => bail!("repo pihak ketiga tidak dikenal: {other}"),
         };
@@ -154,7 +158,6 @@ fn install_packages(pkgs: &BTreeSet<String>, dry_run: bool) -> Result<()> {
     run(pm, &args, dry_run)
 }
 
-
 fn install_skel(
     desktop: &Choice,
     terminal: &str,
@@ -202,12 +205,7 @@ fn install_skel(
     Ok(())
 }
 
-fn configure_login(
-    login: &Choice,
-    desktop: &Choice,
-    user: &str,
-    dry_run: bool,
-) -> Result<()> {
+fn configure_login(login: &Choice, desktop: &Choice, user: &str, dry_run: bool) -> Result<()> {
     if let Some(unit) = &login.unit {
         run("systemctl", &["enable".into(), unit.clone()], dry_run)?;
         run(
@@ -216,6 +214,9 @@ fn configure_login(
             dry_run,
         )?;
         configure_greeter(login, dry_run)?;
+        if login.greetd_cmd.is_some() {
+            configure_greetd(login, desktop, dry_run)?;
+        }
 
         // Bersihkan autologin kalau sebelumnya pernah dipilih login = none.
         let dropin = Path::new("/etc/systemd/system/getty@tty1.service.d/autologin.conf");
@@ -291,10 +292,7 @@ fn configure_greeter(login: &Choice, dry_run: bool) -> Result<()> {
     };
 
     if dry_run {
-        println!(
-            "  + tulis {} (greeter-session={greeter})",
-            conf.display()
-        );
+        println!("  + tulis {} (greeter-session={greeter})", conf.display());
         return Ok(());
     }
 
@@ -303,13 +301,90 @@ fn configure_greeter(login: &Choice, dry_run: bool) -> Result<()> {
     Ok(())
 }
 
+/// Tulis `/etc/greetd/config.toml` untuk greeter berbasis greetd (tuigreet,
+/// DMS, Noctalia). Config lama disimpan sekali sebagai `config.toml.bak`.
+fn configure_greetd(login: &Choice, desktop: &Choice, dry_run: bool) -> Result<()> {
+    let cmd = login
+        .greetd_cmd
+        .as_deref()
+        .unwrap_or_default()
+        .replace("@COMPOSITOR@", compositor_for(desktop));
+    let user = login.greetd_user.as_deref().unwrap_or("greeter");
+    let conf = Path::new("/etc/greetd/config.toml");
+
+    if user != "greetd" && !user_exists(user) {
+        run(
+            "useradd",
+            &[
+                "-r".into(),
+                "-m".into(),
+                "-d".into(),
+                format!("/var/lib/{user}"),
+                "-s".into(),
+                "/usr/sbin/nologin".into(),
+                user.to_string(),
+            ],
+            dry_run,
+        )?;
+        add_to_groups(user);
+    }
+
+    if dry_run {
+        println!(
+            "  + tulis {} (command = {cmd}, user = {user})",
+            conf.display()
+        );
+        return Ok(());
+    }
+
+    let backup = Path::new("/etc/greetd/config.toml.bak");
+    if conf.exists() && !backup.exists() {
+        fs::copy(conf, backup).context("gagal mencadangkan config greetd")?;
+    }
+    if let Some(parent) = conf.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let body = format!(
+        "# ditulis oleh rakuos-bootstrap\n[terminal]\nvt = 1\n\n[default_session]\ncommand = \"{cmd}\"\nuser = \"{user}\"\n"
+    );
+    fs::write(conf, body)?;
+    Ok(())
+}
+
+fn compositor_for(desktop: &Choice) -> &'static str {
+    match desktop.id.as_str() {
+        "niri" => "niri",
+        "labwc" => "labwc",
+        "mangowm" => "mango",
+        _ => "hyprland",
+    }
+}
+
+fn user_exists(user: &str) -> bool {
+    Command::new("id")
+        .args(["-u", user])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+/// Greeter grafis butuh akses GPU; gagal satu grup tidak fatal.
+fn add_to_groups(user: &str) {
+    for group in ["video", "render", "input"] {
+        let _ = Command::new("usermod").args(["-aG", group, user]).status();
+    }
+}
+
 fn write_state(cat: &Catalog, picks: &Picks, user: &str, dry_run: bool) -> Result<()> {
     let dir = Path::new("/var/lib/rakuos");
     let state = dir.join("bootstrap.toml");
     let done = dir.join("bootstrap.done");
 
     let ids = |list: &[&Choice]| -> String {
-        list.iter().map(|c| c.id.as_str()).collect::<Vec<_>>().join(" ")
+        list.iter()
+            .map(|c| c.id.as_str())
+            .collect::<Vec<_>>()
+            .join(" ")
     };
     let body = format!(
         "# ditulis oleh rakuos-bootstrap\ntime = \"{}\"\ntarget_user = \"{}\"\nterminals = \"{}\"\nbrowsers = \"{}\"\ndesktop = \"{}\"\nfile_managers = \"{}\"\nlogin = \"{}\"\nrepos = \"{}\"\n",
@@ -324,7 +399,11 @@ fn write_state(cat: &Catalog, picks: &Picks, user: &str, dry_run: bool) -> Resul
     );
 
     if dry_run {
-        println!("  + tulis {}\n  + tulis marker {}", state.display(), done.display());
+        println!(
+            "  + tulis {}\n  + tulis marker {}",
+            state.display(),
+            done.display()
+        );
         return Ok(());
     }
 

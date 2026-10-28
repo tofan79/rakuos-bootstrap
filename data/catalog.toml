@@ -232,6 +232,15 @@ packages = ["cosmic-greeter"]
 unit = "cosmic-greeter.service"
 
 [[logins]]
+id = "dms-greeter"
+name = "DMS Greeter"
+description = "Greeter Dux Shell (greetd), butuh quickshell"
+packages = ["greetd", "dms-greeter"]
+unit = "greetd.service"
+greetd_cmd = "/usr/bin/dms-greeter --command @COMPOSITOR@"
+greetd_user = "greeter"
+
+[[logins]]
 id = "gdm"
 name = "GDM"
 description = "GNOME Display Manager, sudah ada di base image"
@@ -244,6 +253,8 @@ name = "greetd + tuigreet"
 description = "Greeter TUI paling ringan, cocok Wayland"
 packages = ["greetd", "tuigreet"]
 unit = "greetd.service"
+greetd_cmd = "/usr/bin/tuigreet --time --remember --remember-session --sessions /usr/share/wayland-sessions"
+greetd_user = "greetd"
 default = true
 
 [[logins]]
@@ -260,6 +271,15 @@ name = "Ly"
 description = "Display manager TUI, ringan"
 packages = ["ly"]
 unit = "ly.service"
+
+[[logins]]
+id = "noctalia-greeter"
+name = "Noctalia Greeter"
+description = "Greeter minimal Noctalia (greetd, wlroots)"
+packages = ["greetd", "noctalia-greeter"]
+unit = "greetd.service"
+greetd_cmd = "/usr/bin/noctalia-greeter-session"
+greetd_user = "greeter"
 
 [[logins]]
 id = "plasma-login"

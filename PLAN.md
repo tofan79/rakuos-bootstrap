@@ -224,10 +224,12 @@ Setelah repo dinyalakan, metadata disegarkan dengan `rum make-cache` (fallback
 | Pilihan | Unit | Aksi |
 |---|---|---|
 | `cosmic-greeter` | `cosmic-greeter.service` | `systemctl enable`, `set-default graphical.target`; unit ini menjalankan `greetd` dengan config COSMIC |
+| `dms-greeter` | `greetd.service` | Tulis `/etc/greetd/config.toml` dengan `dms-greeter --command <kompositor>` dan user `greeter` (dibuat paket lewat sysusers) |
 | `gdm` | `gdm.service` | `systemctl enable`, `set-default graphical.target`; GDM sudah ada di base image |
 | `greetd-tuigreet` | `greetd.service` | Sesi dibaca dari `/usr/share/wayland-sessions` |
 | `lightdm-slick` | `lightdm.service` | Drop-in `/etc/lightdm/lightdm.conf.d/50-rakuos-bootstrap.conf` berisi `greeter-session=slick-greeter` |
 | `ly` | `ly.service` | `systemctl enable`, `set-default graphical.target` |
+| `noctalia-greeter` | `greetd.service` | Tulis config greetd berisi `noctalia-greeter-session`, user `greeter` dibuat kalau belum ada |
 | `plasma-login` | `plasmalogin.service` | Greeter KDE, pengganti SDDM |
 | `sddm` | `sddm.service` | `systemctl enable`, `set-default graphical.target` |
 | `none` | — | `set-default multi-user.target`, enable `getty@tty1` + autologin user, `~/.bash_profile` menjalankan `dbus-run-session <autologin_cmd>` |
@@ -235,6 +237,12 @@ Setelah repo dinyalakan, metadata disegarkan dengan `rum make-cache` (fallback
 Semua pilihan selain `none` di-enable dengan `systemctl enable <unit>` lalu
 `systemctl set-default graphical.target`. Drop-in LightDM dihapus lagi kalau
 user pindah ke login manager lain.
+
+Greeter berbasis greetd (`greetd-tuigreet`, `dms-greeter`, `noctalia-greeter`)
+menulis `/etc/greetd/config.toml`; config lama disimpan sekali sebagai
+`config.toml.bak`. `@COMPOSITOR@` diganti sesuai desktop yang dipilih
+(hyprland, niri, labwc, mango). User `greeter` dibuat kalau belum ada dan
+dimasukkan ke grup video/render/input (best-effort).
 
 Autologin user (bukan root) untuk pilihan `none`. Jangan pernah autologin root
 di sistem ter-install.

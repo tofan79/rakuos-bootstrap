@@ -72,19 +72,58 @@ impl Glyphs {
     fn for_charset(cs: Charset) -> Self {
         match cs {
             Charset::Full => Glyphs {
-                tl: "╭", tr: "╮", bl: "╰", br: "╯", h: "─", v: "│",
-                cursor: "❯", done: "✔", current: "●", todo: "○",
-                link: "──", dot: "·", ellipsis: "…", updown: "↑↓", up: "↑", down: "↓",
+                tl: "╭",
+                tr: "╮",
+                bl: "╰",
+                br: "╯",
+                h: "─",
+                v: "│",
+                cursor: "❯",
+                done: "✔",
+                current: "●",
+                todo: "○",
+                link: "──",
+                dot: "·",
+                ellipsis: "…",
+                updown: "↑↓",
+                up: "↑",
+                down: "↓",
             },
             Charset::Tty => Glyphs {
-                tl: "┌", tr: "┐", bl: "└", br: "┘", h: "─", v: "│",
-                cursor: ">", done: "[x]", current: "[>]", todo: "[ ]",
-                link: "──", dot: "·", ellipsis: "...", updown: "↑↓", up: "↑", down: "↓",
+                tl: "┌",
+                tr: "┐",
+                bl: "└",
+                br: "┘",
+                h: "─",
+                v: "│",
+                cursor: ">",
+                done: "[x]",
+                current: "[>]",
+                todo: "[ ]",
+                link: "──",
+                dot: "·",
+                ellipsis: "...",
+                updown: "↑↓",
+                up: "↑",
+                down: "↓",
             },
             Charset::Ascii => Glyphs {
-                tl: "+", tr: "+", bl: "+", br: "+", h: "-", v: "|",
-                cursor: ">", done: "[x]", current: "[>]", todo: "[ ]",
-                link: "--", dot: "-", ellipsis: "...", updown: "Up/Down", up: "^", down: "v",
+                tl: "+",
+                tr: "+",
+                bl: "+",
+                br: "+",
+                h: "-",
+                v: "|",
+                cursor: ">",
+                done: "[x]",
+                current: "[>]",
+                todo: "[ ]",
+                link: "--",
+                dot: "-",
+                ellipsis: "...",
+                updown: "Up/Down",
+                up: "^",
+                down: "v",
             },
         }
     }
@@ -226,7 +265,12 @@ impl Ui {
         let mut out = Vec::new();
         out.push(format!(
             " {}",
-            edge.apply_to(format!("{}{}{}", self.g.tl, self.rule(self.width - 2), self.g.tr))
+            edge.apply_to(format!(
+                "{}{}{}",
+                self.g.tl,
+                self.rule(self.width - 2),
+                self.g.tr
+            ))
         ));
         for line in lines {
             out.push(format!(
@@ -238,7 +282,12 @@ impl Ui {
         }
         out.push(format!(
             " {}",
-            edge.apply_to(format!("{}{}{}", self.g.bl, self.rule(self.width - 2), self.g.br))
+            edge.apply_to(format!(
+                "{}{}{}",
+                self.g.bl,
+                self.rule(self.width - 2),
+                self.g.br
+            ))
         ));
         out
     }
@@ -257,11 +306,15 @@ impl Ui {
         let gap = inner.saturating_sub(measure_text_width(&brand) + measure_text_width(&ver));
         let line1 = format!("{brand}{}{ver}", " ".repeat(gap));
 
-        let tagline = p.dim.apply_to("Menghidupkan sistem minimal sampai punya GUI").to_string();
+        let tagline = p
+            .dim
+            .apply_to("Menghidupkan sistem minimal sampai punya GUI")
+            .to_string();
         let line2 = match &self.badge {
             Some(b) => {
                 let b = p.warn.apply_to(b).to_string();
-                let gap = inner.saturating_sub(measure_text_width(&tagline) + measure_text_width(&b));
+                let gap =
+                    inner.saturating_sub(measure_text_width(&tagline) + measure_text_width(&b));
                 format!("{tagline}{}{b}", " ".repeat(gap))
             }
             None => tagline,
@@ -359,8 +412,16 @@ impl Ui {
         let mut msg: Option<String> = None;
 
         loop {
-            let body =
-                self.select_body(phase, title, hint, choices, sel, picked, msg.as_deref(), None);
+            let body = self.select_body(
+                phase,
+                title,
+                hint,
+                choices,
+                sel,
+                picked,
+                msg.as_deref(),
+                None,
+            );
             let lines = self.frame(phase, body, &self.footer_select());
             self.paint(term, &lines)?;
 
@@ -384,7 +445,10 @@ impl Ui {
                     if choices[sel].available {
                         return Ok(sel);
                     }
-                    msg = Some(format!("{} belum tersedia; pilih yang lain.", choices[sel].name));
+                    msg = Some(format!(
+                        "{} belum tersedia; pilih yang lain.",
+                        choices[sel].name
+                    ));
                 }
                 Key::Escape | Key::CtrlC => return Err(Cancelled.into()),
                 _ => {}
@@ -408,10 +472,7 @@ impl Ui {
         }
         let _guard = CursorGuard::hide(term);
 
-        let mut checked: Vec<bool> = choices
-            .iter()
-            .map(|c| c.available && c.default)
-            .collect();
+        let mut checked: Vec<bool> = choices.iter().map(|c| c.available && c.default).collect();
         if !checked.iter().any(|&b| b) {
             if let Some(i) = choices.iter().position(|c| c.available) {
                 checked[i] = true;
@@ -496,11 +557,15 @@ impl Ui {
 
         body.push(format!(
             " {} {} {}",
-            p.accent_b.apply_to(format!("Fase {} dari {}", phase + 1, STEPS.len())),
+            p.accent_b
+                .apply_to(format!("Fase {} dari {}", phase + 1, STEPS.len())),
             p.dim.apply_to(self.g.dot),
             p.bold.apply_to(title)
         ));
-        body.push(format!(" {}", p.dim.apply_to(self.fit(hint, self.width - 2))));
+        body.push(format!(
+            " {}",
+            p.dim.apply_to(self.fit(hint, self.width - 2))
+        ));
         body.push(format!(" {}", p.dim.apply_to(self.rule(self.width - 2))));
 
         let name_w = 20;
@@ -539,13 +604,16 @@ impl Ui {
                     format!(
                         "{} {}",
                         p.warn.apply_to("(belum tersedia)"),
-                        p.dim.apply_to(self.fit(&c.description, desc_w.saturating_sub(17)))
+                        p.dim
+                            .apply_to(self.fit(&c.description, desc_w.saturating_sub(17)))
                     ),
                 )
             } else if active {
                 (
                     p.accent_b.apply_to(self.pad(&c.name, name_w)).to_string(),
-                    p.bold.apply_to(self.fit(&c.description, desc_w)).to_string(),
+                    p.bold
+                        .apply_to(self.fit(&c.description, desc_w))
+                        .to_string(),
                 )
             } else {
                 (
@@ -558,7 +626,10 @@ impl Ui {
 
         body.push(match choices.get(sel) {
             Some(c) if c.available && measure_text_width(&c.description) > desc_w => {
-                format!(" {}", p.dim.apply_to(self.fit(&c.description, self.width - 2)))
+                format!(
+                    " {}",
+                    p.dim.apply_to(self.fit(&c.description, self.width - 2))
+                )
             }
             _ => String::new(),
         });
@@ -577,7 +648,10 @@ impl Ui {
             Some(m) => format!(" {}", p.warn.apply_to(m)),
             None if !trail_parts.is_empty() => format!(
                 " {}",
-                p.dim.apply_to(self.fit(&trail_parts.join(&format!("  {}  ", self.g.dot)), self.width - 2))
+                p.dim.apply_to(self.fit(
+                    &trail_parts.join(&format!("  {}  ", self.g.dot)),
+                    self.width - 2
+                ))
             ),
             None => String::new(),
         });
@@ -598,7 +672,11 @@ impl Ui {
             format!(" {}", p.dim.apply_to(self.rule(self.width - 2))),
         ];
         for (k, v) in rows {
-            body.push(format!(" {} {}", p.dim.apply_to(self.pad(k, 14)), p.bold.apply_to(v)));
+            body.push(format!(
+                " {} {}",
+                p.dim.apply_to(self.pad(k, 14)),
+                p.bold.apply_to(v)
+            ));
         }
         body.push(format!(
             " {}",
@@ -664,7 +742,10 @@ impl Ui {
     }
 
     pub fn success(&self, text: &str) -> String {
-        self.pal.ok.apply_to(format!("{} {text}", self.g.done)).to_string()
+        self.pal
+            .ok
+            .apply_to(format!("{} {text}", self.g.done))
+            .to_string()
     }
 
     pub fn note(&self, text: &str) -> String {
