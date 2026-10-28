@@ -1,211 +1,206 @@
 # UI — rakuos-bootstrap
 
-Mockup tampilan wizard pasca-install RakuOS minimal. Semuanya TUI (terminal),
-tanpa mouse, tanpa GTK/Qt — karena ISO-nya sendiri TTY-only.
+Tampilan wizard pasca-install RakuOS minimal. TUI murni: tidak ada GTK/Qt,
+tidak ada mouse, dan tidak butuh font khusus — karena ISO-nya sendiri TTY-only.
 
-Dokumen ini adalah **target tampilan**. Status implementasi per bagian ada di
-bagian terakhir.
+Digambar oleh `src/ui.rs` di atas crate `console` (tanpa `dialoguer`). Modul
+itu mendeteksi kemampuan terminal sekali di awal, lalu memilih charset dan
+warna yang cocok.
 
 ## Cara melihat
 
-File ini cuma teks, jadi tampil apa adanya di editor, GitHub, atau:
+File ini teks biasa. Di editor/GitHub tampil apa adanya, di terminal bisa:
 
 ```bash
-glow ui.md          # render markdown di terminal
-bat ui.md           # syntax highlight, tanpa render
+glow ui.md
 ```
 
-Semua blok di bawah ditulis untuk terminal **80 kolom**. Di layar lebih sempit,
-deskripsi akan terpotong (lihat bagian "Batasan").
+Blok di bawah ditulis untuk lebar 80–100 kolom.
 
-## Legenda
+## Charset
 
-| Simbol | Arti | Warna (ColorfulTheme) |
+| Mode | Kapan | Kotak | Penanda |
+|---|---|---|---|
+| Full | terminal emulator UTF-8 | `╭─╮` | `✔ ● ○ ❯` |
+| Tty | `TERM=linux` (console VT) | `┌─┐` | `[x] [>] [ ]` |
+| Ascii | locale non-UTF-8, `--ascii`, atau `RAKUOS_ASCII=1` | `+-+` | `[x] [>] [ ]` |
+
+Teks tetap aman walau locale `C`: yang berubah hanya glyph.
+
+## Warna
+
+| Mode | Kapan | Aksen |
 |---|---|---|
-| `?` | pertanyaan aktif | hijau |
-| `›` | akhir baris prompt | hijau tebal |
-| `❯` | kursor pilihan | cyan tebal |
-| `✔` | langkah selesai | hijau |
-| `·` | pemisah prompt ↔ jawaban | hijau |
-| teks redup | deskripsi pilihan | abu-abu |
-| `(belum tersedia)` | entri tanpa paket | kuning redup |
-| `→` | perintah yang dijalankan | cyan |
-| `+` | aksi dry-run | redup |
+| 256 | `COLORTERM`/`TERM=*256*` | oranye bara (208), hijau 108, abu 245 |
+| 16 | console VT | kuning (cokelat VGA), hijau, hitam terang |
+| None | bukan TTY / `NO_COLOR` | polos, tanpa escape |
 
-Tombol: `↑`/`↓` pindah, `Enter` pilih, `Ctrl-C` batal.
+Warna mati otomatis kalau output di-pipe, jadi log build tetap bersih.
+
+Tombol: `↑`/`↓` atau `j`/`k` pindah, `1`–`9` loncat, `Enter` pilih, `Esc`
+batal.
 
 ## Alur
 
 ```
-        ┌──────────────────────────────┐
-        │ banner + 5 pertanyaan        │
-        │ 1 terminal  2 browser        │
-        │ 3 desktop   4 file manager   │
-        │ 5 login manager              │
-        └──────────────┬───────────────┘
-                       ▼
-              ringkasan + konfirmasi
-                 │            │
-              tidak        ya
-                 │            ▼
-                 │     rum install (overlay)
-                 │     flatpak install (opsional)
-                 │     salin skel ke ~/.config
-                 │     enable login manager / autologin
-                 │     tulis /var/lib/rakuos/bootstrap.toml + .done
-                 │            ▼
-                 │     Selesai → tawaran reboot
-                 ▼
-        "Dibatalkan. Tidak ada yang diubah."
+     ┌──────────────────────────────────────────┐
+     │ 1 Terminal    2 File manager             │
+     │ 3 Browser     4 Login     5 Desktop      │
+     └───────────────────┬──────────────────────┘
+                         ▼
+                ringkasan + konfirmasi
+                   │              │
+                tidak            ya
+                   │              ▼
+                   │       rum install (overlay)
+                   │       flatpak install (opsional)
+                   │       salin skel ke ~/.config
+                   │       enable login / autologin
+                   │       tulis bootstrap.toml + .done
+                   │              ▼
+                   │       Selesai → tanya reboot
+                   ▼
+      "Dibatalkan. Tidak ada yang diubah." (exit 130)
 ```
 
 ---
 
-## 1. Banner + Terminal
+## 1. Terminal
 
 ```
-$ sudo rakuos-bootstrap
+ ╭────────────────────────────────────────────────────────────────────────────╮
+ │ RAKUOS bootstrap                                                    v0.1.0 │
+ │ Menghidupkan sistem minimal sampai punya GUI                       DRY-RUN │
+ ╰────────────────────────────────────────────────────────────────────────────╯
 
-RakuOS bootstrap v0.1.0
-Pilih 5 hal dasar; sisanya bisa diubah kapan saja dengan `sudo rakuos-bootstrap`.
+ ● Terminal ── ○ File mgr ── ○ Browser ── ○ Login ── ○ Desktop
 
-? Terminal ›
-❯ Alacritty            GPU-accelerated, konfigurasi YAML sederhana
-  Kitty                GPU-accelerated, paling umum dipakai di Hyprland
-  Ghostty              (belum tersedia) Belum ada di Fedora 45 (butuh COPR)
-  WezTerm              (belum tersedia) Belum ada di Fedora 45 (butuh COPR)
-  Foot                 Ringan, Wayland-only, cocok untuk sistem minimal
+ Fase 1 dari 5 · Terminal
+ Tempat mengetik perintah
+ ────────────────────────────────────────────────────────────────────────────
+ ❯ Kitty                GPU-accelerated, paling umum dipakai di Hyprland
+   Foot                 Ringan, Wayland-only, cocok untuk sistem minimal
+   Alacritty            GPU-accelerated, konfigurasi YAML sederhana
+   Ghostty              (belum tersedia) Belum ada di Fedora 45 (butuh COPR…)
 
-  ↑↓ to move, enter to select
+ ↑↓ pilih   Enter lanjut   1-9 loncat   Esc batal
 ```
 
-Memilih entri `(belum tersedia)` tidak melanjutkan wizard; baris kuning muncul
-dan daftar ditampilkan lagi:
+Entri `(belum tersedia)` tetap terlihat supaya user tahu pilihannya ada tapi
+belum bisa dipakai. Kalau dipilih lalu `Enter`, baris kuning muncul dan daftar
+tidak maju:
 
 ```
-? Terminal ›
-  Alacritty            GPU-accelerated, konfigurasi YAML sederhana
-  Kitty                GPU-accelerated, paling umum dipakai di Hyprland
-❯ Ghostty              (belum tersedia) Belum ada di Fedora 45 (butuh COPR)
-  WezTerm              (belum tersedia) Belum ada di Fedora 45 (butuh COPR)
-  Foot                 Ringan, Wayland-only, cocok untuk sistem minimal
+   Ghostty              (belum tersedia) Belum ada di Fedora 45 (butuh COPR…)
+ ❯ Ghostty              (belum tersedia) Belum ada di Fedora 45 (butuh COPR…)
 
-Ghostty belum tersedia; pilih yang lain.
+ Ghostty belum tersedia; pilih yang lain.
 ```
 
-Setelah dipilih, dialoguer mengganti baris prompt dengan versi ringkas:
+Di bagian bawah layar, nama pilihan sebelumnya dirangkai sebagai jejak:
 
 ```
-✔ Terminal · Alacritty
+ Kitty  ·  Nautilus  ·  Firefox (RPM)  ·  greetd + tuigreet
 ```
 
-## 2. Browser
+## 2. File manager
 
 ```
-? Browser ›
-❯ Firefox (RPM)        Native RPM lewat overlay, tanpa Flatpak
-  Firefox (Flatpak)    Terisolasi, update otomatis, unduhan pertama besar
-  Chromium (RPM)       Native RPM, tanpa sinkronisasi akun Google
-  Brave (RPM)          Dari repo RakuOS, pemblokir iklan bawaan
+ ● Terminal ── ● File mgr ── ○ Browser ── ○ Login ── ○ Desktop
+
+ Fase 2 dari 5 · File manager
+ Menjelajah file dan mount USB/HP
+ ────────────────────────────────────────────────────────────────────────────
+ ❯ Nautilus             File manager GNOME, ringan untuk pemakaian dasar
+   Dolphin              File manager KDE, fitur lengkap (menarik Qt/KDE stack)
+   Thunar               File manager Xfce, ringan dan cepat
 ```
 
-Kalau memilih Flatpak, ringkasan nanti menambah baris `Flatpak` dan catatan
-unduhan besar.
-
-## 3. Desktop
+## 3. Browser
 
 ```
-✔ Browser · Firefox (RPM)
-
-? Desktop ›
-❯ Hyprland             Tiling dinamis, config minimal tanpa bar
-  Niri                 Scrollable tiling, config minimal tanpa bar
-  Labwc                Stacking compositor ringan (ala Openbox), tanpa config tambahan
-  MangoWM              (belum tersedia) Belum dipaketkan untuk Fedora/RakuOS
+ Fase 3 dari 5 · Browser
+ Untuk web; RPM lebih ringan, Flatpak lebih terisolasi
+ ────────────────────────────────────────────────────────────────────────────
+ ❯ Firefox (RPM)        Native RPM lewat overlay, tanpa Flatpak
+   Firefox (Flatpak)    Terisolasi, update otomatis, unduhan pertama besar
+   Chromium (RPM)       Native RPM, tanpa sinkronisasi akun Google
+   Brave (RPM)          Dari repo RakuOS, pemblokir iklan bawaan
 ```
 
-## 4. File manager
+## 4. Login manager
 
 ```
-✔ Desktop · Hyprland
-
-? File manager ›
-❯ Nautilus             File manager GNOME, ringan untuk pemakaian dasar
-  Dolphin              File manager KDE, fitur lengkap (menarik Qt/KDE stack)
-  Thunar               File manager Xfce, ringan dan cepat
+ Fase 4 dari 5 · Login manager
+ Layar masuk setelah boot
+ ────────────────────────────────────────────────────────────────────────────
+ ❯ greetd + tuigreet   Greeter TUI paling ringan, cocok untuk Wayland minimal
+   SDDM                 Display manager grafis, paling familiar
+   Ly                   Display manager TUI, ringan
+   Tanpa login manager  Autologin user langsung ke desktop di tty1
 ```
 
-## 5. Login manager
+## 5. Desktop
 
 ```
-✔ File manager · Nautilus
-
-? Login manager ›
-❯ greetd + tuigreet   Greeter TUI paling ringan, cocok untuk Wayland minimal
-  SDDM                 Display manager grafis, paling familiar
-  Ly                   Display manager TUI, ringan
-  Tanpa login manager  Autologin user langsung ke desktop di tty1
+ Fase 5 dari 5 · Desktop
+ Compositor Wayland; config minimal tanpa bar
+ ────────────────────────────────────────────────────────────────────────────
+ ❯ Hyprland             Tiling dinamis, config minimal tanpa bar
+   Niri                 Scrollable tiling, config minimal tanpa bar
+   Labwc                Stacking compositor ringan (ala Openbox), tanpa con…
+   MangoWM              (belum tersedia) Belum dipaketkan untuk Fedora/RakuOS
 ```
 
 ---
 
 ## 6. Ringkasan
 
+Semua langkah berubah jadi `✔`, lalu:
+
 ```
-✔ Login manager · greetd + tuigreet
+ ✔ Terminal ── ✔ File mgr ── ✔ Browser ── ✔ Login ── ✔ Desktop
 
-Ringkasan
-  Terminal      Alacritty
-  Browser       Firefox (RPM)
-  Desktop       Hyprland
-  File manager  Nautilus
-  Login         greetd + tuigreet
-  User target   mindset
+ Ringkasan
+ ────────────────────────────────────────────────────────────────────────────
+ Terminal       Kitty
+ File manager   Nautilus
+ Browser        Firefox (RPM)
+ Login          greetd + tuigreet
+ Desktop        Hyprland
+ User target    mindset
+ Paket RPM (25)
+   dbus-tools, default-fonts, firefox, fuzzel, google-noto-color-emoji-fonts
+   google-noto-sans-fonts, greetd, gvfs, gvfs-mtp, hyprland, … +15 lainnya
 
-  Paket RPM (25):
-    - dbus-tools
-    - default-fonts
-    - firefox
-    - fuzzel
-    - google-noto-color-emoji-fonts
-    - google-noto-sans-fonts
-    - greetd
-    - gvfs
-    - gvfs-mtp
-    - hyprland
-    - hyprland-uwsm
-    - kitty
-    - libva
-    - lxpolkit
-    - mesa-dri-drivers
-    - mesa-vulkan-drivers
-    - nautilus
-    - pipewire
-    - pipewire-pulseaudio
-    - polkit
-    - tuigreet
-    - wireplumber
-    - xdg-desktop-portal
-    - xdg-desktop-portal-gtk
-    - xdg-desktop-portal-hyprland
+ ? Lanjutkan instalasi?
 
-? Lanjutkan instalasi? (Y/n) ›
+ Y/Enter lanjut   n/Esc batal   Ctrl-C keluar
 ```
 
-Jawaban `n` → `Dibatalkan. Tidak ada yang diubah.` dan keluar dengan kode 0.
+Daftar paket dipadatkan: maksimal 2 baris, sisanya `… +N lainnya`. Kalau
+browser Flatpak dipilih, muncul satu baris peringatan tambahan:
+
+```
+ Flatpak: unduhan pertama bisa ratusan MB.
+```
+
+`n` atau `Esc` → keluar tanpa mengubah apa pun.
 
 ## 7. Proses instalasi
 
+Layar dibersihkan, header + stepper tetap, lalu log mengalir (tidak ada
+progress bar — output `rum`/`dnf` yang tampil apa adanya):
+
 ```
-✔ Lanjutkan instalasi? · yes
+ ╭────────────────────────────────────────────────────────────────────────────╮
+ │ RAKUOS bootstrap                                                    v0.1.0 │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+ ✔ Terminal ── ✔ File mgr ── ✔ Browser ── ✔ Login ── ✔ Desktop
 
 Memasang paket
-  → rum install -y dbus-tools default-fonts firefox fuzzel ... xdg-desktop-portal-hyprland
-Package                 Arch   Version         Repository        Size
-Installing:
- alacritty              x86_64 0.16.1-1.fc45   updates       6.2 MiB
- ...
-Complete!
+  → rum install -y dbus-tools default-fonts firefox fuzzel ...
 
 Menyiapkan config desktop
   → salin /usr/share/rakuos/bootstrap/skel/hyprland -> /home/mindset
@@ -215,8 +210,7 @@ Menyiapkan login manager
   → systemctl set-default graphical.target
 ```
 
-Kalau `rum` tidak ada (image tanpa overlay RakuOS), muncul peringatan kuning
-sekali, lalu semua langkah memakai `dnf`:
+Kalau `rum` tidak ada:
 
 ```
 peringatan: rum tidak ditemukan; memakai dnf (overlay RakuOS tidak aktif)
@@ -225,15 +219,15 @@ peringatan: rum tidak ditemukan; memakai dnf (overlay RakuOS tidak aktif)
 ## 8. Selesai
 
 ```
-Selesai.
+ ✔ Selesai.
 
-? Reboot sekarang? (Y/n) ›
+ ? Reboot sekarang? [Y/n]
 ```
 
-`y` → `systemctl reboot`. `n` →
+Jawaban ditulis di baris yang sama (`ya`/`tidak`). Kalau `tidak`:
 
 ```
-Reboot nanti dengan: systemctl reboot
+ Reboot nanti dengan: systemctl reboot
 ```
 
 ---
@@ -242,36 +236,45 @@ Reboot nanti dengan: systemctl reboot
 
 ### `--dry-run`
 
-Tidak menulis apa pun, hanya menunjukkan rencana. Cocok untuk demo/screenshot:
+Badge `DRY-RUN` di kanan atas. Semua perintah tampil dengan `+`, tidak ada
+yang dijalankan:
 
 ```
-Mode dry-run: hanya menampilkan rencana.
-
-...
-
 Memasang paket
   + rum install -y alacritty dbus-tools default-fonts firefox ...
 
 Menyiapkan config desktop
-  + salin /usr/share/rakuos/bootstrap/skel/hyprland -> /home/mindset
+  + salin data/skel/hyprland -> /home/mindset
   + ganti @TERMINAL@ dengan alacritty
 
 Menyiapkan login manager
   + systemctl enable greetd.service
   + systemctl set-default graphical.target
 
-Selesai.
+✔ Selesai.
 (dry-run: tidak ada paket yang dipasang, tidak ada file yang ditulis)
 ```
 
 ### `--first-boot`
 
-Dipanggil unit systemd saat boot pertama, jadi tanpa tawaran reboot:
+Badge `BOOT PERTAMA`, dipanggil unit systemd, langsung reboot setelah selesai
+tanpa tanya.
+
+### `--ascii` / `RAKUOS_ASCII=1` / locale non-UTF-8
 
 ```
-Mode boot pertama: wizard berjalan di tty1.
-...
-Sistem akan reboot untuk masuk ke desktop...
+ +----------------------------------------------------------------------------+
+ | RAKUOS bootstrap                                                    v0.1.0 |
+ | Menghidupkan sistem minimal sampai punya GUI                       DRY-RUN |
+ +----------------------------------------------------------------------------+
+
+ [>] Terminal -- [ ] File mgr -- [ ] Browser -- [ ] Login -- [ ] Desktop
+
+ Fase 1 dari 5 - Terminal
+ Tempat mengetik perintah
+ ----------------------------------------------------------------------------
+ > Kitty                GPU-accelerated, paling umum dipakai di Hyprland
+   Foot                 Ringan, Wayland-only, cocok untuk sistem minimal
 ```
 
 ### Bukan root
@@ -280,48 +283,48 @@ Sistem akan reboot untuk masuk ke desktop...
 error: jalankan dengan sudo: sudo rakuos-bootstrap
 ```
 
-### Kategori kosong
+### Bukan TTY
 
-Kalau semua entri di satu kategori `available = false`:
+```
+error: butuh terminal interaktif (TTY)
+```
+
+### Kategori kosong
 
 ```
 error: tidak ada pilihan tersedia untuk Terminal
 ```
 
-### `Ctrl-C` / `Esc`
-
-dialoguer mengembalikan error, jadi keluar dengan:
+### `Esc` / `Ctrl-C`
 
 ```
-error: ...
+Dibatalkan. Tidak ada yang diubah.
 ```
 
-Tidak ada marker `.done` yang ditulis, sehingga wizard ditawarkan lagi saat
-boot berikutnya.
+Exit code `130`, tidak ada marker `.done` yang ditulis, jadi wizard ditawarkan
+lagi saat boot berikutnya.
 
 ---
 
 ## Batasan
 
-- Lebar minimum 80 kolom. Di bawah itu deskripsi terpotong; yang dipotong
-  hanya teks redup, nama pilihan tidak pernah dipotong.
-- Nama pilihan dipadatkan ke 20 kolom, lalu deskripsi mengikuti.
-- Tidak butuh font khusus: hanya ASCII + `❯ ✔ · › →`, yang ada di hampir
-  semua font monospace. Kalau `LANG=C` dan terminal tidak mendukung Unicode,
-  `console` tetap menampilkan teksnya (kotak-kotak).
-- Warna otomatis mati kalau output bukan TTY (mis. `| tee`), jadi log build
-  tetap bersih.
+- Lebar efektif 40–78 kolom (diturunkan dari lebar terminal, dikurangi 2).
+- Di bawah 72 kolom, stepper hanya menampilkan nama fase yang aktif.
+- Deskripsi panjang dipotong dengan `…`; nama pilihan tidak pernah dipotong.
+- Kursor disembunyikan selama layar interaktif dan dipulihkan saat keluar,
+  termasuk saat `Esc`/error.
+- Tidak ada alternate screen: setelah keluar, frame terakhir tetap di
+  scrollback, jadi log installer masih bisa dibaca.
 
 ## Status implementasi
 
 | Bagian | Status |
 |---|---|
-| Banner, 5 pertanyaan, ringkasan, konfirmasi | ✅ ada di `src/main.rs` |
-| Progres install + skel + login + marker | ✅ ada di `src/install.rs` |
-| `--dry-run`, `--first-boot` | ✅ |
-| Entri `(belum tersedia)` ditampilkan & ditolak | ❌ masih disembunyikan — `ask()` memfilter `available` |
-| WezTerm di katalog | ❌ belum ada di `data/catalog.toml` (Ghostty sudah, `available = false`) |
-| Screenshot ANSI asli | ⏳ belum; blok di atas adalah target |
-
-Dua baris ❌ itu yang membuat tampilan sekarang hanya berisi 3 terminal
-(Alacritty/Kitty/Foot) dan 3 desktop (Hyprland/Niri/Labwc).
+| Header, stepper, 5 fase, ringkasan, konfirmasi | ✅ `src/ui.rs` + `src/main.rs` |
+| Entri `(belum tersedia)` tampil & ditolak | ✅ |
+| Charset Full/Tty/Ascii + `--ascii` | ✅ |
+| Warna 256/16/none, hormati `NO_COLOR` | ✅ |
+| `Esc`/`Ctrl-C` → exit 130 tanpa menulis | ✅ |
+| `--dry-run`, `--first-boot` badge | ✅ |
+| Progres install dari output `rum`/`dnf` | ✅ `src/install.rs` |
+| WezTerm di katalog | ❌ belum ada (Ghostty sudah, `available = false`) |
