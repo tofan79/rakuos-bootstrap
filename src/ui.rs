@@ -9,7 +9,7 @@
 //! | Tty     | `TERM=linux` + UTF-8 (console VT)  | ┌─┐   | [x] [>] [ ]  |
 //! | Ascii   | locale bukan UTF-8 / `--ascii`     | +-+   | [x] [>] [ ]  |
 //!
-//! Warna: 256 (oranye bara) kalau terminal mendukung, 16 warna ANSI di console
+//! Warna: 256 (cyan terang) kalau terminal mendukung, 16 warna ANSI di console
 //! VT, dan polos kalau output bukan TTY atau `NO_COLOR` aktif.
 
 use std::fmt;
@@ -21,7 +21,7 @@ use console::{measure_text_width, truncate_str, Key, Style, Term};
 use crate::catalog::Choice;
 
 /// Nama pendek tiap fase untuk stepper.
-const STEPS: [&str; 5] = ["Terminal", "File mgr", "Browser", "Login", "Desktop"];
+const STEPS: [&str; 5] = ["Terminal", "File manager", "Browser", "Login", "Desktop"];
 
 /// Pengguna menekan Esc / Ctrl-C.
 #[derive(Debug)]
@@ -109,19 +109,19 @@ impl Palette {
                 dim: Style::new(),
                 bold: Style::new().bold(),
             },
-            // Console VT: "yellow" tanpa bold = cokelat/oranye (VGA #AA5500),
-            // persis warna bara. Redup = hitam terang (abu-abu tua).
+            // Console VT: cyan terang (VGA #00FFFF). Redup = hitam terang
+            // (abu-abu tua) supaya tetap terbaca di latar hitam.
             ColorLevel::Vt16 => Palette {
-                accent: Style::new().yellow(),
-                accent_b: Style::new().yellow().bold(),
+                accent: Style::new().cyan(),
+                accent_b: Style::new().cyan().bright(),
                 ok: Style::new().green(),
                 warn: Style::new().yellow().bold(),
                 dim: Style::new().black().bright(),
                 bold: Style::new().white().bold(),
             },
             ColorLevel::Xterm256 => Palette {
-                accent: Style::new().color256(208),
-                accent_b: Style::new().color256(208).bold(),
+                accent: Style::new().color256(51),
+                accent_b: Style::new().color256(51).bold(),
                 ok: Style::new().color256(108),
                 warn: Style::new().color256(220),
                 dim: Style::new().color256(245),

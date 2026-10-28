@@ -31,8 +31,8 @@ Teks tetap aman walau locale `C`: yang berubah hanya glyph.
 
 | Mode | Kapan | Aksen |
 |---|---|---|
-| 256 | `COLORTERM`/`TERM=*256*` | oranye bara (208), hijau 108, abu 245 |
-| 16 | console VT | kuning (cokelat VGA), hijau, hitam terang |
+| 256 | `COLORTERM`/`TERM=*256*` | cyan terang (51), hijau 108, abu 245 |
+| 16 | console VT | cyan terang (VGA), hijau, hitam terang |
 | None | bukan TTY / `NO_COLOR` | polos, tanpa escape |
 
 Warna mati otomatis kalau output di-pipe, jadi log build tetap bersih.
