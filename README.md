@@ -7,7 +7,6 @@ browser, desktop, dan login manager, lalu memasangnya di atas base image
 Bukan installer OS. `rakuos-installer-cli` yang menulis sistem ke disk; program
 ini yang membuat sistem minimal itu **bisa dipakai**.
 
-- Rencana lengkap + checklist eksekusi: [`PLAN.md`](PLAN.md)
 - Mockup tampilan TUI: [`ui.md`](ui.md)
 - Katalog pilihan: [`data/catalog.toml`](data/catalog.toml)
 - Binary: `rakuos-bootstrap` (Rust, TUI tanpa dependensi GUI, aman di console VT)
@@ -200,5 +199,4 @@ Field khusus:
 
 ## Dokumentasi lain
 
-- [`PLAN.md`](PLAN.md) — keputusan, perilaku instalasi, risiko, checklist
 - [`ui.md`](ui.md) — tampilan tiap fase, charset, warna

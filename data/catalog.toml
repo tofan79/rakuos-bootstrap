@@ -8,7 +8,7 @@
 # ini tidak menentukan urutan di layar. Tetap ditulis A-Z supaya enak dibaca.
 #
 # Semua paket di bawah sudah dicek ada di Fedora 45 atau repo RakuOS 45
-# (2026-10-26). Lihat PLAN.md bagian 5 untuk catatan verifikasi.
+# (2026-10-26).
 
 # Repo pihak ketiga yang diaktifkan sebelum paket dipasang.
 #
