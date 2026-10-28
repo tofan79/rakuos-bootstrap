@@ -1,5 +1,6 @@
 // Config minimal dari rakuos-bootstrap.
 // Tanpa bar: desktop pure, keybind dasar supaya langsung bisa dipakai.
+// File ini milik user; aman diedit/dihapus.
 
 input {
     keyboard {
@@ -37,8 +38,8 @@ binds {
     Mod+Down { focus-window-down; }
 
     // Pindahkan kolom/window.
-    Mod+Ctrl+Left { move-column-left; }
-    Mod+Ctrl+Right { move-column-right; }
-    Mod+Ctrl+Up { move-window-up; }
-    Mod+Ctrl+Down { move-window-down; }
+    Mod+Shift+Left { move-column-left; }
+    Mod+Shift+Right { move-column-right; }
+    Mod+Shift+Up { move-window-up; }
+    Mod+Shift+Down { move-window-down; }
 }

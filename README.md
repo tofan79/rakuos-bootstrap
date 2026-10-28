@@ -169,6 +169,24 @@ portal memakai `xdg-desktop-portal-gnome`/`gtk` yang sudah ada di base. Skel
 Niri memakai placeholder `@TERMINAL@`, `@BROWSER@`, dan `@FILEMANAGER@` yang
 sama; KDL tidak punya variabel, jadi perintah launcher ditulis langsung.
 
+Hyprland memakai `hyprland.lua` (Lua, Hyprland 0.55+), bukan
+`hyprland.conf`. Ketiga skel memakai keybind dasar yang sama:
+
+| Tombol | Fungsi |
+|---|---|
+| `SUPER+Return` | terminal |
+| `SUPER+D` | launcher |
+| `SUPER+B` | browser |
+| `SUPER+E` | file manager |
+| `SUPER+Q` | tutup window |
+| `SUPER+F` | fullscreen |
+| `SUPER+Shift+E` | keluar dari desktop |
+| `SUPER+panah` | fokus window |
+| `SUPER+Shift+panah` | pindah window |
+
+Di Niri, `SUPER` ditulis `Mod`. Launcher default `fuzzel` dan tidak dipasang;
+ganti ke perintah shell kalau memakai Noctalia atau DMS.
+
 ### Lapisan dasar
 
 Base image RakuOS sudah memasang audio (`pipewire`, `wireplumber`), GPU/video
@@ -206,6 +224,7 @@ tidak ingin repo pihak ketiga disentuh.
 - `/var/lib/rakuos/bootstrap.done` — marker selesai; unit first-boot berhenti
   ditawarkan.
 - `$HOME/.config/...` untuk user target (`SUDO_USER`, fallback `root`).
+  Hyprland memakai `$HOME/.config/hypr/hyprland.lua`, bukan `.conf`.
 - `/usr/share/wayland-sessions/hyprland-uwsm.desktop` — sesi uwsm versi resmi
   (hanya kalau desktop = Hyprland).
 - `/etc/pam.d/greetd` + `/var/lib/noctalia-greeter` — disiapkan skrip
