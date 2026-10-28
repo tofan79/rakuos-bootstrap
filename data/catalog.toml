@@ -225,12 +225,34 @@ packages = ["yazi"]
 
 # ------------------------------------------------------------------- login ---
 [[logins]]
+id = "cosmic-greeter"
+name = "COSMIC Greeter"
+description = "Greeter COSMIC (greetd), butuh stack"
+packages = ["cosmic-greeter"]
+unit = "cosmic-greeter.service"
+
+[[logins]]
+id = "gdm"
+name = "GDM"
+description = "GNOME Display Manager, sudah ada di base image"
+packages = ["gdm"]
+unit = "gdm.service"
+
+[[logins]]
 id = "greetd-tuigreet"
 name = "greetd + tuigreet"
-description = "Greeter TUI paling ringan, cocok untuk Wayland minimal"
+description = "Greeter TUI paling ringan, cocok Wayland"
 packages = ["greetd", "tuigreet"]
 unit = "greetd.service"
 default = true
+
+[[logins]]
+id = "lightdm-slick"
+name = "LightDM"
+description = "Greeter Slick (GTK), sesi Wayland tetap bisa"
+packages = ["lightdm", "slick-greeter"]
+unit = "lightdm.service"
+greeter = "slick-greeter"
 
 [[logins]]
 id = "ly"
@@ -238,6 +260,13 @@ name = "Ly"
 description = "Display manager TUI, ringan"
 packages = ["ly"]
 unit = "ly.service"
+
+[[logins]]
+id = "plasma-login"
+name = "Plasma Login"
+description = "Greeter KDE modern (pengganti SDDM)"
+packages = ["plasma-login-manager"]
+unit = "plasmalogin.service"
 
 [[logins]]
 id = "sddm"

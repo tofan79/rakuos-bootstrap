@@ -80,7 +80,7 @@ systemd: rakuos-bootstrap.service  (TTY1, root)
 └──────────────────────────────────────────────┘
         │
         ▼
-ringkasan → konfirmasi → install
+ringkasan → konfirmasi → enable repo → rum make-cache → install
         │
         ├─ rum install <base + pilihan>
         ├─ salin skel desktop ke ~/.config (chown ke user)
@@ -146,9 +146,13 @@ tanpa recompile.
 | file manager | `superfile` | superfile | ✅ Terra (TUI, binary `spf`) |
 | file manager | `thunar` | Thunar, thunar-volman | ✅ Fedora 45 (nama paket berhuruf besar) |
 | file manager | `yazi` | yazi | ✅ Terra (TUI) |
+| login | `cosmic-greeter` | cosmic-greeter | ✅ repo RakuOS 45 (menarik greetd) |
+| login | `gdm` | gdm | ✅ sudah ada di base image |
 | login | `greetd-tuigreet` | greetd, tuigreet | ✅ Fedora 45 |
-| login | `sddm` | sddm | ✅ Fedora 45 |
+| login | `lightdm-slick` | lightdm, slick-greeter | ✅ Fedora 45 |
 | login | `ly` | ly | ✅ Fedora 45 |
+| login | `plasma-login` | plasma-login-manager | ✅ Fedora 45 |
+| login | `sddm` | sddm | ✅ Fedora 45 |
 | login | `none` | — (autologin ke desktop) | ✅ |
 
 Catatan: `rum repoquery` mencocokkan nama paket **peka huruf besar**; paket
@@ -199,6 +203,10 @@ Repositories* di `rakuos-welcome`:
 - Kalau `rum` tidak ada, langkah ini dilewati dengan peringatan (bukan
   gagal), karena `dnf` tidak mengenal overlay RakuOS.
 
+Setelah repo dinyalakan, metadata disegarkan dengan `rum make-cache` (fallback
+`dnf makecache`). Perintah ini hanya mengambil metadata; berbeda dengan
+`rum update`/`upgrade` yang ikut menyentuh paket overlay.
+
 ### 6.3 Config minimal (skel)
 
 - Sumber: `/usr/share/rakuos/bootstrap/skel/<id>/.config/...`
@@ -213,12 +221,20 @@ Repositories* di `rakuos-welcome`:
 
 ### 6.4 Login manager
 
-| Pilihan | Aksi |
-|---|---|
-| `greetd-tuigreet` | `systemctl enable greetd`, `set-default graphical.target`. Sesi dibaca dari `/usr/share/wayland-sessions` |
-| `sddm` | `systemctl enable sddm`, `set-default graphical.target` |
-| `ly` | `systemctl enable ly`, `set-default graphical.target` |
-| `none` | `set-default multi-user.target`, enable `getty@tty1` + autologin user, `~/.bash_profile` menjalankan `dbus-run-session <autologin_cmd>` |
+| Pilihan | Unit | Aksi |
+|---|---|---|
+| `cosmic-greeter` | `cosmic-greeter.service` | `systemctl enable`, `set-default graphical.target`; unit ini menjalankan `greetd` dengan config COSMIC |
+| `gdm` | `gdm.service` | `systemctl enable`, `set-default graphical.target`; GDM sudah ada di base image |
+| `greetd-tuigreet` | `greetd.service` | Sesi dibaca dari `/usr/share/wayland-sessions` |
+| `lightdm-slick` | `lightdm.service` | Drop-in `/etc/lightdm/lightdm.conf.d/50-rakuos-bootstrap.conf` berisi `greeter-session=slick-greeter` |
+| `ly` | `ly.service` | `systemctl enable`, `set-default graphical.target` |
+| `plasma-login` | `plasmalogin.service` | Greeter KDE, pengganti SDDM |
+| `sddm` | `sddm.service` | `systemctl enable`, `set-default graphical.target` |
+| `none` | — | `set-default multi-user.target`, enable `getty@tty1` + autologin user, `~/.bash_profile` menjalankan `dbus-run-session <autologin_cmd>` |
+
+Semua pilihan selain `none` di-enable dengan `systemctl enable <unit>` lalu
+`systemctl set-default graphical.target`. Drop-in LightDM dihapus lagi kalau
+user pindah ke login manager lain.
 
 Autologin user (bukan root) untuk pilihan `none`. Jangan pernah autologin root
 di sistem ter-install.

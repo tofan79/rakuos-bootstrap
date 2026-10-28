@@ -31,6 +31,9 @@ pub struct Choice {
     /// Unit systemd display manager yang di-enable (login manager).
     #[serde(default)]
     pub unit: Option<String>,
+    /// Greeter yang ditulis ke config display manager (khusus LightDM).
+    #[serde(default)]
+    pub greeter: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]

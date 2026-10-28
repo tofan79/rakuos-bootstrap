@@ -201,6 +201,7 @@ fn configure_login(
             &["set-default".into(), "graphical.target".into()],
             dry_run,
         )?;
+        configure_greeter(login, dry_run)?;
 
         // Bersihkan autologin kalau sebelumnya pernah dipilih login = none.
         let dropin = Path::new("/etc/systemd/system/getty@tty1.service.d/autologin.conf");
@@ -254,6 +255,37 @@ fn configure_login(
     let owner = format!("{user}:{user}");
     let profile_path = profile.to_string_lossy().to_string();
     let _ = Command::new("chown").args([owner, profile_path]).status();
+    Ok(())
+}
+
+/// LightDM memilih greeter sendiri hanya kalau terpasang satu. Supaya tidak
+/// bergantung pada urutan deteksi, pilihan yang punya `greeter` menulis
+/// drop-in kecil. Drop-in yang sama dihapus saat pindah ke login manager lain.
+fn configure_greeter(login: &Choice, dry_run: bool) -> Result<()> {
+    let dir = Path::new("/etc/lightdm/lightdm.conf.d");
+    let conf = dir.join("50-rakuos-bootstrap.conf");
+
+    let Some(greeter) = &login.greeter else {
+        if conf.exists() {
+            if dry_run {
+                println!("  + hapus {}", conf.display());
+            } else {
+                let _ = fs::remove_file(&conf);
+            }
+        }
+        return Ok(());
+    };
+
+    if dry_run {
+        println!(
+            "  + tulis {} (greeter-session={greeter})",
+            conf.display()
+        );
+        return Ok(());
+    }
+
+    fs::create_dir_all(dir)?;
+    fs::write(&conf, format!("[Seat:*]\ngreeter-session={greeter}\n"))?;
     Ok(())
 }
 

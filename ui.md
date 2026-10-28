@@ -147,9 +147,13 @@ di terminal tinggi semua pilihan tampil sekaligus.
  Fase 4 dari 5 · Login manager
  Layar masuk setelah boot
  ────────────────────────────────────────────────────────────────────────────
- ❯ greetd + tuigreet   Greeter TUI paling ringan, cocok untuk Wayland minimal
-   SDDM                 Display manager grafis, paling familiar
+ ❯ COSMIC Greeter       Greeter COSMIC (greetd), butuh stack
+   GDM                  GNOME Display Manager, sudah ada di base image
+   greetd + tuigreet    Greeter TUI paling ringan, cocok Wayland
+   LightDM              Greeter Slick (GTK), sesi Wayland tetap bisa
    Ly                   Display manager TUI, ringan
+   Plasma Login         Greeter KDE modern (pengganti SDDM)
+   SDDM                 Display manager grafis, paling familiar
    Tanpa login manager  Autologin user langsung ke desktop di tty1
 ```
 

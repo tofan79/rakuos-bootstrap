@@ -123,8 +123,12 @@ Boleh centang lebih dari satu. Ukuran = paket utamanya saja.
 
 | Nama | Deskripsi | Paket | Unit | Default |
 |---|---|---|---|---|
-| greetd + tuigreet | Greeter TUI paling ringan, cocok untuk Wayland minimal | `greetd`, `tuigreet` | `greetd.service` | ✅ |
+| COSMIC Greeter | Greeter COSMIC (greetd), butuh stack | `cosmic-greeter` | `cosmic-greeter.service` | |
+| GDM | GNOME Display Manager, sudah ada di base image | `gdm` | `gdm.service` | |
+| greetd + tuigreet | Greeter TUI paling ringan, cocok Wayland | `greetd`, `tuigreet` | `greetd.service` | ✅ |
+| LightDM | Greeter Slick (GTK), sesi Wayland tetap bisa | `lightdm`, `slick-greeter` | `lightdm.service` | |
 | Ly | Display manager TUI, ringan | `ly` | `ly.service` | |
+| Plasma Login | Greeter KDE modern (pengganti SDDM) | `plasma-login-manager` | `plasmalogin.service` | |
 | SDDM | Display manager grafis, paling familiar | `sddm` | `sddm.service` | |
 | Tanpa login manager | Autologin user langsung ke desktop di tty1 | — | — | |
 
