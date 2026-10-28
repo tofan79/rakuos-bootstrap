@@ -109,6 +109,7 @@ besar.
 | Falkon | Qt/Chromium ringan, cocok sistem minimal | `falkon` | Fedora | 14,5 MB | |
 | Firefox | Default, cepat, dan paling kompatibel | `firefox` | Fedora | 307 MB | ✅ |
 | Google Chrome | Proprietary, sinkronisasi akun Google | `google-chrome-stable` | RakuOS | 466 MB | |
+| Helium | Chromium privat dan cepat, dari Terra | `helium-browser-bin` | Terra | 410 MB | |
 | LibreWolf | Firefox tanpa telemetri, fokus privasi | `librewolf` | RakuOS | 485 MB | |
 | Microsoft Edge | Chromium Microsoft, paket paling besar | `microsoft-edge-stable` | RakuOS | 704 MB | |
 | QuteBrowser | Keyboard-only, Qt/Python | `qutebrowser` | Fedora | 11 MB | |

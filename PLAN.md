@@ -128,6 +128,7 @@ tanpa recompile.
 | browser | `falkon` | falkon | ✅ Fedora 45 |
 | browser | `firefox` | firefox | ✅ Fedora 45 |
 | browser | `google-chrome` | google-chrome-stable | ✅ repo RakuOS 45 |
+| browser | `helium` | helium-browser-bin | ✅ Terra |
 | browser | `librewolf` | librewolf | ✅ repo RakuOS 45 |
 | browser | `microsoft-edge` | microsoft-edge-stable | ✅ repo RakuOS 45 |
 | browser | `qutebrowser` | qutebrowser | ✅ Fedora 45 |

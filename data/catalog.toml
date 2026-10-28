@@ -107,6 +107,12 @@ description = "Proprietary, sinkronisasi akun Google"
 packages = ["google-chrome-stable"]
 
 [[browsers]]
+id = "helium"
+name = "Helium"
+description = "Chromium privat dan cepat, dari Terra"
+packages = ["helium-browser-bin"]
+
+[[browsers]]
 id = "librewolf"
 name = "LibreWolf"
 description = "Firefox tanpa telemetri, fokus privasi"
