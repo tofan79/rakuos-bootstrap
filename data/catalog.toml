@@ -59,6 +59,7 @@ id = "brave"
 name = "Brave"
 description = "Chromium dengan pemblokir iklan bawaan"
 packages = ["brave-browser"]
+command = "brave-browser"
 
 [[browsers]]
 id = "chromium"
@@ -90,12 +91,14 @@ id = "google-chrome"
 name = "Google Chrome"
 description = "Proprietary, sinkronisasi akun Google"
 packages = ["google-chrome-stable"]
+command = "google-chrome-stable"
 
 [[browsers]]
 id = "helium"
 name = "Helium"
 description = "Chromium privat dan cepat, dari Terra"
 packages = ["helium-browser-bin"]
+command = "helium-browser-bin"
 
 [[browsers]]
 id = "librewolf"
@@ -108,6 +111,7 @@ id = "microsoft-edge"
 name = "Microsoft Edge"
 description = "Chromium Microsoft, paket paling besar"
 packages = ["microsoft-edge-stable"]
+command = "microsoft-edge-stable"
 
 [[browsers]]
 id = "qutebrowser"
@@ -120,6 +124,7 @@ id = "vivaldi"
 name = "Vivaldi"
 description = "Fitur banyak, proprietary"
 packages = ["vivaldi-stable"]
+command = "vivaldi-stable"
 
 [[browsers]]
 id = "waterfox"
@@ -156,7 +161,7 @@ autologin_cmd = "start-kineticwe"
 id = "mangowm"
 name = "MangoWM"
 description = "Tiling ringan berbasis dwl (wlroots)"
-packages = ["fuzzel", "lxpolkit", "mangowm", "scenefx", "slurp", "wlroots", "xcb-util-wm", "xdg-desktop-portal-wlr"]
+packages = ["mangowm", "scenefx", "wlroots", "xcb-util-wm", "xdg-desktop-portal-wlr", "slurp"]
 skel = "mango"
 autologin_cmd = "mango"
 
@@ -199,6 +204,7 @@ id = "superfile"
 name = "Superfile"
 description = "File manager TUI modern (binary spf), dari repo Terra"
 packages = ["superfile"]
+command = "spf"
 
 [[file_managers]]
 id = "thunar"

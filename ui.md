@@ -90,8 +90,9 @@ Desktop) tetap tunggal karena hanya satu yang bisa aktif saat boot.
 ```
 
 `default = true` di katalog menentukan item yang sudah tercentang saat fase
-dibuka (Kitty). Boleh mencentang lebih dari satu; `@TERMINAL@` di config
-desktop memakai terminal pertama menurut abjad.
+dibuka (Kitty). Boleh mencentang lebih dari satu; `@TERMINAL@` dan `@BROWSER@`
+di config desktop memakai pilihan pertama menurut abjad, sedangkan
+`@FILEMANAGER@` memakai file manager yang dipilih.
 
 Entri `(belum tersedia)` tetap terlihat supaya user tahu pilihannya ada tapi
 belum bisa dipakai. Kalau dicentang, baris kuning muncul dan daftar tidak
@@ -261,6 +262,8 @@ Memasang paket
 Menyiapkan config desktop
   + salin data/skel/hyprland -> /home/mindset
   + ganti @TERMINAL@ dengan alacritty
+  + ganti @BROWSER@ dengan firefox
+  + ganti @FILEMANAGER@ dengan nautilus
 
 Menyiapkan login manager
   + systemctl enable greetd.service

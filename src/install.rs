@@ -22,8 +22,22 @@ impl Picks<'_> {
     fn primary_terminal(&self) -> &str {
         self.terminals
             .first()
-            .map(|c| c.id.as_str())
+            .map(|c| c.command())
             .unwrap_or("foot")
+    }
+
+    fn primary_browser(&self) -> &str {
+        self.browsers
+            .first()
+            .map(|c| c.command())
+            .unwrap_or("firefox")
+    }
+
+    fn primary_file_manager(&self) -> &str {
+        self.file_managers
+            .first()
+            .map(|c| c.command())
+            .unwrap_or("nautilus")
     }
 }
 
@@ -61,6 +75,8 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
     install_skel(
         picks.desktop,
         picks.primary_terminal(),
+        picks.primary_browser(),
+        picks.primary_file_manager(),
         base_dir,
         &user,
         dry_run,
@@ -191,6 +207,8 @@ fn package_installed(name: &str) -> bool {
 fn install_skel(
     desktop: &Choice,
     terminal: &str,
+    browser: &str,
+    file_manager: &str,
     base_dir: &Path,
     user: &str,
     dry_run: bool,
@@ -214,13 +232,17 @@ fn install_skel(
     if dry_run {
         println!("  + salin {} -> {}", src.display(), home.display());
         println!("  + ganti @TERMINAL@ dengan {terminal}");
+        println!("  + ganti @BROWSER@ dengan {browser}");
+        println!("  + ganti @FILEMANAGER@ dengan {file_manager}");
         return Ok(());
     }
 
     copy_dir(&src, &home)?;
-    replace_in_tree(&home.join(".config"), "@TERMINAL@", terminal)?;
-
     let config_dir = home.join(".config");
+    replace_in_tree(&config_dir, "@TERMINAL@", terminal)?;
+    replace_in_tree(&config_dir, "@BROWSER@", browser)?;
+    replace_in_tree(&config_dir, "@FILEMANAGER@", file_manager)?;
+
     let status = Command::new("chown")
         .args([
             "-R",

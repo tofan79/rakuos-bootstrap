@@ -79,8 +79,9 @@ Ukuran = paket utamanya saja, bukan total dependency.
 | Ghostty | Dari repo Terra, diaktifkan otomatis saat instalasi | `ghostty`, `ghostty-terminfo`, `ghostty-shell-integration` | Terra | 28,7 MB | |
 | Kitty | GPU-accelerated, paling umum dipakai di Hyprland | `kitty`, `kitty-kitten`, `kitty-shell-integration`, `kitty-terminfo` | Fedora | 16 MB | ✅ |
 
-`@TERMINAL@` di config desktop memakai terminal pertama menurut abjad dari
-yang dicentang.
+`@TERMINAL@` dan `@BROWSER@` di config desktop memakai pilihan pertama
+menurut abjad dari yang dicentang; `@FILEMANAGER@` memakai file manager yang
+dipilih. Kalau kosong, fallback-nya `foot`, `firefox`, dan `nautilus`.
 
 ### File manager
 
@@ -146,7 +147,7 @@ bersama desktop KineticWE.
 |---|---|---|---|
 | Hyprland | Tiling dinamis, config minimal tanpa bar | `hyprland`, `hyprland-guiutils`, `hyprland-uwsm`, `xdg-desktop-portal-hyprland`, `hyprland-preview-share-picker` | ✅ |
 | KineticWE | Tiling berbasis KWin, shell Noctalia | `kineticwe-git` | |
-| MangoWM | Tiling ringan berbasis dwl (wlroots) | `mangowm`, `scenefx`, `wlroots`, `xcb-util-wm`, `xdg-desktop-portal-wlr`, `fuzzel`, `lxpolkit`, `slurp` | |
+| MangoWM | Tiling ringan berbasis dwl (wlroots) | `mangowm`, `scenefx`, `wlroots`, `xcb-util-wm`, `xdg-desktop-portal-wlr`, `slurp` | |
 | Niri | Scrollable tiling, config minimal tanpa bar | `niri`, `xdg-desktop-portal-gnome` | |
 
 `kineticwe-git` sudah `Requires` versi yang sama dari `kineticwe-noctalia` dan
@@ -154,10 +155,14 @@ bersama desktop KineticWE.
 `uwsm`; `xdg-desktop-portal-hyprland` menarik `grim`, `slurp`, dan
 `qt6-qtwayland`.
 
-MangoWM memakai skel `data/skel/mango` (config TOML). `fuzzel` dipakai sebagai
-launcher, `lxpolkit` dijalankan lewat `exec_once`, dan `slurp` melengkapi
-screenshot interaktif dari `xdg-desktop-portal-wlr`. XWayland tidak diulang
-karena sudah ada di base image.
+MangoWM memakai skel `data/skel/mango` (config TOML) dengan variabel
+`$terminal`, `$launcher`, `$browser`, dan `$filemanager`. `$launcher` default
+`fuzzel`, tetapi paketnya tidak dipasang: shell seperti Noctalia atau DMS
+biasanya sudah membawa launcher dan agen polkit sendiri. Ganti `$launcher` ke
+perintah shell kalau perlu. `exec_once` menjalankan
+`dbus-update-activation-environment`; `slurp` melengkapi screenshot interaktif
+dari `xdg-desktop-portal-wlr`. XWayland tidak diulang karena sudah ada di base
+image.
 
 ### Lapisan dasar
 
@@ -223,6 +228,7 @@ Field khusus:
 
 | Field | Untuk | Arti |
 |---|---|---|
+| `command` | semua | nama binary untuk skel kalau berbeda dari `id` (mis. `superfile` → `spf`) |
 | `skel` | desktop | folder di `data/skel/` yang disalin ke `$HOME` |
 | `session_file` | desktop | file di `data/sessions/` yang ditulis ke `/usr/share/wayland-sessions/` |
 | `autologin_cmd` | desktop | perintah yang dijalankan saat login = tanpa login manager |

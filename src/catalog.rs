@@ -16,6 +16,9 @@ pub struct Choice {
     /// Paket RPM yang dipasang lewat `rum`.
     #[serde(default)]
     pub packages: Vec<String>,
+    /// Nama binary untuk placeholder skel. Default: `id`.
+    #[serde(default)]
+    pub command: Option<String>,
     /// `false` = disembunyikan dari daftar (belum tersedia di repo).
     #[serde(default = "default_true")]
     pub available: bool,
@@ -57,6 +60,14 @@ pub struct Choice {
     /// `/etc/greetd/config.toml` ditulis (mis. patch PAM + state dir).
     #[serde(default)]
     pub greetd_setup: Option<String>,
+}
+
+impl Choice {
+    /// Nama binary yang dipakai di skel. Sebagian pilihan punya id yang
+    /// berbeda dari nama binary (mis. `superfile` -> `spf`).
+    pub fn command(&self) -> &str {
+        self.command.as_deref().unwrap_or(&self.id)
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -144,6 +155,23 @@ mod tests {
             let n = names(list);
             assert!(sorted(&n), "tidak abjad: {n:?}");
         }
+    }
+
+    #[test]
+    fn command_bisa_beda_dari_id() {
+        let cat = Catalog::load(None).unwrap();
+        let superfile = cat
+            .file_managers
+            .iter()
+            .find(|c| c.id == "superfile")
+            .unwrap();
+        assert_eq!(superfile.command(), "spf");
+
+        let helium = cat.browsers.iter().find(|c| c.id == "helium").unwrap();
+        assert_eq!(helium.command(), "helium-browser-bin");
+
+        let firefox = cat.browsers.iter().find(|c| c.id == "firefox").unwrap();
+        assert_eq!(firefox.command(), "firefox");
     }
 
     #[test]
