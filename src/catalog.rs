@@ -22,6 +22,10 @@ pub struct Choice {
     /// `true` = pilihan yang disorot saat fase dibuka. Hanya satu per fase.
     #[serde(default)]
     pub default: bool,
+    /// `true` = dipakai kode tetapi tidak ditampilkan di layar (mis. greeter
+    /// yang dipaksa oleh sebuah desktop).
+    #[serde(default)]
+    pub hidden: bool,
     /// Nama direktori di `data/skel/` yang disalin ke `$HOME` user.
     #[serde(default)]
     pub skel: Option<String>,
@@ -32,6 +36,10 @@ pub struct Choice {
     /// Perintah yang dijalankan `dbus-run-session` saat login = `none`.
     #[serde(default)]
     pub autologin_cmd: Option<String>,
+    /// Desktop yang selalu memakai login manager ini, apa pun pilihan user
+    /// (mis. KineticWE memaksa greeter bawaannya).
+    #[serde(default)]
+    pub login_override: Option<String>,
     /// Unit systemd display manager yang di-enable (login manager).
     #[serde(default)]
     pub unit: Option<String>,
@@ -45,6 +53,10 @@ pub struct Choice {
     /// User yang menjalankan greeter (default `greeter`).
     #[serde(default)]
     pub greetd_user: Option<String>,
+    /// Skrip setup bawaan paket greeter, dijalankan setelah
+    /// `/etc/greetd/config.toml` ditulis (mis. patch PAM + state dir).
+    #[serde(default)]
+    pub greetd_setup: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -80,6 +92,16 @@ impl Catalog {
         let mut cat: Catalog = toml::from_str(&text).context("katalog TOML tidak valid")?;
         cat.sort_by_name();
         Ok(cat)
+    }
+
+    /// Login manager yang benar-benar dipakai. Desktop boleh memaksa satu
+    /// pilihan lewat `login_override` (KineticWE memakai greeter bawaannya).
+    pub fn effective_login<'a>(&'a self, desktop: &Choice, picked: &'a Choice) -> &'a Choice {
+        desktop
+            .login_override
+            .as_ref()
+            .and_then(|id| self.logins.iter().find(|c| &c.id == id))
+            .unwrap_or(picked)
     }
 
     /// Urutan layar selalu A-Z, tidak bergantung urutan di TOML.
@@ -122,6 +144,16 @@ mod tests {
             let n = names(list);
             assert!(sorted(&n), "tidak abjad: {n:?}");
         }
+    }
+
+    #[test]
+    fn kineticwe_memaksa_greeter_bawaannya() {
+        let cat = Catalog::load(None).unwrap();
+        let desktop = cat.desktops.iter().find(|d| d.id == "kineticwe").unwrap();
+        let gdm = cat.logins.iter().find(|l| l.id == "gdm").unwrap();
+        let login = cat.effective_login(desktop, gdm);
+        assert_eq!(login.id, "kineticwe-greeter");
+        assert!(login.hidden);
     }
 
     #[test]

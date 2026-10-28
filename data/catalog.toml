@@ -149,6 +149,7 @@ id = "kineticwe"
 name = "KineticWE"
 description = "Tiling berbasis KWin, shell Noctalia"
 packages = ["kineticwe-git"]
+login_override = "kineticwe-greeter"
 autologin_cmd = "start-kineticwe"
 
 [[desktops]]
@@ -267,6 +268,20 @@ packages = ["greetd", "noctalia-greeter"]
 unit = "greetd.service"
 greetd_cmd = "/usr/bin/noctalia-greeter-session"
 greetd_user = "greeter"
+greetd_setup = "/usr/share/noctalia-greeter/setup_greeter_system.sh"
+
+# Dipakai otomatis saat Desktop = KineticWE (lihat login_override di atas).
+# Tidak ditampilkan karena paketnya Requires kineticwe-git.
+[[logins]]
+id = "kineticwe-greeter"
+name = "KineticWE Greeter"
+description = "Greeter Noctalia bawaan KineticWE (greetd, wlroots)"
+packages = ["kineticwe-greeter"]
+unit = "greetd.service"
+greetd_cmd = "/usr/bin/noctalia-greeter-session"
+greetd_user = "greeter"
+greetd_setup = "/usr/share/noctalia-greeter/setup_greeter_system.sh"
+hidden = true
 
 [[logins]]
 id = "plasma-login"

@@ -54,6 +54,7 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
     refresh_metadata(dry_run)?;
 
     println!("\n{}", style("Memasang paket").bold());
+    resolve_greeter_conflict(picks.login, dry_run)?;
     install_packages(&pkgs, dry_run)?;
 
     println!("\n{}", style("Menyiapkan config desktop").bold());
@@ -159,6 +160,34 @@ fn install_packages(pkgs: &BTreeSet<String>, dry_run: bool) -> Result<()> {
     run(pm, &args, dry_run)
 }
 
+/// `noctalia-greeter` (Terra) dan `kineticwe-greeter` memiliki file yang
+/// sama, jadi tidak boleh terpasang bersamaan. Saat wizard dijalankan ulang
+/// dengan pilihan lain, singkirkan paket yang bertabrakan lebih dulu.
+fn resolve_greeter_conflict(login: &Choice, dry_run: bool) -> Result<()> {
+    let conflicting = match login.id.as_str() {
+        "kineticwe-greeter" => "noctalia-greeter",
+        "noctalia-greeter" => "kineticwe-greeter",
+        _ => return Ok(()),
+    };
+    if !package_installed(conflicting) {
+        return Ok(());
+    }
+    let pm = if command_exists("rum") { "rum" } else { "dnf" };
+    run(
+        pm,
+        &["remove".into(), "-y".into(), conflicting.to_string()],
+        dry_run,
+    )
+}
+
+fn package_installed(name: &str) -> bool {
+    Command::new("rpm")
+        .args(["-q", "--quiet", name])
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
 fn install_skel(
     desktop: &Choice,
     terminal: &str,
@@ -240,6 +269,8 @@ fn install_session_file(desktop: &Choice, base_dir: &Path, dry_run: bool) -> Res
 }
 
 fn configure_login(login: &Choice, desktop: &Choice, user: &str, dry_run: bool) -> Result<()> {
+    disable_other_managers(login.unit.as_deref(), dry_run)?;
+
     if let Some(unit) = &login.unit {
         run("systemctl", &["enable".into(), unit.clone()], dry_run)?;
         run(
@@ -335,6 +366,44 @@ fn configure_greeter(login: &Choice, dry_run: bool) -> Result<()> {
     Ok(())
 }
 
+/// Matikan display manager lain agar hanya satu yang start saat boot.
+/// Menjalankan wizard ulang dengan pilihan berbeda tidak boleh meninggalkan
+/// dua DM aktif. `active = None` berarti autologin tanpa DM.
+fn disable_other_managers(active: Option<&str>, dry_run: bool) -> Result<()> {
+    const UNITS: &[&str] = &[
+        "cosmic-greeter.service",
+        "gdm.service",
+        "greetd.service",
+        "lightdm.service",
+        "ly.service",
+        "plasmalogin.service",
+        "sddm.service",
+    ];
+
+    for unit in UNITS {
+        if active == Some(unit) || !unit_enabled(unit) {
+            continue;
+        }
+        run(
+            "systemctl",
+            &["disable".into(), (*unit).to_string()],
+            dry_run,
+        )?;
+    }
+    Ok(())
+}
+
+fn unit_enabled(unit: &str) -> bool {
+    Command::new("systemctl")
+        .args(["is-enabled", unit])
+        .output()
+        .map(|out| {
+            let state = String::from_utf8_lossy(&out.stdout);
+            state.trim().starts_with("enabled")
+        })
+        .unwrap_or(false)
+}
+
 /// Tulis `/etc/greetd/config.toml` untuk greeter berbasis greetd (tuigreet,
 /// DMS, Noctalia). Config lama disimpan sekali sebagai `config.toml.bak`.
 fn configure_greetd(login: &Choice, desktop: &Choice, dry_run: bool) -> Result<()> {
@@ -368,6 +437,9 @@ fn configure_greetd(login: &Choice, desktop: &Choice, dry_run: bool) -> Result<(
             "  + tulis {} (command = {cmd}, user = {user})",
             conf.display()
         );
+        if let Some(setup) = &login.greetd_setup {
+            println!("  + jalankan {setup}");
+        }
         return Ok(());
     }
 
@@ -382,6 +454,10 @@ fn configure_greetd(login: &Choice, desktop: &Choice, dry_run: bool) -> Result<(
         "# ditulis oleh rakuos-bootstrap\n[terminal]\nvt = 1\n\n[default_session]\ncommand = \"{cmd}\"\nuser = \"{user}\"\n"
     );
     fs::write(conf, body)?;
+
+    if let Some(setup) = &login.greetd_setup {
+        run(setup, &[], false)?;
+    }
     Ok(())
 }
 

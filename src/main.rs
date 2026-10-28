@@ -113,7 +113,24 @@ fn run() -> Result<()> {
     )?;
     picked.extend(browsers.iter().map(|&i| catalog.browsers[i].name.clone()));
 
-    let login = ui.select(&term, 3, phases[3].0, phases[3].1, &catalog.logins, &picked)?;
+    // Login yang `hidden` dipakai kode (mis. greeter bawaan KineticWE),
+    // bukan ditawarkan ke user.
+    let visible_logins: Vec<catalog::Choice> = catalog
+        .logins
+        .iter()
+        .filter(|c| !c.hidden)
+        .cloned()
+        .collect();
+    let login_indices: Vec<usize> = catalog
+        .logins
+        .iter()
+        .enumerate()
+        .filter(|(_, c)| !c.hidden)
+        .map(|(i, _)| i)
+        .collect();
+
+    let login_pos = ui.select(&term, 3, phases[3].0, phases[3].1, &visible_logins, &picked)?;
+    let login = login_indices[login_pos];
     picked.push(catalog.logins[login].name.clone());
 
     let desktop = ui.select(
@@ -124,6 +141,10 @@ fn run() -> Result<()> {
         &catalog.desktops,
         &picked,
     )?;
+
+    let picked_login = &catalog.logins[login];
+    let desktop_choice = &catalog.desktops[desktop];
+    let login_choice = catalog.effective_login(desktop_choice, picked_login);
 
     let chosen = |list: &[catalog::Choice], idx: &[usize]| -> Vec<String> {
         idx.iter().map(|&i| list[i].name.clone()).collect()
@@ -136,8 +157,8 @@ fn run() -> Result<()> {
             .map(|&i| &catalog.file_managers[i])
             .collect(),
         browsers: browsers.iter().map(|&i| &catalog.browsers[i]).collect(),
-        login: &catalog.logins[login],
-        desktop: &catalog.desktops[desktop],
+        login: login_choice,
+        desktop: desktop_choice,
     };
 
     let packages: Vec<String> = install::packages(&catalog, &picks).into_iter().collect();
@@ -156,7 +177,17 @@ fn run() -> Result<()> {
             chosen(&catalog.file_managers, &file_managers).join(", "),
         ),
         ("Browser", chosen(&catalog.browsers, &browsers).join(", ")),
-        ("Login", picks.login.name.clone()),
+        (
+            "Login",
+            if picks.login.id == picked_login.id {
+                picks.login.name.clone()
+            } else {
+                format!(
+                    "{} (otomatis dari {})",
+                    picks.login.name, picks.desktop.name
+                )
+            },
+        ),
         ("Desktop", picks.desktop.name.clone()),
         ("Repo pihak ketiga", repos),
         ("User target", install::target_user()),

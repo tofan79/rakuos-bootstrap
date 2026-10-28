@@ -133,6 +133,13 @@ Boleh centang lebih dari satu. Ukuran = paket utamanya saja.
 | SDDM | Display manager grafis, paling familiar | `sddm` | `sddm.service` | |
 | Tanpa login manager | Autologin user langsung ke desktop di tty1 | — | — | |
 
+KineticWE memaksa **KineticWE Greeter**, yaitu varian Noctalia bawaan
+KineticWE. Pilihan Login tetap ditanyakan lebih dulu, tetapi kalau Desktop =
+KineticWE, pilihan itu diabaikan dan diganti otomatis; ringkasan menampilkan
+`(otomatis dari KineticWE)`. Karena itu `kineticwe-greeter` tidak muncul
+sebagai pilihan: paketnya `Requires: kineticwe-git`, jadi hanya masuk akal
+bersama desktop KineticWE.
+
 ### Desktop
 
 | Nama | Deskripsi | Paket | Default |
@@ -141,6 +148,11 @@ Boleh centang lebih dari satu. Ukuran = paket utamanya saja.
 | KineticWE | Tiling berbasis KWin, shell Noctalia | `kineticwe-git` | |
 | MangoWM | Tiling ringan berbasis dwl (wlroots) | `mangowm`, `scenefx`, `wlroots`, `xorg-x11-server-Xwayland`, `xdg-desktop-portal-wlr` | |
 | Niri | Scrollable tiling, config minimal tanpa bar | `niri`, `xdg-desktop-portal-gnome` | |
+
+`kineticwe-git` sudah `Requires` versi yang sama dari `kineticwe-noctalia` dan
+`xdg-desktop-portal-kwe`, jadi cukup satu paket. `hyprland-uwsm` menarik
+`uwsm`; `xdg-desktop-portal-hyprland` menarik `grim`, `slurp`, dan
+`qt6-qtwayland`.
 
 ### Lapisan dasar
 
@@ -181,6 +193,10 @@ tidak ingin repo pihak ketiga disentuh.
 - `$HOME/.config/...` untuk user target (`SUDO_USER`, fallback `root`).
 - `/usr/share/wayland-sessions/hyprland-uwsm.desktop` — sesi uwsm versi resmi
   (hanya kalau desktop = Hyprland).
+- `/etc/pam.d/greetd` + `/var/lib/noctalia-greeter` — disiapkan skrip
+  `setup_greeter_system.sh` milik greeter Noctalia/KineticWE.
+- Display manager lain di-`disable` sebelum unit yang dipilih di-`enable`,
+  supaya menjalankan wizard ulang tidak meninggalkan dua DM aktif.
 - Drop-in `getty@tty1` + `~/.bash_profile` hanya kalau login = tanpa login
   manager.
 
@@ -205,7 +221,10 @@ Field khusus:
 | `skel` | desktop | folder di `data/skel/` yang disalin ke `$HOME` |
 | `session_file` | desktop | file di `data/sessions/` yang ditulis ke `/usr/share/wayland-sessions/` |
 | `autologin_cmd` | desktop | perintah yang dijalankan saat login = tanpa login manager |
+| `login_override` | desktop | id login yang dipaksa, apa pun pilihan user |
 | `unit` | login | unit systemd display manager yang di-enable |
+| `greetd_setup` | login | skrip setup paket greeter, dijalankan setelah `config.toml` |
+| `hidden` | login | dipakai kode, tidak ditampilkan di layar |
 
 ## Dokumentasi lain
 
