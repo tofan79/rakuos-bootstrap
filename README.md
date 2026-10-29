@@ -128,11 +128,10 @@ Boleh centang lebih dari satu. Ukuran = paket utamanya saja.
 | Noctalia Greeter | Greeter Noctalia (greetd, wlroots) | `greetd`, `noctalia-greeter` | `greetd.service` | ✅ |
 | Plasma Login | Login KDE Plasma (Wayland), bisa memilih sesi Wayland | `plasma-login-manager` | `plasmalogin.service` | |
 | SDDM | SDDM X11, tema Maldives, fallback grafis | `sddm-x11`, `sddm-themes` | `sddm.service` | |
-| sysc-greet | Greeter TUI console di cagebreak; paket belum ada di repo | `sysc-greet` | `greetd.service` | |
+| sysc-greet | Greeter TUI console di cagebreak | `sysc-greet` | `greetd.service` | |
 | Tanpa login manager | Autologin user langsung ke desktop di tty1 | — | — | |
 
-Total ada 7 pilihan login. Enam bisa dipilih sekarang; `sysc-greet` menunggu
-paketnya tersedia di repo.
+Total ada 7 pilihan login dan semuanya bisa dipilih sekarang.
 
 Empat greeter resmi (`DMS`, `Noctalia`, `SDDM`, `sysc-greet`) mengikuti paket
 dan cara config `rakuos-hyprland: system_files/usr/libexec/rakuos-hyprland-greeter`
@@ -148,8 +147,8 @@ jadi bisa dipakai dengan desktop apa pun yang dipilih. Detail yang penting:
   Wayland, ditambah `sddm-themes`. Config ditulis ke
   `/etc/sddm.conf.d/50-rakuos-theme.conf`: tema `maldives`, cursor Bibata
   kalau tersedia, dan `InputMethod=` kosong.
-- `sysc-greet` ditandai belum tersedia karena RPM-nya saat ini 404 di repo
-  RakuOS; entri tetap disiapkan untuk dipakai setelah paket tersedia.
+- `sysc-greet` kini tersedia di repo RakuOS dan dipasang dengan
+  cagebreak, ghostty, socat, dan greetd.
 
 KineticWE memaksa **KineticWE Greeter**, yaitu varian Noctalia bawaan
 KineticWE. Pilihan Login tetap ditanyakan lebih dulu, tetapi kalau Desktop =

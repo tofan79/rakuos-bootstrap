@@ -153,7 +153,7 @@ di terminal tinggi semua pilihan tampil sekaligus.
  ❯ Noctalia Greeter     Greeter Noctalia (greetd, wlroots)
    Plasma Login         Login KDE Plasma (Wayland), bisa memilih sesi Wayland
    SDDM                 SDDM X11, tema Maldives, fallback grafis
-   sysc-greet           Greeter TUI console di cagebreak; paket belum ada di repo
+   sysc-greet           Greeter TUI console di cagebreak
    Tanpa login manager  Autologin user langsung ke desktop di tty1
 ```
 

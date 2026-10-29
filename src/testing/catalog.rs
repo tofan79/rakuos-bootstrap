@@ -95,7 +95,7 @@ fn login_resmi_memakai_paket_dan_config_rakuos_hyprland() {
     );
 
     let sysc = cat.logins.iter().find(|l| l.id == "sysc-greet").unwrap();
-    assert!(!sysc.available);
+    assert!(sysc.available);
     assert_eq!(
         sysc.greetd_cmd.as_deref(),
         Some("cagebreak -e -c /etc/greetd/cagebreak-greeter-config")

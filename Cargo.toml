@@ -1,6 +1,6 @@
 [package]
 name = "rakuos-bootstrap"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Wizard pasca-install untuk RakuOS minimal (terminal, browser, desktop, file manager, login manager)"
 license = "MIT"

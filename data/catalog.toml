@@ -301,13 +301,12 @@ sddm_theme = "maldives"
 [[logins]]
 id = "sysc-greet"
 name = "sysc-greet"
-description = "Greeter TUI console di cagebreak; paket belum ada di repo"
+description = "Greeter TUI console di cagebreak"
 packages = ["sysc-greet"]
 no_recommends = ["sysc-greet"]
 unit = "greetd.service"
 greetd_cmd = "cagebreak -e -c /etc/greetd/cagebreak-greeter-config"
 greetd_user = "greeter"
-available = false
 
 # Dipakai otomatis saat Desktop = KineticWE (lihat login_override di atas).
 # Tidak ditampilkan karena paketnya Requires kineticwe-git.
