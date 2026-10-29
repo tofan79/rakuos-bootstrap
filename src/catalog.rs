@@ -237,6 +237,20 @@ mod tests {
             sysc.greetd_cmd.as_deref(),
             Some("cagebreak -e -c /etc/greetd/cagebreak-greeter-config")
         );
+
+        let gdm = cat.logins.iter().find(|l| l.id == "gdm").unwrap();
+        assert_eq!(gdm.unit.as_deref(), Some("gdm.service"));
+
+        let plasma = cat.logins.iter().find(|l| l.id == "plasma-login").unwrap();
+        assert_eq!(plasma.unit.as_deref(), Some("plasmalogin.service"));
+        assert_eq!(plasma.packages, ["plasma-login-manager"]);
+    }
+
+    #[test]
+    fn login_tampil_tujuh_pilihan() {
+        let cat = Catalog::load(None).unwrap();
+        let visible = cat.logins.iter().filter(|l| !l.hidden).count();
+        assert_eq!(visible, 7);
     }
 
     #[test]

@@ -124,14 +124,21 @@ Boleh centang lebih dari satu. Ukuran = paket utamanya saja.
 | Nama | Deskripsi | Paket | Unit | Default |
 |---|---|---|---|---|
 | DMS Greeter | Greeter Dux (greetd), quickshell, ikut compositor | `greetd`, `dms-greeter` + `quickshell-git` bila belum ada | `greetd.service` | |
+| GDM | GNOME Display Manager, bisa memilih sesi Wayland | `gdm` | `gdm.service` | |
 | Noctalia Greeter | Greeter Noctalia (greetd, wlroots) | `greetd`, `noctalia-greeter` | `greetd.service` | ✅ |
+| Plasma Login | Login KDE Plasma (Wayland), bisa memilih sesi Wayland | `plasma-login-manager` | `plasmalogin.service` | |
 | SDDM | SDDM X11, tema Maldives, fallback grafis | `sddm-x11`, `sddm-themes` | `sddm.service` | |
 | sysc-greet | Greeter TUI console di cagebreak; paket belum ada di repo | `sysc-greet` | `greetd.service` | |
 | Tanpa login manager | Autologin user langsung ke desktop di tty1 | — | — | |
 
-Empat greeter pertama mengikuti paket dan cara config
-`rakuos-hyprland: system_files/usr/libexec/rakuos-hyprland-greeter`
-(tanpa UI-nya). Detail yang penting:
+Total ada 7 pilihan login. Enam bisa dipilih sekarang; `sysc-greet` menunggu
+paketnya tersedia di repo.
+
+Empat greeter resmi (`DMS`, `Noctalia`, `SDDM`, `sysc-greet`) mengikuti paket
+dan cara config `rakuos-hyprland: system_files/usr/libexec/rakuos-hyprland-greeter`
+(tanpa UI-nya). GDM dan Plasma Login tetap disediakan sebagai display manager
+grafis umum; keduanya membaca sesi Wayland dari `/usr/share/wayland-sessions`,
+jadi bisa dipakai dengan desktop apa pun yang dipilih. Detail yang penting:
 
 - DMS memasang `quickshell-git` hanya kalau `quickshell`/`quickshell-git`
   belum ada; command greeter memakai compositor desktop yang dipilih.

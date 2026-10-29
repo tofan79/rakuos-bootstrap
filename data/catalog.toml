@@ -236,6 +236,13 @@ greetd_cmd = "/usr/bin/dms-greeter --command @COMPOSITOR@"
 greetd_user = "greeter"
 
 [[logins]]
+id = "gdm"
+name = "GDM"
+description = "GNOME Display Manager, bisa memilih sesi Wayland"
+packages = ["gdm"]
+unit = "gdm.service"
+
+[[logins]]
 id = "noctalia-greeter"
 name = "Noctalia Greeter"
 description = "Greeter Noctalia (greetd, wlroots)"
@@ -245,6 +252,13 @@ greetd_cmd = "/usr/bin/noctalia-greeter-session"
 greetd_user = "greeter"
 greetd_setup = "/usr/share/noctalia-greeter/setup_greeter_system.sh"
 default = true
+
+[[logins]]
+id = "plasma-login"
+name = "Plasma Login"
+description = "Login KDE Plasma (Wayland), bisa memilih sesi Wayland"
+packages = ["plasma-login-manager"]
+unit = "plasmalogin.service"
 
 [[logins]]
 id = "sddm"
