@@ -224,63 +224,47 @@ description = "File manager TUI cepat, dari repo Terra"
 packages = ["yazi"]
 
 # ------------------------------------------------------------------- login ---
-[[logins]]
-id = "cosmic-greeter"
-name = "COSMIC Greeter"
-description = "Greeter COSMIC (greetd), butuh stack"
-packages = ["cosmic-greeter"]
-unit = "cosmic-greeter.service"
-
+# Empat greeter resmi rakuos-hyprland. Perilaku paket dan config-nya diambil
+# dari `system_files/usr/libexec/rakuos-hyprland-greeter`; UI-nya tidak.
 [[logins]]
 id = "dms-greeter"
 name = "DMS Greeter"
-description = "Greeter Dux Shell (greetd), butuh quickshell"
+description = "Greeter Dux (greetd), quickshell, ikut compositor"
 packages = ["greetd", "dms-greeter"]
 unit = "greetd.service"
 greetd_cmd = "/usr/bin/dms-greeter --command @COMPOSITOR@"
 greetd_user = "greeter"
 
 [[logins]]
-id = "gdm"
-name = "GDM"
-description = "GNOME Display Manager, sudah ada di base image"
-packages = ["gdm"]
-unit = "gdm.service"
-
-[[logins]]
-id = "greetd-tuigreet"
-name = "greetd + tuigreet"
-description = "Greeter TUI paling ringan, cocok Wayland"
-packages = ["greetd", "tuigreet"]
-unit = "greetd.service"
-greetd_cmd = "/usr/bin/tuigreet --time --remember --remember-session --sessions /usr/share/wayland-sessions"
-greetd_user = "greetd"
-default = true
-
-[[logins]]
-id = "lightdm-slick"
-name = "LightDM"
-description = "Greeter Slick (GTK), sesi Wayland tetap bisa"
-packages = ["lightdm", "slick-greeter"]
-unit = "lightdm.service"
-greeter = "slick-greeter"
-
-[[logins]]
-id = "ly"
-name = "Ly"
-description = "Display manager TUI, ringan"
-packages = ["ly"]
-unit = "ly.service"
-
-[[logins]]
 id = "noctalia-greeter"
 name = "Noctalia Greeter"
-description = "Greeter minimal Noctalia (greetd, wlroots)"
+description = "Greeter Noctalia (greetd, wlroots)"
 packages = ["greetd", "noctalia-greeter"]
 unit = "greetd.service"
 greetd_cmd = "/usr/bin/noctalia-greeter-session"
 greetd_user = "greeter"
 greetd_setup = "/usr/share/noctalia-greeter/setup_greeter_system.sh"
+default = true
+
+[[logins]]
+id = "sddm"
+name = "SDDM"
+description = "SDDM X11, tema Maldives, fallback grafis"
+packages = ["sddm-x11", "sddm-themes"]
+no_recommends = ["sddm-x11"]
+unit = "sddm.service"
+sddm_theme = "maldives"
+
+[[logins]]
+id = "sysc-greet"
+name = "sysc-greet"
+description = "Greeter TUI console di cagebreak; paket belum ada di repo"
+packages = ["sysc-greet"]
+no_recommends = ["sysc-greet"]
+unit = "greetd.service"
+greetd_cmd = "cagebreak -e -c /etc/greetd/cagebreak-greeter-config"
+greetd_user = "greeter"
+available = false
 
 # Dipakai otomatis saat Desktop = KineticWE (lihat login_override di atas).
 # Tidak ditampilkan karena paketnya Requires kineticwe-git.
@@ -294,20 +278,6 @@ greetd_cmd = "/usr/bin/noctalia-greeter-session"
 greetd_user = "greeter"
 greetd_setup = "/usr/share/noctalia-greeter/setup_greeter_system.sh"
 hidden = true
-
-[[logins]]
-id = "plasma-login"
-name = "Plasma Login"
-description = "Greeter KDE modern (pengganti SDDM)"
-packages = ["plasma-login-manager"]
-unit = "plasmalogin.service"
-
-[[logins]]
-id = "sddm"
-name = "SDDM"
-description = "Display manager grafis, paling familiar"
-packages = ["sddm"]
-unit = "sddm.service"
 
 [[logins]]
 id = "none"

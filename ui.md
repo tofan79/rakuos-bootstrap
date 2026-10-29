@@ -101,7 +101,7 @@ maju.
 Di bagian bawah layar, nama pilihan sebelumnya dirangkai sebagai jejak:
 
 ```
- Kitty  ·  Nautilus  ·  Firefox (RPM)  ·  greetd + tuigreet
+ Kitty  ·  Nautilus  ·  Firefox (RPM)  ·  Noctalia Greeter
 ```
 
 ## 2. File manager
@@ -148,15 +148,10 @@ di terminal tinggi semua pilihan tampil sekaligus.
  Fase 4 dari 5 · Login manager
  Layar masuk setelah boot
  ────────────────────────────────────────────────────────────────────────────
- ❯ COSMIC Greeter       Greeter COSMIC (greetd), butuh stack
-   DMS Greeter          Greeter Dux Shell (greetd), butuh quickshell
-   GDM                  GNOME Display Manager, sudah ada di base image
-   greetd + tuigreet    Greeter TUI paling ringan, cocok Wayland
-   LightDM              Greeter Slick (GTK), sesi Wayland tetap bisa
-   Ly                   Display manager TUI, ringan
-   Noctalia Greeter     Greeter minimal Noctalia (greetd, wlroots)
-   Plasma Login         Greeter KDE modern (pengganti SDDM)
-   SDDM                 Display manager grafis, paling familiar
+   DMS Greeter          Greeter Dux (greetd), quickshell, ikut compositor
+ ❯ Noctalia Greeter     Greeter Noctalia (greetd, wlroots)
+   SDDM                 SDDM X11, tema Maldives, fallback grafis
+   sysc-greet           Greeter TUI console di cagebreak; paket belum ada di repo
    Tanpa login manager  Autologin user langsung ke desktop di tty1
 ```
 
@@ -186,7 +181,7 @@ Semua langkah berubah jadi `✔`, lalu:
  Terminal       Alacritty, Kitty
  File manager   Dolphin, Nautilus
  Browser        Brave, Firefox
- Login          greetd + tuigreet
+ Login          Noctalia Greeter
  Desktop        Hyprland
  Repo pihak ketiga terra, rpmfusion
  User target    mindset

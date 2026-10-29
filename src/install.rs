@@ -69,7 +69,8 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
 
     println!("\n{}", style("Memasang paket").bold());
     resolve_greeter_conflict(picks.login, dry_run)?;
-    install_packages(&pkgs, dry_run)?;
+    resolve_dms_quickshell(picks.login, dry_run)?;
+    install_packages(&pkgs, &picks.login.no_recommends, dry_run)?;
 
     println!("\n{}", style("Menyiapkan config desktop").bold());
     install_skel(
@@ -154,16 +155,16 @@ fn rpmfusion_args() -> Vec<String> {
     args
 }
 
-fn install_packages(pkgs: &BTreeSet<String>, dry_run: bool) -> Result<()> {
+fn install_packages(
+    pkgs: &BTreeSet<String>,
+    no_recommends: &[String],
+    dry_run: bool,
+) -> Result<()> {
     if pkgs.is_empty() {
         return Ok(());
     }
 
-    let (pm, overlay) = if command_exists("rum") {
-        ("rum", true)
-    } else {
-        ("dnf", false)
-    };
+    let (pm, overlay) = package_manager();
     if !overlay {
         eprintln!(
             "{} rum tidak ditemukan; memakai dnf (overlay RakuOS tidak aktif)",
@@ -171,9 +172,60 @@ fn install_packages(pkgs: &BTreeSet<String>, dry_run: bool) -> Result<()> {
         );
     }
 
+    let tanpa_rekomendasi: BTreeSet<&str> = no_recommends.iter().map(String::as_str).collect();
+    let khusus: Vec<String> = pkgs
+        .iter()
+        .filter(|p| tanpa_rekomendasi.contains(p.as_str()))
+        .cloned()
+        .collect();
+    let biasa: Vec<String> = pkgs
+        .iter()
+        .filter(|p| !tanpa_rekomendasi.contains(p.as_str()))
+        .cloned()
+        .collect();
+
+    if !khusus.is_empty() {
+        install_set(pm, &khusus, true, dry_run)?;
+    }
+    if !biasa.is_empty() {
+        install_set(pm, &biasa, false, dry_run)?;
+    }
+    Ok(())
+}
+
+fn package_manager() -> (&'static str, bool) {
+    if command_exists("rum") {
+        ("rum", true)
+    } else {
+        ("dnf", false)
+    }
+}
+
+fn install_set(pm: &str, pkgs: &[String], no_recommends: bool, dry_run: bool) -> Result<()> {
     let mut args: Vec<String> = vec!["install".into(), "-y".into()];
+    if no_recommends {
+        args.push("--no-recommends".into());
+    }
     args.extend(pkgs.iter().cloned());
     run(pm, &args, dry_run)
+}
+
+/// DMS Greeter butuh `quickshell` atau `quickshell-git`; paket resmi memilih
+/// yang git agar satu runtime dengan shell DMS. Jangan masukkan langsung ke
+/// daftar paket: kalau `quickshell` biasa sudah ada, keduanya bertabrakan.
+fn resolve_dms_quickshell(login: &Choice, dry_run: bool) -> Result<()> {
+    if login.id != "dms-greeter"
+        || package_installed("quickshell")
+        || package_installed("quickshell-git")
+    {
+        return Ok(());
+    }
+    let (pm, _) = package_manager();
+    run(
+        pm,
+        &["install".into(), "-y".into(), "quickshell-git".into()],
+        dry_run,
+    )
 }
 
 /// `noctalia-greeter` (Terra) dan `kineticwe-greeter` memiliki file yang
@@ -300,7 +352,9 @@ fn configure_login(login: &Choice, desktop: &Choice, user: &str, dry_run: bool) 
             &["set-default".into(), "graphical.target".into()],
             dry_run,
         )?;
-        configure_greeter(login, dry_run)?;
+        if let Some(theme) = &login.sddm_theme {
+            configure_sddm(theme, dry_run)?;
+        }
         if login.greetd_cmd.is_some() {
             configure_greetd(login, desktop, dry_run)?;
         }
@@ -360,32 +414,45 @@ fn configure_login(login: &Choice, desktop: &Choice, user: &str, dry_run: bool) 
     Ok(())
 }
 
-/// LightDM memilih greeter sendiri hanya kalau terpasang satu. Supaya tidak
-/// bergantung pada urutan deteksi, pilihan yang punya `greeter` menulis
-/// drop-in kecil. Drop-in yang sama dihapus saat pindah ke login manager lain.
-fn configure_greeter(login: &Choice, dry_run: bool) -> Result<()> {
-    let dir = Path::new("/etc/lightdm/lightdm.conf.d");
-    let conf = dir.join("50-rakuos-bootstrap.conf");
-
-    let Some(greeter) = &login.greeter else {
-        if conf.exists() {
-            if dry_run {
-                println!("  + hapus {}", conf.display());
-            } else {
-                let _ = fs::remove_file(&conf);
-            }
-        }
-        return Ok(());
-    };
+/// Tulis config SDDM yang dipakai `rakuos-hyprland greeter`: tema Maldives,
+/// cursor Bibata kalau ada, dan `InputMethod=` kosong supaya keyboard virtual
+/// tidak menutupi kolom password.
+fn configure_sddm(theme: &str, dry_run: bool) -> Result<()> {
+    let conf = Path::new("/etc/sddm.conf.d/50-rakuos-theme.conf");
+    let cursor = ["Bibata-Modern-Ice", "Bibata-Modern-Classic", "Adwaita"]
+        .iter()
+        .find(|name| {
+            Path::new("/usr/share/icons")
+                .join(name)
+                .join("cursors")
+                .is_dir()
+        })
+        .copied();
+    let body = sddm_config_body(theme, cursor);
 
     if dry_run {
-        println!("  + tulis {} (greeter-session={greeter})", conf.display());
+        println!(
+            "  + tulis {} (Current={theme}, CursorTheme={}, InputMethod=)",
+            conf.display(),
+            cursor.unwrap_or("tidak ada")
+        );
         return Ok(());
     }
 
-    fs::create_dir_all(dir)?;
-    fs::write(&conf, format!("[Seat:*]\ngreeter-session={greeter}\n"))?;
+    if let Some(parent) = conf.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(conf, body)?;
     Ok(())
+}
+
+fn sddm_config_body(theme: &str, cursor: Option<&str>) -> String {
+    let mut body = format!("[Theme]\nCurrent={theme}\n");
+    if let Some(cursor) = cursor {
+        body.push_str(&format!("CursorTheme={cursor}\n"));
+    }
+    body.push_str("\n[General]\nInputMethod=\n");
+    body
 }
 
 /// Matikan display manager lain agar hanya satu yang start saat boot.
@@ -426,8 +493,8 @@ fn unit_enabled(unit: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// Tulis `/etc/greetd/config.toml` untuk greeter berbasis greetd (tuigreet,
-/// DMS, Noctalia). Config lama disimpan sekali sebagai `config.toml.bak`.
+/// Tulis `/etc/greetd/config.toml` untuk greeter berbasis greetd (DMS,
+/// Noctalia, sysc-greet). Config lama disimpan sekali sebagai `config.toml.bak`.
 fn configure_greetd(login: &Choice, desktop: &Choice, dry_run: bool) -> Result<()> {
     let cmd = login
         .greetd_cmd
@@ -437,21 +504,27 @@ fn configure_greetd(login: &Choice, desktop: &Choice, dry_run: bool) -> Result<(
     let user = login.greetd_user.as_deref().unwrap_or("greeter");
     let conf = Path::new("/etc/greetd/config.toml");
 
-    if user != "greetd" && !user_exists(user) {
-        run(
-            "useradd",
-            &[
-                "-r".into(),
-                "-m".into(),
-                "-d".into(),
-                format!("/var/lib/{user}"),
-                "-s".into(),
-                "/usr/sbin/nologin".into(),
-                user.to_string(),
-            ],
-            dry_run,
-        )?;
-        add_to_groups(user);
+    if user != "greetd" {
+        if !user_exists(user) {
+            run(
+                "useradd",
+                &[
+                    "-r".into(),
+                    "-m".into(),
+                    "-d".into(),
+                    format!("/var/lib/{user}"),
+                    "-s".into(),
+                    "/usr/sbin/nologin".into(),
+                    user.to_string(),
+                ],
+                dry_run,
+            )?;
+        }
+        if dry_run {
+            println!("  + tambah {user} ke grup video, render, input");
+        } else {
+            add_to_groups(user);
+        }
     }
 
     if dry_run {
@@ -639,4 +712,24 @@ fn iso8601_now() -> String {
         .output()
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
         .unwrap_or_else(|_| "unknown".to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn config_sddm_sesuai_rakuos_hyprland() {
+        let body = sddm_config_body("maldives", Some("Bibata-Modern-Ice"));
+        assert_eq!(
+            body,
+            "[Theme]\nCurrent=maldives\nCursorTheme=Bibata-Modern-Ice\n\n[General]\nInputMethod=\n"
+        );
+
+        let tanpa_cursor = sddm_config_body("maldives", None);
+        assert_eq!(
+            tanpa_cursor,
+            "[Theme]\nCurrent=maldives\n\n[General]\nInputMethod=\n"
+        );
+    }
 }

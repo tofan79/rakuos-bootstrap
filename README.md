@@ -123,16 +123,26 @@ Boleh centang lebih dari satu. Ukuran = paket utamanya saja.
 
 | Nama | Deskripsi | Paket | Unit | Default |
 |---|---|---|---|---|
-| COSMIC Greeter | Greeter COSMIC (greetd), butuh stack | `cosmic-greeter` | `cosmic-greeter.service` | |
-| DMS Greeter | Greeter Dux Shell (greetd), butuh quickshell | `greetd`, `dms-greeter` | `greetd.service` | |
-| GDM | GNOME Display Manager, sudah ada di base image | `gdm` | `gdm.service` | |
-| greetd + tuigreet | Greeter TUI paling ringan, cocok Wayland | `greetd`, `tuigreet` | `greetd.service` | ✅ |
-| LightDM | Greeter Slick (GTK), sesi Wayland tetap bisa | `lightdm`, `slick-greeter` | `lightdm.service` | |
-| Ly | Display manager TUI, ringan | `ly` | `ly.service` | |
-| Noctalia Greeter | Greeter minimal Noctalia (greetd, wlroots) | `greetd`, `noctalia-greeter` | `greetd.service` | |
-| Plasma Login | Greeter KDE modern (pengganti SDDM) | `plasma-login-manager` | `plasmalogin.service` | |
-| SDDM | Display manager grafis, paling familiar | `sddm` | `sddm.service` | |
+| DMS Greeter | Greeter Dux (greetd), quickshell, ikut compositor | `greetd`, `dms-greeter` + `quickshell-git` bila belum ada | `greetd.service` | |
+| Noctalia Greeter | Greeter Noctalia (greetd, wlroots) | `greetd`, `noctalia-greeter` | `greetd.service` | ✅ |
+| SDDM | SDDM X11, tema Maldives, fallback grafis | `sddm-x11`, `sddm-themes` | `sddm.service` | |
+| sysc-greet | Greeter TUI console di cagebreak; paket belum ada di repo | `sysc-greet` | `greetd.service` | |
 | Tanpa login manager | Autologin user langsung ke desktop di tty1 | — | — | |
+
+Empat greeter pertama mengikuti paket dan cara config
+`rakuos-hyprland: system_files/usr/libexec/rakuos-hyprland-greeter`
+(tanpa UI-nya). Detail yang penting:
+
+- DMS memasang `quickshell-git` hanya kalau `quickshell`/`quickshell-git`
+  belum ada; command greeter memakai compositor desktop yang dipilih.
+- Noctalia memakai `/usr/bin/noctalia-greeter-session` dan menjalankan
+  `setup_greeter_system.sh` setelah config greetd ditulis.
+- SDDM dipasang lewat `sddm-x11 --no-recommends` supaya tidak menarik varian
+  Wayland, ditambah `sddm-themes`. Config ditulis ke
+  `/etc/sddm.conf.d/50-rakuos-theme.conf`: tema `maldives`, cursor Bibata
+  kalau tersedia, dan `InputMethod=` kosong.
+- `sysc-greet` ditandai belum tersedia karena RPM-nya saat ini 404 di repo
+  RakuOS; entri tetap disiapkan untuk dipakai setelah paket tersedia.
 
 KineticWE memaksa **KineticWE Greeter**, yaitu varian Noctalia bawaan
 KineticWE. Pilihan Login tetap ditanyakan lebih dulu, tetapi kalau Desktop =
@@ -209,8 +219,8 @@ Yang selalu ditambahkan wizard, apa pun pilihannya:
 | `rakuos-welcome-qt` | aplikasi Welcome RakuOS, dipakai semua desktop |
 
 Kalau login = tanpa login manager, wizard juga memasang `dbus-daemon` untuk
-perintah `dbus-run-session` di autologin tty1. Untuk greetd/GDM/SDDM, paket
-itu tidak diperlukan.
+perintah `dbus-run-session` di autologin tty1. Untuk greetd/SDDM, paket itu
+tidak diperlukan.
 
 ## Repo pihak ketiga
 
@@ -239,6 +249,8 @@ tidak ingin repo pihak ketiga disentuh.
   (hanya kalau desktop = Hyprland).
 - `/etc/pam.d/greetd` + `/var/lib/noctalia-greeter` — disiapkan skrip
   `setup_greeter_system.sh` milik greeter Noctalia/KineticWE.
+- `/etc/sddm.conf.d/50-rakuos-theme.conf` — tema Maldives, cursor, dan
+  `InputMethod=` kosong (hanya kalau login = SDDM).
 - Display manager lain di-`disable` sebelum unit yang dipilih di-`enable`,
   supaya menjalankan wizard ulang tidak meninggalkan dua DM aktif.
 - Drop-in `getty@tty1` + `~/.bash_profile` hanya kalau login = tanpa login
@@ -268,6 +280,8 @@ Field khusus:
 | `autologin_cmd` | desktop | perintah yang dijalankan saat login = tanpa login manager |
 | `login_override` | desktop | id login yang dipaksa, apa pun pilihan user |
 | `unit` | login | unit systemd display manager yang di-enable |
+| `no_recommends` | login | paket yang dipasang dengan `--no-recommends` |
+| `sddm_theme` | login | tema SDDM yang ditulis ke `50-rakuos-theme.conf` |
 | `greetd_setup` | login | skrip setup paket greeter, dijalankan setelah `config.toml` |
 | `hidden` | login | dipakai kode, tidak ditampilkan di layar |
 

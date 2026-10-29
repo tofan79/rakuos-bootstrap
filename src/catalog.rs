@@ -46,9 +46,14 @@ pub struct Choice {
     /// Unit systemd display manager yang di-enable (login manager).
     #[serde(default)]
     pub unit: Option<String>,
-    /// Greeter yang ditulis ke config display manager (khusus LightDM).
+    /// Paket yang dipasang dengan `--no-recommends` (mis. `sddm-x11` supaya
+    /// tidak menarik varian Wayland, atau `sysc-greet` supaya tidak menarik
+    /// xterm dari cagebreak).
     #[serde(default)]
-    pub greeter: Option<String>,
+    pub no_recommends: Vec<String>,
+    /// Tema SDDM yang ditulis ke `/etc/sddm.conf.d/50-rakuos-theme.conf`.
+    #[serde(default)]
+    pub sddm_theme: Option<String>,
     /// Perintah untuk `[default_session]` di `/etc/greetd/config.toml`.
     /// `@COMPOSITOR@` diganti sesuai desktop yang dipilih.
     #[serde(default)]
@@ -207,11 +212,39 @@ mod tests {
     }
 
     #[test]
+    fn login_resmi_memakai_paket_dan_config_rakuos_hyprland() {
+        let cat = Catalog::load(None).unwrap();
+
+        let sddm = cat.logins.iter().find(|l| l.id == "sddm").unwrap();
+        assert_eq!(sddm.packages, ["sddm-x11", "sddm-themes"]);
+        assert_eq!(sddm.no_recommends, ["sddm-x11"]);
+        assert_eq!(sddm.sddm_theme.as_deref(), Some("maldives"));
+
+        let noctalia = cat
+            .logins
+            .iter()
+            .find(|l| l.id == "noctalia-greeter")
+            .unwrap();
+        assert!(noctalia.default);
+        assert_eq!(
+            noctalia.greetd_cmd.as_deref(),
+            Some("/usr/bin/noctalia-greeter-session")
+        );
+
+        let sysc = cat.logins.iter().find(|l| l.id == "sysc-greet").unwrap();
+        assert!(!sysc.available);
+        assert_eq!(
+            sysc.greetd_cmd.as_deref(),
+            Some("cagebreak -e -c /etc/greetd/cagebreak-greeter-config")
+        );
+    }
+
+    #[test]
     fn kineticwe_memaksa_greeter_bawaannya() {
         let cat = Catalog::load(None).unwrap();
         let desktop = cat.desktops.iter().find(|d| d.id == "kineticwe").unwrap();
-        let gdm = cat.logins.iter().find(|l| l.id == "gdm").unwrap();
-        let login = cat.effective_login(desktop, gdm);
+        let sddm = cat.logins.iter().find(|l| l.id == "sddm").unwrap();
+        let login = cat.effective_login(desktop, sddm);
         assert_eq!(login.id, "kineticwe-greeter");
         assert!(login.hidden);
     }
