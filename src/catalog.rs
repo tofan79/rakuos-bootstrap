@@ -196,6 +196,17 @@ mod tests {
     }
 
     #[test]
+    fn modul_qt_untuk_aplikasi_rakuos_ada_di_base() {
+        let cat = Catalog::load(None).unwrap();
+        for paket in ["qt6-qtsvg", "qt6-qtwayland"] {
+            assert!(
+                cat.base.iter().any(|p| p == paket),
+                "{paket} harus ada di base"
+            );
+        }
+    }
+
+    #[test]
     fn kineticwe_memaksa_greeter_bawaannya() {
         let cat = Catalog::load(None).unwrap();
         let desktop = cat.desktops.iter().find(|d| d.id == "kineticwe").unwrap();

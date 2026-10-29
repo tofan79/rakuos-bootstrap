@@ -202,6 +202,8 @@ Yang selalu ditambahkan wizard, apa pun pilihannya:
 |---|---|
 | `dbus-tools` | menyediakan `dbus-update-activation-environment` untuk skel Hyprland/Niri; image hanya membawa `dbus-broker` |
 | `egl-wayland` | platform EGL Wayland, aman untuk Mesa maupun NVIDIA |
+| `qt6-qtsvg` | ikon SVG untuk aplikasi Qt RakuOS |
+| `qt6-qtwayland` | aplikasi Qt tampil native Wayland, tidak lewat XWayland |
 | `rakuos-software-qt` | aplikasi Software RakuOS, dipakai semua desktop |
 | `rakuos-system-qt` | aplikasi System RakuOS, dipakai semua desktop |
 | `rakuos-welcome-qt` | aplikasi Welcome RakuOS, dipakai semua desktop |
