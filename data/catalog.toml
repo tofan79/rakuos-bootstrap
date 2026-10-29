@@ -326,3 +326,5 @@ id = "none"
 name = "Tanpa login manager"
 description = "Autologin user langsung ke desktop di tty1"
 packages = ["dbus-daemon"]
+available = false
+hidden = true

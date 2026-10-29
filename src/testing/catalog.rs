@@ -113,7 +113,7 @@ fn login_resmi_memakai_paket_dan_config_rakuos_hyprland() {
 fn login_tampil_tujuh_pilihan() {
     let cat = Catalog::load(None).unwrap();
     let visible = cat.logins.iter().filter(|l| !l.hidden).count();
-    assert_eq!(visible, 7);
+    assert_eq!(visible, 6);
 }
 
 #[test]
