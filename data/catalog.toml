@@ -23,7 +23,7 @@ repos = ["terra", "rpmfusion"]
 
 # Lapisan dasar: selalu dipasang, apa pun pilihan user.
 base = [
-    "dbus-daemon",
+    "dbus-tools",
     "egl-wayland",
 ]
 
@@ -308,3 +308,4 @@ unit = "sddm.service"
 id = "none"
 name = "Tanpa login manager"
 description = "Autologin user langsung ke desktop di tty1"
+packages = ["dbus-daemon"]

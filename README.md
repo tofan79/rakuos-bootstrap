@@ -159,10 +159,11 @@ MangoWM memakai skel `data/skel/mango` (config TOML) dengan variabel
 `$terminal`, `$launcher`, `$browser`, dan `$filemanager`. `$launcher` default
 `fuzzel`, tetapi paketnya tidak dipasang: shell seperti Noctalia atau DMS
 biasanya sudah membawa launcher dan agen polkit sendiri. Ganti `$launcher` ke
-perintah shell kalau perlu. `exec_once` menjalankan
-`dbus-update-activation-environment`; `slurp` melengkapi screenshot interaktif
-dari `xdg-desktop-portal-wlr`. XWayland tidak diulang karena sudah ada di base
-image.
+perintah shell kalau perlu. Paket `mangowm` 0.18 sudah membawa
+`mango-portals.conf` (ScreenCast/Screenshot ke `wlr`) dan menyinkronkan
+activation environment sendiri, jadi tidak perlu `exec_once` dbus. `slurp`
+menjadi chooser screenshot interaktif dari `xdg-desktop-portal-wlr`. XWayland
+tidak diulang karena sudah ada di base image.
 
 Niri cukup memakai paket `niri`; `xwayland-satellite` ditarik otomatis dan
 portal memakai `xdg-desktop-portal-gnome`/`gtk` yang sudah ada di base. Skel
@@ -199,8 +200,12 @@ Yang selalu ditambahkan wizard, apa pun pilihannya:
 
 | Paket | Alasan |
 |---|---|
-| `dbus-daemon` | menyediakan `dbus-run-session`; image hanya membawa `dbus-broker` |
+| `dbus-tools` | menyediakan `dbus-update-activation-environment` untuk skel Hyprland/Niri; image hanya membawa `dbus-broker` |
 | `egl-wayland` | platform EGL Wayland, aman untuk Mesa maupun NVIDIA |
+
+Kalau login = tanpa login manager, wizard juga memasang `dbus-daemon` untuk
+perintah `dbus-run-session` di autologin tty1. Untuk greetd/GDM/SDDM, paket
+itu tidak diperlukan.
 
 ## Repo pihak ketiga
 

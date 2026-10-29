@@ -175,6 +175,16 @@ mod tests {
     }
 
     #[test]
+    fn dbus_tools_di_base_dan_dbus_daemon_hanya_autologin() {
+        let cat = Catalog::load(None).unwrap();
+        assert!(cat.base.iter().any(|p| p == "dbus-tools"));
+        assert!(!cat.base.iter().any(|p| p == "dbus-daemon"));
+
+        let none = cat.logins.iter().find(|l| l.id == "none").unwrap();
+        assert!(none.packages.iter().any(|p| p == "dbus-daemon"));
+    }
+
+    #[test]
     fn kineticwe_memaksa_greeter_bawaannya() {
         let cat = Catalog::load(None).unwrap();
         let desktop = cat.desktops.iter().find(|d| d.id == "kineticwe").unwrap();

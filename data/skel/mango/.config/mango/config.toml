@@ -17,8 +17,6 @@ border_color = 0x313244ff
 focus_color = 0x89b4faff
 urgent_color = 0xf38ba8ff
 
-exec_once = ["dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"]
-
 [var]
 terminal = "@TERMINAL@"
 # Ganti ke perintah launcher shell (Noctalia/DMS) kalau memakai shell.
