@@ -182,6 +182,17 @@ mod tests {
 
         let none = cat.logins.iter().find(|l| l.id == "none").unwrap();
         assert!(none.packages.iter().any(|p| p == "dbus-daemon"));
+
+        for paket in [
+            "rakuos-software-qt",
+            "rakuos-system-qt",
+            "rakuos-welcome-qt",
+        ] {
+            assert!(
+                cat.base.iter().any(|p| p == paket),
+                "{paket} harus ada di base"
+            );
+        }
     }
 
     #[test]

@@ -25,6 +25,9 @@ repos = ["terra", "rpmfusion"]
 base = [
     "dbus-tools",
     "egl-wayland",
+    "rakuos-software-qt",
+    "rakuos-system-qt",
+    "rakuos-welcome-qt",
 ]
 
 # ---------------------------------------------------------------- terminal ---
