@@ -2,6 +2,9 @@ mod catalog;
 mod install;
 mod ui;
 
+#[cfg(test)]
+mod testing;
+
 use std::path::PathBuf;
 use std::process::Command;
 

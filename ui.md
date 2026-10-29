@@ -163,10 +163,14 @@ di terminal tinggi semua pilihan tampil sekaligus.
  Fase 5 dari 5 · Desktop
  Compositor Wayland; config minimal tanpa bar
  ────────────────────────────────────────────────────────────────────────────
- ❯ Hyprland             Tiling dinamis, config minimal tanpa bar
+ ❯ Budgie               Desktop tradisional modern, Wayland via Budgie Labwc
+   Hyprland             Tiling dinamis, config minimal tanpa bar
    KineticWE            Tiling berbasis KWin, shell Noctalia
+   LXQt                 Desktop ringan, sesi Wayland lewat Miriway
    MangoWM              Tiling ringan berbasis dwl (wlroots)
    Niri                 Scrollable tiling, config minimal tanpa bar
+   Sway                 Tiling Wayland ringan, sesi wlroots
+   Umbriel              Compositor Wayland ringan, build git harian
 ```
 
 ---

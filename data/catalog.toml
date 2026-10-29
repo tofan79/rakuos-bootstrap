@@ -17,9 +17,10 @@
 # halaman "Third-Party Repositories" di rakuos-welcome:
 #   terra     -> `rum config-manager --set-enabled terra`
 #   rpmfusion -> id yang tercatat di /usr/share/rakuos/rpmfusion-default-repos,
-#                fallback `rpmfusion-*`
+#                fallback `rumfusion-*`
+#   mindset   -> COPR `mindset/Mindset-Apps` (`framework` + `umbriel-git`)
 # Kosongkan daftar ini kalau tidak ingin repo pihak ketiga disentuh.
-repos = ["terra", "rpmfusion"]
+repos = ["terra", "rpmfusion", "mindset"]
 
 # Lapisan dasar: selalu dipasang, apa pun pilihan user.
 base = [
@@ -145,6 +146,13 @@ packages = ["zen-browser"]
 
 # ----------------------------------------------------------------- desktop ---
 [[desktops]]
+id = "budgie"
+name = "Budgie"
+description = "Desktop tradisional modern, mode Wayland via Budgie Labwc"
+packages = ["@budgie-desktop"]
+autologin_cmd = "startbudgielabwc"
+
+[[desktops]]
 id = "hyprland"
 name = "Hyprland"
 description = "Tiling dinamis, config minimal tanpa bar"
@@ -163,6 +171,13 @@ login_override = "kineticwe-greeter"
 autologin_cmd = "start-kineticwe"
 
 [[desktops]]
+id = "lxqt"
+name = "LXQt"
+description = "Desktop ringan, sesi Wayland lewat Miriway"
+packages = ["@lxqt-desktop"]
+autologin_cmd = "startlxqtwayland"
+
+[[desktops]]
 id = "mangowm"
 name = "MangoWM"
 description = "Tiling ringan berbasis dwl (wlroots)"
@@ -177,6 +192,20 @@ description = "Scrollable tiling, config minimal tanpa bar"
 packages = ["niri"]
 skel = "niri"
 autologin_cmd = "niri-session"
+
+[[desktops]]
+id = "sway"
+name = "Sway"
+description = "Tiling Wayland ringan, config skel belum disediakan"
+packages = ["@swaywm"]
+autologin_cmd = "sway"
+
+[[desktops]]
+id = "umbriel"
+name = "Umbriel"
+description = "Compositor Wayland ringan (paket Mindset-Apps, build git harian)"
+packages = ["umbriel-git"]
+autologin_cmd = "start-umbriel"
 
 # ------------------------------------------------------------ file manager ---
 [[file_managers]]

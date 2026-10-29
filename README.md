@@ -162,10 +162,14 @@ bersama desktop KineticWE.
 
 | Nama | Deskripsi | Paket | Default |
 |---|---|---|---|
+| Budgie | Desktop tradisional modern, Wayland via Budgie Labwc | `@budgie-desktop` (grup Fedora) | |
 | Hyprland | Tiling dinamis, config minimal tanpa bar | `hyprland`, `hyprland-guiutils`, `hyprland-uwsm`, `xdg-desktop-portal-hyprland`, `hyprland-preview-share-picker` | ✅ |
 | KineticWE | Tiling berbasis KWin, shell Noctalia | `kineticwe-git` | |
+| LXQt | Desktop ringan, sesi Wayland lewat Miriway | `@lxqt-desktop` (grup Fedora) | |
 | MangoWM | Tiling ringan berbasis dwl (wlroots) | `mangowm`, `scenefx`, `wlroots`, `xcb-util-wm`, `xdg-desktop-portal-wlr`, `slurp` | |
 | Niri | Scrollable tiling, config minimal tanpa bar | `niri` | |
+| Sway | Tiling Wayland ringan, sesi wlroots | `@swaywm` (grup Fedora) | |
+| Umbriel | Compositor Wayland ringan (build harian via Mindset-Apps) | `umbriel-git` (Mindset-Apps) | |
 
 `kineticwe-git` sudah `Requires` versi yang sama dari `kineticwe-noctalia` dan
 `xdg-desktop-portal-kwe`, jadi cukup satu paket. `hyprland-uwsm` menarik

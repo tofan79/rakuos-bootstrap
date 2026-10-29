@@ -119,6 +119,13 @@ fn enable_repos(cat: &Catalog, dry_run: bool) -> Result<()> {
                 "terra".into(),
             ],
             "rpmfusion" => rpmfusion_args(),
+            "mindset" => vec![
+                "copr".into(),
+                "enable".into(),
+                "-y".into(),
+                "mindset/Mindset-Apps".into(),
+                "fedora-45-x86_64".into(),
+            ],
             other => bail!("repo pihak ketiga tidak dikenal: {other}"),
         };
         run("rum", &args, dry_run)?;
@@ -335,11 +342,48 @@ fn install_session_file(desktop: &Choice, base_dir: &Path, dry_run: bool) -> Res
     }
 
     if let Some(parent) = dst.parent() {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("tidak bisa membuat {}", parent.display()))?;
+        if let Err(err) = fs::create_dir_all(parent) {
+            if is_immutable_fs_error(&err) {
+                eprintln!(
+                    "{} skel sesi {} tidak bisa dipasang ke {} karena {} (root immutable); versi paket tetap dipakai",
+                    style("peringatan:").yellow().bold(),
+                    name,
+                    dst.display(),
+                    err
+                );
+                return Ok(());
+            }
+            return Err(err).with_context(|| format!("tidak bisa membuat {}", parent.display()));
+        }
     }
-    fs::copy(&src, &dst).with_context(|| format!("tidak bisa menulis {}", dst.display()))?;
+    if let Err(err) = fs::copy(&src, &dst) {
+        if is_immutable_fs_error(&err) {
+            eprintln!(
+                "{} skel sesi {} tidak bisa memodifikasi {} karena {} (root immutable); versi paket tetap dipakai",
+                style("peringatan:").yellow().bold(),
+                    name,
+                dst.display(),
+                err
+            );
+            return Ok(());
+        }
+        return Err(err).with_context(|| format!("tidak bisa menulis {}", dst.display()));
+    }
     Ok(())
+}
+
+/// Menentukan apakah galat dari sistem berkas immutable (bootc/RakuOS).
+/// Kita sengaja memperlakukan ini sebagai peringatan, bukan kegagalan fatal,
+/// karena sesi bawaan paket di `/usr/share/wayland-sessions` tetap bisa dipakai.
+fn is_immutable_fs_error(err: &std::io::Error) -> bool {
+    use std::io::ErrorKind;
+    matches!(
+        err.kind(),
+        ErrorKind::PermissionDenied | ErrorKind::Unsupported
+    ) || err
+        .to_string()
+        .to_ascii_lowercase()
+        .contains("read-only file system")
 }
 
 fn configure_login(login: &Choice, desktop: &Choice, user: &str, dry_run: bool) -> Result<()> {
@@ -446,7 +490,7 @@ fn configure_sddm(theme: &str, dry_run: bool) -> Result<()> {
     Ok(())
 }
 
-fn sddm_config_body(theme: &str, cursor: Option<&str>) -> String {
+pub(crate) fn sddm_config_body(theme: &str, cursor: Option<&str>) -> String {
     let mut body = format!("[Theme]\nCurrent={theme}\n");
     if let Some(cursor) = cursor {
         body.push_str(&format!("CursorTheme={cursor}\n"));
@@ -558,7 +602,11 @@ fn configure_greetd(login: &Choice, desktop: &Choice, dry_run: bool) -> Result<(
 
 fn compositor_for(desktop: &Choice) -> &'static str {
     match desktop.id.as_str() {
+        "budgie" => "startbudgielabwc",
+        "lxqt" => "startlxqtwayland",
         "niri" => "niri",
+        "sway" => "sway",
+        "umbriel" => "start-umbriel",
         "labwc" => "labwc",
         "mangowm" => "mango",
         _ => "hyprland",
@@ -712,24 +760,4 @@ fn iso8601_now() -> String {
         .output()
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
         .unwrap_or_else(|_| "unknown".to_string())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn config_sddm_sesuai_rakuos_hyprland() {
-        let body = sddm_config_body("maldives", Some("Bibata-Modern-Ice"));
-        assert_eq!(
-            body,
-            "[Theme]\nCurrent=maldives\nCursorTheme=Bibata-Modern-Ice\n\n[General]\nInputMethod=\n"
-        );
-
-        let tanpa_cursor = sddm_config_body("maldives", None);
-        assert_eq!(
-            tanpa_cursor,
-            "[Theme]\nCurrent=maldives\n\n[General]\nInputMethod=\n"
-        );
-    }
 }
