@@ -26,7 +26,21 @@ commit yang sama, agar tidak drift harian.
   upstream).
 - Audit `BuildRequires` sebelum publish.
 
-## Struktur target (di Mindset-Apps)
+## Status branch
+
+- Upstream `master` sedang 1.x, sementara `kineticwe-2.0` benar-benar ada
+  (detached head yang kita ambil sekarang, commit 4018f57652 “Update
+  build-deb-stable.sh”). Branch tersebut sudah punya:
+  - subpackage `kineticwe-noctalia` (fork Noctalia yang di-build in-tree),
+  - `kineticwe-greeter` (pinned subpackage),
+  - `xdg-desktop-portal-kwe` (backend kwe),
+  - `kineticwe-shell` systemd unit,
+  - `kineticwe-noctalia` binary.
+  Sehingga kinetcwe 2.0 sudah ada sebagai nyata, bukan plan.
+- Audit 107 dep: 107/107.
+- Contoh revisi council: penting memakai 2.0 karna integrasi Noctalia greeter + shell
+  otomatis (tidak lagi konflik novearity).
+
 
 ```text
 specs/kineticwe.spec
