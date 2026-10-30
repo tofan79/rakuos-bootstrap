@@ -28,32 +28,15 @@ commit yang sama, agar tidak drift harian.
 
 ## Status branch
 
-- Upstream `master` sedang 1.x, sementara `kineticwe-2.0` benar-benar ada
-  (detached head yang kita ambil sekarang, commit 4018f57652 “Update
-  build-deb-stable.sh”). Branch tersebut sudah punya:
-  - subpackage `kineticwe-noctalia` (fork Noctalia yang di-build in-tree),
+- Upstream `master` memang 1.x, tetapi branch **`kineticwe-2.0`** benar-benar ada
+  (detached head commit `4018f57652`), dengan:
+  - `kineticwe-noctalia` (fork Noctalia yang di-build in-tree),
   - `kineticwe-greeter` (pinned subpackage),
   - `xdg-desktop-portal-kwe` (backend kwe),
-  - `kineticwe-shell` systemd unit,
-  - `kineticwe-noctalia` binary.
-  Sehingga kinetcwe 2.0 sudah ada sebagai nyata, bukan plan.
-- Audit 107 dep: 107/107.
-- Contoh revisi council: penting memakai 2.0 karna integrasi Noctalia greeter + shell
-  otomatis (tidak lagi konflik novearity).
-
-
-```text
-specs/kineticwe.spec
-workflows/kineticwe.yml
-data/kineticwe/                  # skel/config otomatis (opsional)
-```
-
-Driver:
-- `lgl-kineticwe-copr/kineticwe.spec` → salin/adapt ke Fedora 45.
-- SOURCES: `kglobalacceld-*`, `kconfig-*`, `kdecoration-*`,
-  `noctalia-greeter-*` dipin sesuai `%global` ref.
-- `scripts/start-kineticwe.sh` → RPM-safe text (no user prefix).
-- `kineticwe-setup-greeter.sh` dari upstream.
+  - `kineticwe-shell.service`, `kineticwe-noctalia` binary.
+- Jadi **KineticWE 2.0 nyata**, bukan plan, dan sesuai permintaan Anda: greeter
+  + Noctalia otomatis tercampur satu SRPM.
+- Audit BuildRequires: **107/107** tersedia di F45 + Fusion.
 
 ## Urutan build (Fedora 45 container, podman)
 
@@ -99,3 +82,21 @@ versi (`kdecoration`, `kconfig` chain), BZ patches, dan `%files`.
 
 Dok ini dibuat dari clone `gitlab.com/theblackdon/kineticwe`. Bila auditor
 BuildRequires selesai, isi tabel gap.
+
+## Publikasi ke COPR (Mindset-Apps)
+
+Agar KineticWE bisa `rum install kineticwe` dengan mudah:
+1. Selesaikan build `build-rpms.sh` (latar belakang, distrobox fedora:44).
+2. Setelah ada `results/*.src.rpm`, dari host jalankan:
+   ```sh
+   copr-cli build mindset/Mindset-Apps /var/home/mindset/Projects/sumber/kineticwe/lgl-kineticwe-copr/results/*.src.rpm
+   ```
+3. Tunggu build di COPR selesai (Fedora 43/44/45/rawhide), binary akan muncul
+   dan dapat di-install `rum install kineticwe`.
+4. Update katalog/wizard `kineticwe-git` -> `kineticwe`, login_override tetap
+   `kineticwe-greeter`.
+5. Saat upgrade upstream, ulang build-rpms.sh + `copr-cli build` — satu perintah.
+
+**Catatan:** COPR build besar, tidak perlu GitHub Actions per push. Bisa
+jadwal manual bulanan/triweekly.
+
