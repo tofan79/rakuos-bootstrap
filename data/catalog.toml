@@ -157,7 +157,6 @@ id = "hyprland"
 name = "Hyprland"
 description = "Tiling dinamis, config minimal tanpa bar"
 packages = ["hyprland", "hyprland-guiutils", "hyprland-uwsm", "xdg-desktop-portal-hyprland", "hyprland-preview-share-picker"]
-skel = "hyprland"
 session_file = "hyprland-uwsm.desktop"
 autologin_cmd = "Hyprland"
 choose_login = true
