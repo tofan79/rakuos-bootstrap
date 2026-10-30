@@ -160,6 +160,7 @@ packages = ["hyprland", "hyprland-guiutils", "hyprland-uwsm", "xdg-desktop-porta
 skel = "hyprland"
 session_file = "hyprland-uwsm.desktop"
 autologin_cmd = "Hyprland"
+choose_login = true
 default = true
 
 [[desktops]]
@@ -184,6 +185,7 @@ description = "Tiling ringan berbasis dwl (wlroots)"
 packages = ["mangowm", "scenefx", "wlroots", "xcb-util-wm", "xdg-desktop-portal-wlr", "slurp"]
 skel = "mango"
 autologin_cmd = "mango"
+choose_login = true
 
 [[desktops]]
 id = "niri"
@@ -192,13 +194,16 @@ description = "Scrollable tiling, config minimal tanpa bar"
 packages = ["niri"]
 skel = "niri"
 autologin_cmd = "niri-session"
+choose_login = true
 
 [[desktops]]
 id = "sway"
 name = "Sway"
-description = "Tiling Wayland ringan, config skel belum disediakan"
+description = "Tiling Wayland ringan, config minimal tanpa bar"
 packages = ["@swaywm"]
+skel = "sway"
 autologin_cmd = "sway"
+choose_login = true
 
 [[desktops]]
 id = "umbriel"
@@ -253,6 +258,9 @@ description = "File manager TUI cepat, dari repo Terra"
 packages = ["yazi"]
 
 # ------------------------------------------------------------------- login ---
+# Pilihan login hanya ditawarkan untuk desktop dengan `choose_login = true`
+# (Hyprland, Niri, MangoWM, Sway). Desktop lain memakai login bawaannya
+# sendiri dan tidak menanyakan login manager.
 # Empat greeter resmi rakuos-hyprland. Perilaku paket dan config-nya diambil
 # dari `system_files/usr/libexec/rakuos-hyprland-greeter`; UI-nya tidak.
 [[logins]]
@@ -263,13 +271,6 @@ packages = ["greetd", "dms-greeter"]
 unit = "greetd.service"
 greetd_cmd = "/usr/bin/dms-greeter --command @COMPOSITOR@"
 greetd_user = "greeter"
-
-[[logins]]
-id = "gdm"
-name = "GDM"
-description = "GNOME Display Manager, bisa memilih sesi Wayland"
-packages = ["gdm"]
-unit = "gdm.service"
 
 [[logins]]
 id = "noctalia-greeter"
@@ -283,16 +284,9 @@ greetd_setup = "/usr/share/noctalia-greeter/setup_greeter_system.sh"
 default = true
 
 [[logins]]
-id = "plasma-login"
-name = "Plasma Login"
-description = "Login KDE Plasma (Wayland), bisa memilih sesi Wayland"
-packages = ["plasma-login-manager"]
-unit = "plasmalogin.service"
-
-[[logins]]
 id = "sddm"
 name = "SDDM"
-description = "SDDM X11, tema Maldives, fallback grafis"
+description = "SDDM, tema Maldives, sesi Wayland terdaftar"
 packages = ["sddm-x11", "sddm-themes"]
 no_recommends = ["sddm-x11"]
 unit = "sddm.service"

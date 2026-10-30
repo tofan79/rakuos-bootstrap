@@ -1,0 +1,44 @@
+# Config minimal dari rakuos-bootstrap.
+# Tanpa bar: desktop pure, keybind dasar supaya langsung bisa dipakai.
+# File ini milik user; aman diedit/dihapus.
+
+set $mod Mod4
+set $term @TERMINAL@
+set $browser @BROWSER@
+set $files @FILEMANAGER@
+# Ganti "fuzzel" ke perintah launcher shell kalau perlu.
+set $menu fuzzel
+
+input type:keyboard {
+    xkb_layout us
+}
+
+input type:touchpad {
+    natural_scroll enabled
+    tap enabled
+}
+
+gaps inner 8
+
+exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
+
+bindsym $mod+Return exec $term
+bindsym $mod+d exec $menu
+bindsym $mod+b exec $browser
+bindsym $mod+e exec $files
+
+bindsym $mod+q kill
+bindsym $mod+f fullscreen toggle
+bindsym $mod+Shift+e exit
+
+# Fokus window.
+bindsym $mod+Left focus left
+bindsym $mod+Right focus right
+bindsym $mod+Up focus up
+bindsym $mod+Down focus down
+
+# Pindahkan window.
+bindsym $mod+Shift+Left move left
+bindsym $mod+Shift+Right move right
+bindsym $mod+Shift+Up move up
+bindsym $mod+Shift+Down move down

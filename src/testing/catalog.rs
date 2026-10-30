@@ -100,20 +100,30 @@ fn login_resmi_memakai_paket_dan_config_rakuos_hyprland() {
         sysc.greetd_cmd.as_deref(),
         Some("cagebreak -e -c /etc/greetd/cagebreak-greeter-config")
     );
-
-    let gdm = cat.logins.iter().find(|l| l.id == "gdm").unwrap();
-    assert_eq!(gdm.unit.as_deref(), Some("gdm.service"));
-
-    let plasma = cat.logins.iter().find(|l| l.id == "plasma-login").unwrap();
-    assert_eq!(plasma.unit.as_deref(), Some("plasmalogin.service"));
-    assert_eq!(plasma.packages, ["plasma-login-manager"]);
 }
 
 #[test]
-fn login_tampil_tujuh_pilihan() {
+fn login_tampil_empat_pilihan_tanpa_gdm_dan_plasma() {
     let cat = Catalog::load(None).unwrap();
     let visible = cat.logins.iter().filter(|l| !l.hidden).count();
-    assert_eq!(visible, 6);
+    assert_eq!(visible, 4);
+    assert!(!cat
+        .logins
+        .iter()
+        .any(|l| l.id == "gdm" || l.id == "plasma-login"));
+}
+
+#[test]
+fn login_hanya_ditanya_untuk_empat_compositor() {
+    let cat = Catalog::load(None).unwrap();
+    let mut ids: Vec<&str> = cat
+        .desktops
+        .iter()
+        .filter(|d| d.choose_login)
+        .map(|d| d.id.as_str())
+        .collect();
+    ids.sort();
+    assert_eq!(ids, ["hyprland", "mangowm", "niri", "sway"]);
 }
 
 #[test]
@@ -121,9 +131,19 @@ fn kineticwe_memaksa_greeter_bawaannya() {
     let cat = Catalog::load(None).unwrap();
     let desktop = cat.desktops.iter().find(|d| d.id == "kineticwe").unwrap();
     let sddm = cat.logins.iter().find(|l| l.id == "sddm").unwrap();
-    let login = cat.effective_login(desktop, sddm);
+    let login = cat.effective_login(desktop, Some(sddm)).unwrap();
     assert_eq!(login.id, "kineticwe-greeter");
     assert!(login.hidden);
+}
+
+#[test]
+fn desktop_bawaan_tidak_punya_login() {
+    let cat = Catalog::load(None).unwrap();
+    for id in ["budgie", "lxqt", "umbriel"] {
+        let d = cat.desktops.iter().find(|d| d.id == id).unwrap();
+        assert!(!d.choose_login);
+        assert!(cat.effective_login(d, None).is_none());
+    }
 }
 
 #[test]

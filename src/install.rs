@@ -1,19 +1,38 @@
 use std::collections::BTreeSet;
 use std::fs;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use anyhow::{bail, Context, Result};
 use console::style;
 
 use crate::catalog::{Catalog, Choice};
+use crate::log;
+use crate::verify::{verify, Check};
+
+/// Peringatan: tampil di layar dan masuk log.
+macro_rules! warn {
+    ($($arg:tt)*) => {{
+        let msg = format!($($arg)*);
+        eprintln!("{} {msg}", style("peringatan:").yellow().bold());
+        log::note(&format!("peringatan: {msg}"));
+    }};
+}
+
+/// Judul tahap: tampil tebal di layar dan masuk log.
+fn heading(text: &str) {
+    println!("\n{}", style(text).bold());
+    log::note(&format!("\n## {text}"));
+}
 
 pub struct Picks<'a> {
     pub terminals: Vec<&'a Choice>,
     pub browsers: Vec<&'a Choice>,
     pub file_managers: Vec<&'a Choice>,
     pub desktop: &'a Choice,
-    pub login: &'a Choice,
+    /// `None` = desktop memakai login bawaannya sendiri.
+    pub login: Option<&'a Choice>,
 }
 
 impl Picks<'_> {
@@ -50,29 +69,33 @@ pub fn packages(cat: &Catalog, p: &Picks) -> BTreeSet<String> {
         .chain(&p.browsers)
         .chain(&p.file_managers)
         .copied()
-        .chain([p.desktop, p.login])
+        .chain([p.desktop])
+        .chain(p.login)
     {
         set.extend(choice.packages.iter().cloned());
     }
     set
 }
 
-pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Result<()> {
+pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Result<Vec<Check>> {
     let user = target_user();
     let pkgs = packages(cat, picks);
 
-    println!("\n{}", style("Menyiapkan repo pihak ketiga").bold());
+    heading("Menyiapkan repo pihak ketiga");
     enable_repos(cat, dry_run)?;
 
-    println!("\n{}", style("Menyegarkan metadata repo").bold());
+    heading("Menyegarkan metadata repo");
     refresh_metadata(dry_run)?;
 
-    println!("\n{}", style("Memasang paket").bold());
-    resolve_greeter_conflict(picks.login, dry_run)?;
-    resolve_dms_quickshell(picks.login, dry_run)?;
-    install_packages(&pkgs, &picks.login.no_recommends, dry_run)?;
+    heading("Memasang paket");
+    let no_recommends: &[String] = picks.login.map_or(&[], |l| l.no_recommends.as_slice());
+    if let Some(login) = picks.login {
+        resolve_greeter_conflict(login, dry_run)?;
+        resolve_dms_quickshell(login, dry_run)?;
+    }
+    install_packages(&pkgs, no_recommends, dry_run)?;
 
-    println!("\n{}", style("Menyiapkan config desktop").bold());
+    heading("Menyiapkan config desktop");
     install_skel(
         picks.desktop,
         picks.primary_terminal(),
@@ -83,12 +106,33 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
         dry_run,
     )?;
     install_session_file(picks.desktop, base_dir, dry_run)?;
+    ensure_wayland_session(picks.desktop, dry_run)?;
 
-    println!("\n{}", style("Menyiapkan login manager").bold());
+    heading("Menyiapkan login manager");
     configure_login(picks.login, picks.desktop, &user, dry_run)?;
 
     write_state(cat, picks, &user, dry_run)?;
-    Ok(())
+
+    heading("Verifikasi");
+    if dry_run {
+        println!("  + cek paket, display manager, sesi Wayland, dan skel");
+        return Ok(Vec::new());
+    }
+    let checks = verify(cat, picks, &user, base_dir);
+    for c in &checks {
+        let mark = if c.ok {
+            style("✔").green()
+        } else {
+            style("✘").red().bold()
+        };
+        println!("  {mark} {}", c.label);
+        log::note(&format!(
+            "verifikasi: {} {}",
+            if c.ok { "OK  " } else { "GAGAL" },
+            c.label
+        ));
+    }
+    Ok(checks)
 }
 
 /// Menyalakan repo pihak ketiga yang diminta katalog.
@@ -104,10 +148,7 @@ fn enable_repos(cat: &Catalog, dry_run: bool) -> Result<()> {
     }
 
     if !command_exists("rum") {
-        eprintln!(
-            "{} rum tidak ditemukan; repo pihak ketiga dilewati",
-            style("peringatan:").yellow().bold()
-        );
+        warn!("rum tidak ditemukan; repo pihak ketiga dilewati",);
         return Ok(());
     }
 
@@ -173,10 +214,7 @@ fn install_packages(
 
     let (pm, overlay) = package_manager();
     if !overlay {
-        eprintln!(
-            "{} rum tidak ditemukan; memakai dnf (overlay RakuOS tidak aktif)",
-            style("peringatan:").yellow().bold()
-        );
+        warn!("rum tidak ditemukan; memakai dnf (overlay RakuOS tidak aktif)",);
     }
 
     let tanpa_rekomendasi: BTreeSet<&str> = no_recommends.iter().map(String::as_str).collect();
@@ -255,7 +293,7 @@ fn resolve_greeter_conflict(login: &Choice, dry_run: bool) -> Result<()> {
     )
 }
 
-fn package_installed(name: &str) -> bool {
+pub(crate) fn package_installed(name: &str) -> bool {
     Command::new("rpm")
         .args(["-q", "--quiet", name])
         .status()
@@ -279,28 +317,31 @@ fn install_skel(
 
     let src = base_dir.join("skel").join(name);
     if !src.is_dir() {
-        eprintln!(
-            "{} skel {} tidak ada; config minimal dilewati",
-            style("peringatan:").yellow().bold(),
-            src.display()
+        bail!(
+            "skel {} tidak ditemukan; config desktop tidak bisa disalin. \
+             Cek --base-dir (sekarang {})",
+            src.display(),
+            base_dir.display()
         );
-        return Ok(());
     }
 
     let home = home_for(user)?;
     if dry_run {
         println!("  + salin {} -> {}", src.display(), home.display());
+        println!("  + config yang sudah ada dicadangkan ke <nama>.bak");
         println!("  + ganti @TERMINAL@ dengan {terminal}");
         println!("  + ganti @BROWSER@ dengan {browser}");
         println!("  + ganti @FILEMANAGER@ dengan {file_manager}");
         return Ok(());
     }
 
-    copy_dir(&src, &home)?;
+    let subs = [
+        ("@TERMINAL@", terminal),
+        ("@BROWSER@", browser),
+        ("@FILEMANAGER@", file_manager),
+    ];
+    let copied = copy_dir(&src, &home, &subs)?;
     let config_dir = home.join(".config");
-    replace_in_tree(&config_dir, "@TERMINAL@", terminal)?;
-    replace_in_tree(&config_dir, "@BROWSER@", browser)?;
-    replace_in_tree(&config_dir, "@FILEMANAGER@", file_manager)?;
 
     let status = Command::new("chown")
         .args([
@@ -312,6 +353,18 @@ fn install_skel(
         .context("chown gagal dijalankan")?;
     if !status.success() {
         bail!("chown -R {user}:{user} {} gagal", config_dir.display());
+    }
+    for file in &copied {
+        let line = match &file.backup {
+            Some(bak) => format!(
+                "{} (config lama dicadangkan ke {})",
+                file.path.display(),
+                bak.display()
+            ),
+            None => file.path.display().to_string(),
+        };
+        println!("  {} {line}", style("\u{2192}").cyan());
+        log::note(&format!("skel: {line}"));
     }
     Ok(())
 }
@@ -327,11 +380,7 @@ fn install_session_file(desktop: &Choice, base_dir: &Path, dry_run: bool) -> Res
 
     let src = base_dir.join("sessions").join(name);
     if !src.is_file() {
-        eprintln!(
-            "{} sesi {} tidak ada; file sesi dilewati",
-            style("peringatan:").yellow().bold(),
-            src.display()
-        );
+        warn!("sesi {} tidak ada; file sesi dilewati", src.display());
         return Ok(());
     }
 
@@ -344,9 +393,7 @@ fn install_session_file(desktop: &Choice, base_dir: &Path, dry_run: bool) -> Res
     if let Some(parent) = dst.parent() {
         if let Err(err) = fs::create_dir_all(parent) {
             if is_immutable_fs_error(&err) {
-                eprintln!(
-                    "{} skel sesi {} tidak bisa dipasang ke {} karena {} (root immutable); versi paket tetap dipakai",
-                    style("peringatan:").yellow().bold(),
+                warn!("skel sesi {} tidak bisa dipasang ke {} karena {} (root immutable); versi paket tetap dipakai",
                     name,
                     dst.display(),
                     err
@@ -358,9 +405,7 @@ fn install_session_file(desktop: &Choice, base_dir: &Path, dry_run: bool) -> Res
     }
     if let Err(err) = fs::copy(&src, &dst) {
         if is_immutable_fs_error(&err) {
-            eprintln!(
-                "{} skel sesi {} tidak bisa memodifikasi {} karena {} (root immutable); versi paket tetap dipakai",
-                style("peringatan:").yellow().bold(),
+            warn!("skel sesi {} tidak bisa memodifikasi {} karena {} (root immutable); versi paket tetap dipakai",
                     name,
                 dst.display(),
                 err
@@ -386,30 +431,75 @@ fn is_immutable_fs_error(err: &std::io::Error) -> bool {
         .contains("read-only file system")
 }
 
-fn configure_login(login: &Choice, desktop: &Choice, user: &str, dry_run: bool) -> Result<()> {
-    disable_other_managers(login.unit.as_deref(), dry_run)?;
+/// Aktifkan satu display manager: matikan yang lain, enable unit ini, target
+/// grafis, dan bersihkan autologin tty1 dari pilihan lama.
+fn activate_display_manager(unit: &str, dry_run: bool) -> Result<()> {
+    disable_other_managers(Some(unit), dry_run)?;
+    run("systemctl", &["enable".into(), unit.to_string()], dry_run)?;
+    run(
+        "systemctl",
+        &["set-default".into(), "graphical.target".into()],
+        dry_run,
+    )?;
+    let dropin = Path::new("/etc/systemd/system/getty@tty1.service.d/autologin.conf");
+    if !dry_run && dropin.exists() {
+        let _ = fs::remove_file(dropin);
+    }
+    Ok(())
+}
+
+/// Desktop tanpa pilihan login (Budgie, LXQt, Umbriel): pakai display manager
+/// yang ikut terpasang bersama desktop. Config login tidak disentuh.
+fn use_builtin_login(dry_run: bool) -> Result<()> {
+    const CANDIDATES: &[&str] = &[
+        "lightdm.service",
+        "sddm.service",
+        "gdm.service",
+        "greetd.service",
+    ];
+    if dry_run {
+        println!("  + pakai login bawaan desktop (lightdm/sddm/gdm/greetd yang terpasang)");
+        return Ok(());
+    }
+    match CANDIDATES.iter().find(|u| unit_exists(u)) {
+        Some(unit) => activate_display_manager(unit, false),
+        None => {
+            warn!("desktop ini tidak membawa display manager; login manager tidak diubah",);
+            Ok(())
+        }
+    }
+}
+
+fn unit_exists(unit: &str) -> bool {
+    Command::new("systemctl")
+        .args(["cat", unit])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+fn configure_login(
+    login: Option<&Choice>,
+    desktop: &Choice,
+    user: &str,
+    dry_run: bool,
+) -> Result<()> {
+    let Some(login) = login else {
+        return use_builtin_login(dry_run);
+    };
 
     if let Some(unit) = &login.unit {
-        run("systemctl", &["enable".into(), unit.clone()], dry_run)?;
-        run(
-            "systemctl",
-            &["set-default".into(), "graphical.target".into()],
-            dry_run,
-        )?;
+        activate_display_manager(unit, dry_run)?;
         if let Some(theme) = &login.sddm_theme {
             configure_sddm(theme, dry_run)?;
         }
         if login.greetd_cmd.is_some() {
             configure_greetd(login, desktop, dry_run)?;
         }
-
-        // Bersihkan autologin kalau sebelumnya pernah dipilih login = none.
-        let dropin = Path::new("/etc/systemd/system/getty@tty1.service.d/autologin.conf");
-        if !dry_run && dropin.exists() {
-            let _ = fs::remove_file(dropin);
-        }
         return Ok(());
     }
+
+    disable_other_managers(None, dry_run)?;
 
     // login = "none": autologin user ke desktop, tanpa display manager.
     let cmd = desktop
@@ -474,11 +564,17 @@ fn configure_sddm(theme: &str, dry_run: bool) -> Result<()> {
         .copied();
     let body = sddm_config_body(theme, cursor);
 
+    let sessions = Path::new(SDDM_SESSIONS_CONF);
+
     if dry_run {
         println!(
             "  + tulis {} (Current={theme}, CursorTheme={}, InputMethod=)",
             conf.display(),
             cursor.unwrap_or("tidak ada")
+        );
+        println!(
+            "  + tulis {} (greeter x11, SessionDir wayland-sessions)",
+            sessions.display()
         );
         return Ok(());
     }
@@ -487,7 +583,86 @@ fn configure_sddm(theme: &str, dry_run: bool) -> Result<()> {
         fs::create_dir_all(parent)?;
     }
     fs::write(conf, body)?;
+    fs::write(sessions, sddm_sessions_body())?;
     Ok(())
+}
+
+const SDDM_SESSIONS_CONF: &str = "/etc/sddm.conf.d/60-rakuos-sessions.conf";
+
+/// Greeter tetap `x11` (paket `sddm-x11`), tetapi daftar sesinya ditulis
+/// eksplisit supaya sesi Wayland (Hyprland, Niri, MangoWM, Sway) selalu
+/// terbaca. Nomor 60 mengalahkan drop-in vendor yang mungkin memaksa
+/// `DisplayServer=wayland` padahal greeter Wayland tidak terpasang.
+pub(crate) fn sddm_sessions_body() -> String {
+    "[General]\nDisplayServer=x11\n\n\
+     [Wayland]\nSessionDir=/usr/local/share/wayland-sessions,/usr/share/wayland-sessions\n\
+     SessionCommand=/usr/share/sddm/scripts/wayland-session\n\n\
+     [X11]\nSessionDir=/usr/local/share/xsessions,/usr/share/xsessions\n"
+        .to_string()
+}
+
+/// Ada file sesi di `/usr/share/wayland-sessions` yang menjalankan `cmd`?
+pub(crate) fn wayland_session_exists(cmd: &str) -> bool {
+    fs::read_dir("/usr/share/wayland-sessions")
+        .map(|entries| {
+            entries.flatten().any(|e| {
+                fs::read_to_string(e.path())
+                    .map(|t| {
+                        t.lines()
+                            .any(|l| l.strip_prefix("Exec=").is_some_and(|x| x.trim() == cmd))
+                    })
+                    .unwrap_or(false)
+            })
+        })
+        .unwrap_or(false)
+}
+
+/// Pastikan desktop pilihan punya file sesi di `/usr/share/wayland-sessions`.
+/// Kalau paket tidak membawanya, tulis `rakuos-<id>.desktop` dari
+/// `autologin_cmd` supaya login manager apa pun bisa menampilkannya.
+/// Hanya untuk desktop yang menawarkan pilihan login.
+fn ensure_wayland_session(desktop: &Choice, dry_run: bool) -> Result<()> {
+    if !desktop.choose_login || desktop.session_file.is_some() {
+        return Ok(());
+    }
+    let Some(cmd) = desktop.autologin_cmd.as_deref() else {
+        return Ok(());
+    };
+    let dir = Path::new("/usr/share/wayland-sessions");
+
+    if dry_run {
+        println!(
+            "  + pastikan ada sesi Wayland untuk {} (Exec={cmd})",
+            desktop.name
+        );
+        return Ok(());
+    }
+
+    let already = wayland_session_exists(cmd);
+    if already {
+        return Ok(());
+    }
+
+    let dst = dir.join(format!("rakuos-{}.desktop", desktop.id));
+    let body = format!(
+        "[Desktop Entry]\nName={}\nComment={}\nExec={cmd}\nTryExec={}\nType=Application\nDesktopNames={}\n",
+        desktop.name,
+        desktop.description,
+        cmd.split_whitespace().next().unwrap_or(cmd),
+        desktop.name
+    );
+    let write = fs::create_dir_all(dir).and_then(|_| fs::write(&dst, body));
+    match write {
+        Ok(()) => Ok(()),
+        Err(err) if is_immutable_fs_error(&err) => {
+            warn!(
+                "sesi {} tidak bisa ditulis ({err}); root immutable",
+                dst.display()
+            );
+            Ok(())
+        }
+        Err(err) => Err(err).with_context(|| format!("tidak bisa menulis {}", dst.display())),
+    }
 }
 
 pub(crate) fn sddm_config_body(theme: &str, cursor: Option<&str>) -> String {
@@ -526,7 +701,7 @@ fn disable_other_managers(active: Option<&str>, dry_run: bool) -> Result<()> {
     Ok(())
 }
 
-fn unit_enabled(unit: &str) -> bool {
+pub(crate) fn unit_enabled(unit: &str) -> bool {
     Command::new("systemctl")
         .args(["is-enabled", unit])
         .output()
@@ -647,7 +822,7 @@ fn write_state(cat: &Catalog, picks: &Picks, user: &str, dry_run: bool) -> Resul
         ids(&picks.browsers),
         picks.desktop.id,
         ids(&picks.file_managers),
-        picks.login.id,
+        picks.login.map_or("bawaan", |l| l.id.as_str()),
         cat.repos.join(" "),
     );
 
@@ -672,22 +847,58 @@ fn run(program: &str, args: &[String], dry_run: bool) -> Result<()> {
         return Ok(());
     }
 
-    println!(
-        "  {} {}",
-        style("→").cyan(),
-        style(format!("{program} {}", args.join(" "))).dim()
-    );
-    let status = Command::new(program)
+    let line = format!("{program} {}", args.join(" "));
+    println!("  {} {}", style("→").cyan(), style(&line).dim());
+    log::note(&format!("$ {line}"));
+
+    let mut child = Command::new(program)
         .args(args)
-        .status()
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
         .with_context(|| format!("gagal menjalankan {program}"))?;
+
+    // Keluaran ditampilkan apa adanya di layar dan dicatat ke log.
+    let out = child.stdout.take().map(|r| tee(r, false));
+    let err = child.stderr.take().map(|r| tee(r, true));
+    let status = child.wait()?;
+    for t in [out, err].into_iter().flatten() {
+        let _ = t.join();
+    }
+
+    log::note(&format!("  -> {status}"));
     if !status.success() {
-        bail!("{program} keluar dengan {status}");
+        bail!("{program} keluar dengan {status} (lihat {})", log::hint());
     }
     Ok(())
 }
 
-fn command_exists(cmd: &str) -> bool {
+/// Salin aliran keluaran proses ke layar (stdout/stderr) dan ke log.
+fn tee<R: Read + Send + 'static>(mut reader: R, to_stderr: bool) -> std::thread::JoinHandle<()> {
+    std::thread::spawn(move || {
+        let mut logger = log::LineLogger::default();
+        let mut buf = [0u8; 4096];
+        while let Ok(n) = reader.read(&mut buf) {
+            if n == 0 {
+                break;
+            }
+            if to_stderr {
+                let mut e = std::io::stderr();
+                let _ = e.write_all(&buf[..n]);
+                let _ = e.flush();
+            } else {
+                let mut o = std::io::stdout();
+                let _ = o.write_all(&buf[..n]);
+                let _ = o.flush();
+            }
+            logger.feed(&buf[..n]);
+        }
+        logger.finish();
+    })
+}
+
+pub(crate) fn command_exists(cmd: &str) -> bool {
     Command::new("sh")
         .arg("-c")
         .arg(format!("command -v {cmd}"))
@@ -696,14 +907,45 @@ fn command_exists(cmd: &str) -> bool {
         .unwrap_or(false)
 }
 
+/// User yang menerima config desktop. Urutan: `SUDO_USER`; kalau tidak ada
+/// (mis. unit systemd `--first-boot`, atau `su -`), user biasa pertama di
+/// sistem (UID 1000-59999, shell login, home ada); terakhir `root`.
+/// Tanpa fallback ini config mendarat di `/root/.config`.
 pub fn target_user() -> String {
     std::env::var("SUDO_USER")
         .ok()
-        .filter(|u| u != "root")
+        .filter(|u| !u.is_empty() && u != "root")
+        .or_else(first_regular_user)
         .unwrap_or_else(|| "root".to_string())
 }
 
-fn home_for(user: &str) -> Result<PathBuf> {
+fn first_regular_user() -> Option<String> {
+    let output = Command::new("getent").arg("passwd").output().ok()?;
+    parse_regular_user(&String::from_utf8_lossy(&output.stdout), |home| {
+        Path::new(home).is_dir()
+    })
+}
+
+/// Pilih UID terkecil dari keluaran `getent passwd` yang berupa user biasa.
+pub(crate) fn parse_regular_user(
+    passwd: &str,
+    home_exists: impl Fn(&str) -> bool,
+) -> Option<String> {
+    passwd
+        .lines()
+        .filter_map(|line| {
+            let f: Vec<&str> = line.split(':').collect();
+            let uid: u32 = f.get(2)?.parse().ok()?;
+            let (home, shell) = (*f.get(5)?, *f.get(6)?);
+            let login_shell = !shell.ends_with("nologin") && !shell.ends_with("/false");
+            ((1000..60000).contains(&uid) && login_shell && home_exists(home))
+                .then(|| (uid, f[0].to_string()))
+        })
+        .min()
+        .map(|(_, name)| name)
+}
+
+pub(crate) fn home_for(user: &str) -> Result<PathBuf> {
     let output = Command::new("getent")
         .args(["passwd", user])
         .output()
@@ -718,39 +960,69 @@ fn home_for(user: &str) -> Result<PathBuf> {
     Ok(PathBuf::from(home))
 }
 
-fn copy_dir(src: &Path, dst: &Path) -> Result<()> {
+/// Satu file hasil salinan skel.
+pub(crate) struct Copied {
+    pub path: PathBuf,
+    /// Lokasi cadangan kalau sudah ada file lain di tempat yang sama.
+    pub backup: Option<PathBuf>,
+}
+
+/// Salin pohon `src` ke `dst`, mengganti placeholder `subs` di isi file.
+/// File yang sudah ada dan isinya sama dibiarkan; yang isinya beda
+/// dicadangkan dulu ke `<nama>.bak` (`.bak.1`, `.bak.2`, ... kalau sudah
+/// ada), supaya hasil edit user tidak hilang saat wizard dijalankan ulang.
+pub(crate) fn copy_dir(src: &Path, dst: &Path, subs: &[(&str, &str)]) -> Result<Vec<Copied>> {
+    let mut written = Vec::new();
     fs::create_dir_all(dst)?;
     for entry in fs::read_dir(src)? {
         let entry = entry?;
         let file_type = entry.file_type()?;
         let target = dst.join(entry.file_name());
         if file_type.is_dir() {
-            copy_dir(&entry.path(), &target)?;
+            written.extend(copy_dir(&entry.path(), &target, subs)?);
         } else if file_type.is_file() {
-            fs::copy(entry.path(), &target)?;
+            let mut data = fs::read(entry.path())?;
+            if let Ok(text) = std::str::from_utf8(&data) {
+                let mut text = text.to_string();
+                for (needle, value) in subs {
+                    text = text.replace(needle, value);
+                }
+                data = text.into_bytes();
+            }
+            let mut backup = None;
+            if target.is_file() {
+                if fs::read(&target).ok().as_deref() == Some(data.as_slice()) {
+                    continue; // sama persis, tidak perlu disentuh
+                }
+                let bak = backup_path(&target);
+                fs::rename(&target, &bak)
+                    .with_context(|| format!("gagal mencadangkan {}", target.display()))?;
+                backup = Some(bak);
+            }
+            fs::write(&target, data)
+                .with_context(|| format!("gagal menulis {}", target.display()))?;
+            written.push(Copied {
+                path: target,
+                backup,
+            });
         }
     }
-    Ok(())
+    Ok(written)
 }
 
-fn replace_in_tree(dir: &Path, needle: &str, value: &str) -> Result<()> {
-    if !dir.is_dir() {
-        return Ok(());
+fn backup_path(target: &Path) -> PathBuf {
+    let base = format!("{}.bak", target.display());
+    let mut candidate = PathBuf::from(&base);
+    let mut n = 1;
+    while candidate.exists() {
+        candidate = PathBuf::from(format!("{base}.{n}"));
+        n += 1;
     }
-    for entry in fs::read_dir(dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            replace_in_tree(&path, needle, value)?;
-        } else if path.is_file() {
-            if let Ok(text) = fs::read_to_string(&path) {
-                if text.contains(needle) {
-                    fs::write(&path, text.replace(needle, value))?;
-                }
-            }
-        }
-    }
-    Ok(())
+    candidate
+}
+
+pub fn timestamp() -> String {
+    iso8601_now()
 }
 
 fn iso8601_now() -> String {

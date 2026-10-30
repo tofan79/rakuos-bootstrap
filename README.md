@@ -38,6 +38,7 @@ sudo rakuos-bootstrap --first-boot
 | `--first-boot` | mode unit systemd; reboot otomatis setelah selesai |
 | `--ascii` | paksa tampilan ASCII murni (juga `RAKUOS_ASCII=1`) |
 | `--catalog <PATH>` | pakai katalog TOML lain |
+| `--log <PATH>` | file log (default `/var/log/rakuos-bootstrap.log`; tidak dibuat saat `--dry-run`) |
 | `--base-dir <PATH>` | lokasi katalog/skel (default `/usr/share/rakuos/bootstrap`) |
 
 ## Alur
@@ -46,8 +47,11 @@ sudo rakuos-bootstrap --first-boot
 1. Terminal       boleh lebih dari satu
 2. File manager   boleh lebih dari satu
 3. Browser        boleh lebih dari satu
-4. Login manager  satu
-5. Desktop        satu
+4. Desktop        satu
+5. Login manager  satu, hanya untuk Hyprland/Niri/MangoWM/Sway
+
+Esc, Backspace, panah kiri, atau `b` = kembali ke fase sebelumnya; pilihan
+lama tetap tersorot. Batal hanya lewat Ctrl-C.
         │
         ▼
    ringkasan → konfirmasi → enable repo → refresh → rum install
@@ -124,19 +128,15 @@ Boleh centang lebih dari satu. Ukuran = paket utamanya saja.
 | Nama | Deskripsi | Paket | Unit | Default |
 |---|---|---|---|---|
 | DMS Greeter | Greeter Dux (greetd), quickshell, ikut compositor | `greetd`, `dms-greeter` + `quickshell-git` bila belum ada | `greetd.service` | |
-| GDM | GNOME Display Manager, bisa memilih sesi Wayland | `gdm` | `gdm.service` | |
 | Noctalia Greeter | Greeter Noctalia (greetd, wlroots) | `greetd`, `noctalia-greeter` | `greetd.service` | ✅ |
-| Plasma Login | Login KDE Plasma (Wayland), bisa memilih sesi Wayland | `plasma-login-manager` | `plasmalogin.service` | |
-| SDDM | SDDM X11, tema Maldives, fallback grafis | `sddm-x11`, `sddm-themes` | `sddm.service` | |
+| SDDM | SDDM, tema Maldives, sesi Wayland terdaftar | `sddm-x11`, `sddm-themes` | `sddm.service` | |
 | sysc-greet | Greeter TUI console di cagebreak | `sysc-greet` | `greetd.service` | |
 
-Total ada 6 pilihan login dan semuanya bisa dipilih sekarang.
+Total ada 4 pilihan login. GDM dan Plasma Login sudah dihapus.
 
 Empat greeter resmi (`DMS`, `Noctalia`, `SDDM`, `sysc-greet`) mengikuti paket
 dan cara config `rakuos-hyprland: system_files/usr/libexec/rakuos-hyprland-greeter`
-(tanpa UI-nya). GDM dan Plasma Login tetap disediakan sebagai display manager
-grafis umum; keduanya membaca sesi Wayland dari `/usr/share/wayland-sessions`,
-jadi bisa dipakai dengan desktop apa pun yang dipilih. Detail yang penting:
+(tanpa UI-nya). Detail yang penting:
 
 - DMS memasang `quickshell-git` hanya kalau `quickshell`/`quickshell-git`
   belum ada; command greeter memakai compositor desktop yang dipilih.
@@ -145,16 +145,17 @@ jadi bisa dipakai dengan desktop apa pun yang dipilih. Detail yang penting:
 - SDDM dipasang lewat `sddm-x11 --no-recommends` supaya tidak menarik varian
   Wayland, ditambah `sddm-themes`. Config ditulis ke
   `/etc/sddm.conf.d/50-rakuos-theme.conf`: tema `maldives`, cursor Bibata
-  kalau tersedia, dan `InputMethod=` kosong.
+  kalau tersedia, dan `InputMethod=` kosong. `60-rakuos-sessions.conf`
+  menulis `DisplayServer=x11` untuk greeter dan `[Wayland] SessionDir`
+  eksplisit supaya Hyprland/Niri/MangoWM/Sway selalu muncul di daftar sesi.
 - `sysc-greet` tersedia di repo RakuOS dan dipasang dengan cagebreak,
   ghostty, socat, dan greetd.
 
-KineticWE memaksa **KineticWE Greeter**, yaitu varian Noctalia bawaan
-KineticWE. Pilihan Login tetap ditanyakan lebih dulu, tetapi kalau Desktop =
-KineticWE, pilihan itu diabaikan dan diganti otomatis; ringkasan menampilkan
-`(otomatis dari KineticWE)`. Karena itu `kineticwe-greeter` tidak muncul
-sebagai pilihan: paketnya `Requires: kineticwe-git`, jadi hanya masuk akal
-bersama desktop KineticWE.
+Pilihan login hanya muncul setelah memilih desktop dengan `choose_login = true`
+(Hyprland, Niri, MangoWM, Sway). Desktop lain tidak menanyakan login:
+KineticWE memakai **KineticWE Greeter** (`login_override`), sedangkan Budgie,
+LXQt, dan Umbriel memakai display manager bawaan yang ikut terpasang
+(`lightdm`, `sddm`, `gdm`, atau `greetd`, yang pertama terdeteksi).
 
 ### Desktop
 
@@ -190,7 +191,7 @@ Niri memakai placeholder `@TERMINAL@`, `@BROWSER@`, dan `@FILEMANAGER@` yang
 sama; KDL tidak punya variabel, jadi perintah launcher ditulis langsung.
 
 Hyprland memakai `hyprland.lua` (Lua, Hyprland 0.55+), bukan
-`hyprland.conf`. Ketiga skel memakai keybind dasar yang sama:
+`hyprland.conf`. Keempat skel (Hyprland, Niri, MangoWM, Sway) memakai keybind dasar yang sama:
 
 | Tombol | Fungsi |
 |---|---|
@@ -252,7 +253,15 @@ tidak ingin repo pihak ketiga disentuh.
   satu), `desktop`, `login`, `repos`, `target_user`, `time`.
 - `/var/lib/rakuos/bootstrap.done` — marker selesai; unit first-boot berhenti
   ditawarkan.
-- `$HOME/.config/...` untuk user target (`SUDO_USER`, fallback `root`).
+- `/var/log/rakuos-bootstrap.log` — semua perintah beserta keluarannya,
+  peringatan, dan hasil verifikasi (tanpa warna/progress bar). Berguna untuk
+  `--first-boot` karena layar tty1 hilang setelah reboot.
+- `$HOME/.config/...` untuk user target: `SUDO_USER`; kalau kosong (unit
+  `--first-boot`), user biasa pertama (UID 1000+, shell login); terakhir `root`.
+  Skel tersedia untuk Hyprland, Niri, MangoWM, dan Sway. Config yang sudah ada
+  dan isinya berbeda dicadangkan ke `<nama>.bak` (`.bak.1`, ... kalau sudah ada)
+  sebelum ditimpa; yang isinya sama dibiarkan. Kalau folder `skel/`
+  tidak ditemukan, wizard berhenti dengan error (tidak lagi diam-diam lewat).
   Hyprland memakai `$HOME/.config/hypr/hyprland.lua`, bukan `.conf`.
 - `/usr/share/wayland-sessions/hyprland-uwsm.desktop` — sesi uwsm versi resmi
   (hanya kalau desktop = Hyprland).
@@ -288,6 +297,7 @@ Field khusus:
 | `session_file` | desktop | file di `data/sessions/` yang ditulis ke `/usr/share/wayland-sessions/` |
 | `autologin_cmd` | desktop | perintah yang dijalankan saat login = tanpa login manager |
 | `login_override` | desktop | id login yang dipaksa, apa pun pilihan user |
+| `choose_login` | desktop | `true` = wizard menanyakan login manager untuk desktop ini |
 | `unit` | login | unit systemd display manager yang di-enable |
 | `no_recommends` | login | paket yang dipasang dengan `--no-recommends` |
 | `sddm_theme` | login | tema SDDM yang ditulis ke `50-rakuos-theme.conf` |
@@ -297,3 +307,10 @@ Field khusus:
 ## Dokumentasi lain
 
 - [`ui.md`](ui.md) — tampilan tiap fase, charset, warna
+
+## Verifikasi setelah instalasi
+
+Sebelum reboot, wizard memeriksa: semua paket terpasang (`rpm -q`), display
+manager aktif saat boot, sesi Wayland desktop terdaftar, dan setiap file skel
+ada di home user. Kalau ada yang gagal, reboot otomatis (termasuk
+`--first-boot`) ditunda dan hasilnya tercatat di log.

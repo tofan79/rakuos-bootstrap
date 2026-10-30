@@ -21,9 +21,30 @@ use console::{measure_text_width, truncate_str, Key, Style, Term};
 use crate::catalog::Choice;
 
 /// Nama pendek tiap fase untuk stepper.
-const STEPS: [&str; 5] = ["Terminal", "File manager", "Browser", "Login", "Desktop"];
+const STEPS: [&str; 5] = ["Terminal", "File manager", "Browser", "Desktop", "Login"];
 
-/// Pengguna menekan Esc / Ctrl-C.
+/// Hasil satu layar pilihan: lanjut dengan pilihan, atau mundur satu fase.
+pub enum Nav<T> {
+    Next(T),
+    Back,
+}
+
+/// Hasil layar ringkasan.
+pub enum Confirm {
+    Yes,
+    No,
+    Back,
+}
+
+/// Tombol untuk mundur satu fase. Membatalkan seluruh wizard hanya lewat Ctrl-C.
+fn is_back(key: &Key) -> bool {
+    matches!(
+        key,
+        Key::Backspace | Key::ArrowLeft | Key::Escape | Key::Char('b')
+    )
+}
+
+/// Pengguna menekan Ctrl-C.
 #[derive(Debug)]
 pub struct Cancelled;
 
@@ -356,7 +377,10 @@ impl Ui {
         lines.push(String::new());
         lines.extend(body);
         lines.push(String::new());
-        lines.push(format!(" {}", self.pal.dim.apply_to(footer)));
+        lines.push(format!(
+            " {}",
+            self.pal.dim.apply_to(self.fit(footer, self.width - 2))
+        ));
         lines
     }
 
@@ -376,14 +400,14 @@ impl Ui {
 
     fn footer_select(&self) -> String {
         format!(
-            "{} pilih   Enter lanjut   1-9 loncat   Esc batal",
+            "{} pilih  Enter lanjut  Esc/← kembali  1-9 loncat  Ctrl-C batal",
             self.g.updown
         )
     }
 
     fn footer_multi(&self) -> String {
         format!(
-            "{} pilih   Space centang   Enter lanjut   1-9 centang   Esc batal",
+            "{} pilih  Space centang  Enter lanjut  Esc/← kembali  Ctrl-C batal",
             self.g.updown
         )
     }
@@ -399,14 +423,16 @@ impl Ui {
         hint: &str,
         choices: &[Choice],
         picked: &[String],
-    ) -> Result<usize> {
+        initial: Option<usize>,
+    ) -> Result<Nav<usize>> {
         if choices.iter().all(|c| !c.available) {
             bail!("tidak ada pilihan tersedia untuk {title}");
         }
         let _guard = CursorGuard::hide(term);
-        let mut sel = choices
-            .iter()
-            .position(|c| c.available && c.default)
+        // Kembali ke fase ini: sorot lagi pilihan sebelumnya.
+        let mut sel = initial
+            .filter(|&i| i < choices.len() && choices[i].available)
+            .or_else(|| choices.iter().position(|c| c.available && c.default))
             .or_else(|| choices.iter().position(|c| c.available))
             .unwrap_or(0);
         let mut msg: Option<String> = None;
@@ -425,7 +451,15 @@ impl Ui {
             let lines = self.frame(phase, body, &self.footer_select());
             self.paint(term, &lines)?;
 
-            match term.read_key()? {
+            let key = term.read_key()?;
+            if is_back(&key) {
+                if phase == 0 {
+                    msg = Some("ini langkah pertama. Ctrl-C untuk batal.".to_string());
+                    continue;
+                }
+                return Ok(Nav::Back);
+            }
+            match key {
                 Key::ArrowUp | Key::Char('k') => {
                     sel = (sel + choices.len() - 1) % choices.len();
                     msg = None;
@@ -443,14 +477,14 @@ impl Ui {
                 }
                 Key::Enter => {
                     if choices[sel].available {
-                        return Ok(sel);
+                        return Ok(Nav::Next(sel));
                     }
                     msg = Some(format!(
                         "{} belum tersedia; pilih yang lain.",
                         choices[sel].name
                     ));
                 }
-                Key::Escape | Key::CtrlC => return Err(Cancelled.into()),
+                Key::CtrlC => return Err(Cancelled.into()),
                 _ => {}
             }
         }
@@ -466,13 +500,20 @@ impl Ui {
         hint: &str,
         choices: &[Choice],
         picked: &[String],
-    ) -> Result<Vec<usize>> {
+        initial: Option<&[usize]>,
+    ) -> Result<Nav<Vec<usize>>> {
         if choices.iter().all(|c| !c.available) {
             bail!("tidak ada pilihan tersedia untuk {title}");
         }
         let _guard = CursorGuard::hide(term);
 
-        let mut checked: Vec<bool> = choices.iter().map(|c| c.available && c.default).collect();
+        // Kembali ke fase ini: centang lagi pilihan sebelumnya.
+        let mut checked: Vec<bool> = match initial {
+            Some(prev) if !prev.is_empty() => (0..choices.len())
+                .map(|i| choices[i].available && prev.contains(&i))
+                .collect(),
+            _ => choices.iter().map(|c| c.available && c.default).collect(),
+        };
         if !checked.iter().any(|&b| b) {
             if let Some(i) = choices.iter().position(|c| c.available) {
                 checked[i] = true;
@@ -495,7 +536,15 @@ impl Ui {
             let lines = self.frame(phase, body, &self.footer_multi());
             self.paint(term, &lines)?;
 
-            match term.read_key()? {
+            let key = term.read_key()?;
+            if is_back(&key) {
+                if phase == 0 {
+                    msg = Some("ini langkah pertama. Ctrl-C untuk batal.".to_string());
+                    continue;
+                }
+                return Ok(Nav::Back);
+            }
+            match key {
                 Key::ArrowUp | Key::Char('k') => {
                     sel = (sel + choices.len() - 1) % choices.len();
                     msg = None;
@@ -525,16 +574,18 @@ impl Ui {
                 }
                 Key::Enter => {
                     if checked.iter().any(|&b| b) {
-                        return Ok(checked
-                            .iter()
-                            .enumerate()
-                            .filter(|(_, &b)| b)
-                            .map(|(i, _)| i)
-                            .collect());
+                        return Ok(Nav::Next(
+                            checked
+                                .iter()
+                                .enumerate()
+                                .filter(|(_, &b)| b)
+                                .map(|(i, _)| i)
+                                .collect(),
+                        ));
                     }
                     msg = Some("pilih minimal satu.".to_string());
                 }
-                Key::Escape | Key::CtrlC => return Err(Cancelled.into()),
+                Key::CtrlC => return Err(Cancelled.into()),
                 _ => {}
             }
         }
@@ -664,7 +715,7 @@ impl Ui {
         term: &Term,
         rows: &[(&str, String)],
         packages: &[String],
-    ) -> Result<bool> {
+    ) -> Result<Confirm> {
         let _guard = CursorGuard::hide(term);
         let p = &self.pal;
         let mut body = vec![
@@ -691,12 +742,20 @@ impl Ui {
             p.bold.apply_to("Lanjutkan instalasi?")
         ));
 
-        let lines = self.frame(5, body, "Y/Enter lanjut   n/Esc batal   Ctrl-C keluar");
+        let lines = self.frame(
+            5,
+            body,
+            "Y/Enter lanjut  Esc/← kembali  n tidak  Ctrl-C batal",
+        );
         self.paint(term, &lines)?;
         loop {
-            match term.read_key()? {
-                Key::Enter | Key::Char('y') | Key::Char('Y') => return Ok(true),
-                Key::Char('n') | Key::Char('N') | Key::Escape => return Ok(false),
+            let key = term.read_key()?;
+            if is_back(&key) {
+                return Ok(Confirm::Back);
+            }
+            match key {
+                Key::Enter | Key::Char('y') | Key::Char('Y') => return Ok(Confirm::Yes),
+                Key::Char('n') | Key::Char('N') => return Ok(Confirm::No),
                 Key::CtrlC => return Err(Cancelled.into()),
                 _ => {}
             }

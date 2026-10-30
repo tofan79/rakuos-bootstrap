@@ -43,6 +43,11 @@ pub struct Choice {
     /// (mis. KineticWE memaksa greeter bawaannya).
     #[serde(default)]
     pub login_override: Option<String>,
+    /// `true` = setelah memilih desktop ini, wizard menanyakan login manager.
+    /// Desktop tanpa flag ini memakai login bawaannya sendiri (KineticWE lewat
+    /// `login_override`, sisanya display manager yang ikut terpasang).
+    #[serde(default)]
+    pub choose_login: bool,
     /// Unit systemd display manager yang di-enable (login manager).
     #[serde(default)]
     pub unit: Option<String>,
@@ -112,12 +117,18 @@ impl Catalog {
 
     /// Login manager yang benar-benar dipakai. Desktop boleh memaksa satu
     /// pilihan lewat `login_override` (KineticWE memakai greeter bawaannya).
-    pub fn effective_login<'a>(&'a self, desktop: &Choice, picked: &'a Choice) -> &'a Choice {
+    /// `None` = desktop memakai login bawaannya sendiri dan wizard tidak
+    /// mengonfigurasi login manager apa pun.
+    pub fn effective_login<'a>(
+        &'a self,
+        desktop: &Choice,
+        picked: Option<&'a Choice>,
+    ) -> Option<&'a Choice> {
         desktop
             .login_override
             .as_ref()
             .and_then(|id| self.logins.iter().find(|c| &c.id == id))
-            .unwrap_or(picked)
+            .or(picked)
     }
 
     /// Urutan layar selalu A-Z, tidak bergantung urutan di TOML.
