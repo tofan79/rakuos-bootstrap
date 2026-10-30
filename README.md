@@ -159,9 +159,10 @@ dan cara config `rakuos-hyprland: system_files/usr/libexec/rakuos-hyprland-greet
 
 Pilihan login hanya muncul setelah memilih desktop dengan `choose_login = true`
 (Hyprland, Niri, MangoWM, Sway). Desktop lain tidak menanyakan login:
-KineticWE memakai **KineticWE Greeter** (`login_override`), sedangkan Budgie,
-LXQt, dan Umbriel memakai display manager bawaan yang ikut terpasang
-(`lightdm`, `sddm`, `gdm`, atau `greetd`, yang pertama terdeteksi).
+KineticWE memakai **KineticWE Greeter** (`login_override`), Umbriel memakai
+**Noctalia Greeter** (`login_override`), sedangkan Budgie dan LXQt
+memakai display manager bawaan yang ikut terpasang (`lightdm`, `sddm`,
+`gdm`, atau `greetd`, yang pertama terdeteksi).
 
 ### Desktop
 
@@ -174,7 +175,7 @@ LXQt, dan Umbriel memakai display manager bawaan yang ikut terpasang
 | MangoWM | Tiling ringan berbasis dwl (wlroots) | `mangowm`, `scenefx`, `wlroots`, `xcb-util-wm`, `xdg-desktop-portal-wlr`, `slurp` | |
 | Niri | Scrollable tiling, config minimal tanpa bar | `niri` | |
 | Sway | Tiling Wayland ringan, sesi wlroots | `@swaywm` (grup Fedora) | |
-| Umbriel | Compositor Wayland ringan (build harian via Mindset-Apps) | `umbriel-git` (Mindset-Apps) | |
+| Umbriel | Compositor Wayland ringan (build harian via Mindset-Apps) | `umbriel-git` (Mindset-Apps) + `noctalia` (shell) + `noctalia-greeter` (otomatis lewat `login_override`) | |
 
 `kineticwe-git` sudah `Requires` versi yang sama dari `kineticwe-noctalia` dan
 `xdg-desktop-portal-kwe`, jadi cukup satu paket. `hyprland-uwsm` menarik
