@@ -3,6 +3,7 @@ use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::OnceLock;
 
 use anyhow::{bail, Context, Result};
 use console::style;
@@ -293,12 +294,59 @@ fn resolve_greeter_conflict(login: &Choice, dry_run: bool) -> Result<()> {
     )
 }
 
+/// Paket terpasang? Di RakuOS mode overlay/split, `rum install` menaruh paket
+/// ke rpmdb overlay (`/var/lib/rakuos/rum-rpmdb`), bukan rpmdb base image,
+/// sehingga `rpm -q` biasa tidak melihatnya. Karena itu base dicek dulu, lalu
+/// overlay kalau ada. Dipanggil ~150 kali saat verifikasi, jadi cukup satu
+/// proses `rpm` per db dan path overlay dideteksi sekali.
 pub(crate) fn package_installed(name: &str) -> bool {
-    Command::new("rpm")
-        .args(["-q", "--quiet", name])
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
+    if rpm_has(None, name) {
+        return true;
+    }
+    overlay_rpmdb().is_some_and(|db| rpm_has(Some(db), name))
+}
+
+fn rpm_has(dbpath: Option<&Path>, name: &str) -> bool {
+    let mut cmd = Command::new("rpm");
+    cmd.args(["-q", "--quiet"]);
+    if let Some(db) = dbpath {
+        cmd.arg("--dbpath").arg(db);
+    }
+    cmd.arg(name).status().map(|s| s.success()).unwrap_or(false)
+}
+
+/// Path rpmdb overlay RakuOS, dideteksi sekali dari `rum paths`. `None` kalau
+/// `rum` tidak ada, mode flat (tidak punya baris overlay), atau direktorinya
+/// tidak ada; dengan begitu di Fedora/dnf biasa perilakunya tetap sama.
+fn overlay_rpmdb() -> Option<&'static Path> {
+    static OVERLAY: OnceLock<Option<PathBuf>> = OnceLock::new();
+    OVERLAY
+        .get_or_init(|| {
+            let output = Command::new("rum").arg("paths").output().ok()?;
+            if !output.status.success() {
+                return None;
+            }
+            let path = parse_overlay_rpmdb(&String::from_utf8_lossy(&output.stdout))?;
+            path.is_dir().then_some(path)
+        })
+        .as_deref()
+}
+
+/// Ambil path rpmdb overlay dari keluaran `rum paths`:
+///
+/// ```text
+/// mode: split (RakuOS overlay)
+/// base snapshot rpmdb: /usr/share/rpm
+/// overlay rpmdb: /var/lib/rakuos/rum-rpmdb
+/// overlay upperdir: /var/lib/rakuos/overlay/upper
+/// ```
+///
+/// Mode flat tidak menulis baris `overlay rpmdb:`, jadi hasilnya `None`.
+pub(crate) fn parse_overlay_rpmdb(text: &str) -> Option<PathBuf> {
+    text.lines().find_map(|line| {
+        let path = line.strip_prefix("overlay rpmdb:")?.trim();
+        (!path.is_empty()).then(|| PathBuf::from(path))
+    })
 }
 
 fn install_skel(

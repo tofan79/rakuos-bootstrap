@@ -318,7 +318,10 @@ Field khusus:
 
 ## Verifikasi setelah instalasi
 
-Sebelum reboot, wizard memeriksa: semua paket terpasang (`rpm -q`), display
+Sebelum reboot, wizard memeriksa: semua paket terpasang (`rpm -q` untuk rpmdb
+base, lalu rpmdb overlay `rum` di `/var/lib/rakuos/rum-rpmdb` kalau ada), display
 manager aktif saat boot, sesi Wayland desktop terdaftar, dan setiap file skel
-ada di home user. Kalau ada yang gagal, reboot otomatis (termasuk
-`--first-boot`) ditunda dan hasilnya tercatat di log.
+ada di home user. Pengecekan rpmdb overlay penting di RakuOS mode overlay/split:
+`rum install` menaruh paket baru di sana, bukan di base image, sehingga
+`rpm -q` biasa saja akan melaporkan paket belum terpasang. Kalau ada yang gagal,
+reboot otomatis (termasuk `--first-boot`) ditunda dan hasilnya tercatat di log.

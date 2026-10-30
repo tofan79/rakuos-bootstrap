@@ -1,4 +1,6 @@
-use crate::install::{parse_regular_user, sddm_config_body, sddm_sessions_body};
+use crate::install::{
+    parse_overlay_rpmdb, parse_regular_user, sddm_config_body, sddm_sessions_body,
+};
 
 #[test]
 fn config_sddm_sesuai_rakuos_hyprland() {
@@ -25,6 +27,32 @@ fn config_sddm_mendaftarkan_sesi_wayland() {
         "[Wayland]\nSessionDir=/usr/local/share/wayland-sessions,/usr/share/wayland-sessions"
     ));
     assert!(body.contains("[X11]\nSessionDir=/usr/local/share/xsessions,/usr/share/xsessions"));
+}
+
+#[test]
+fn overlay_rpmdb_diambil_dari_rum_paths_mode_split() {
+    let out = "mode: split (RakuOS overlay)\n\
+base snapshot rpmdb: /usr/share/rpm\n\
+overlay rpmdb: /var/lib/rakuos/rum-rpmdb\n\
+overlay upperdir: /var/lib/rakuos/overlay/upper\n";
+    assert_eq!(
+        parse_overlay_rpmdb(out),
+        Some(std::path::PathBuf::from("/var/lib/rakuos/rum-rpmdb"))
+    );
+}
+
+#[test]
+fn overlay_rpmdb_tidak_ada_di_mode_flat() {
+    let out = "mode: flat (dnf biasa)\nbase snapshot rpmdb: /usr/share/rpm\n";
+    assert_eq!(parse_overlay_rpmdb(out), None);
+}
+
+#[test]
+fn overlay_rpmdb_mengabaikan_keluaran_kosong_atau_sampah() {
+    assert_eq!(parse_overlay_rpmdb(""), None);
+    assert_eq!(parse_overlay_rpmdb("bukan keluaran rum paths\n"), None);
+    assert_eq!(parse_overlay_rpmdb("overlay rpmdb:\n"), None);
+    assert_eq!(parse_overlay_rpmdb("overlay rpmdb:   \n"), None);
 }
 
 const PASSWD: &str = "root:x:0:0:root:/root:/bin/bash\n\
