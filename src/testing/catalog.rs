@@ -137,9 +137,22 @@ fn kineticwe_memaksa_greeter_bawaannya() {
 }
 
 #[test]
+fn umbriel_memaksa_greeter_noctalia() {
+    let cat = Catalog::load(None).unwrap();
+    let desktop = cat.desktops.iter().find(|d| d.id == "umbriel").unwrap();
+    let noctalia = cat
+        .logins
+        .iter()
+        .find(|l| l.id == "noctalia-greeter")
+        .unwrap();
+    let login = cat.effective_login(desktop, Some(noctalia)).unwrap();
+    assert_eq!(login.id, "noctalia-greeter");
+}
+
+#[test]
 fn desktop_bawaan_tidak_punya_login() {
     let cat = Catalog::load(None).unwrap();
-    for id in ["budgie", "lxqt", "umbriel"] {
+    for id in ["budgie", "lxqt"] {
         let d = cat.desktops.iter().find(|d| d.id == id).unwrap();
         assert!(!d.choose_login);
         assert!(cat.effective_login(d, None).is_none());

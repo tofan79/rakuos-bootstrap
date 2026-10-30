@@ -191,8 +191,7 @@ choose_login = true
 id = "niri"
 name = "Niri"
 description = "Scrollable tiling, config minimal tanpa bar"
-packages = ["niri"]
-skel = "niri"
+packages = ["niri", "xdg-desktop-portal-gnome"]
 autologin_cmd = "niri-session"
 choose_login = true
 
@@ -201,7 +200,6 @@ id = "sway"
 name = "Sway"
 description = "Tiling Wayland ringan, config minimal tanpa bar"
 packages = ["@swaywm"]
-skel = "sway"
 autologin_cmd = "sway"
 choose_login = true
 
@@ -210,6 +208,7 @@ id = "umbriel"
 name = "Umbriel"
 description = "Compositor Wayland ringan (paket Mindset-Apps, build git harian)"
 packages = ["umbriel-git"]
+login_override = "noctalia-greeter"
 autologin_cmd = "start-umbriel"
 
 # ------------------------------------------------------------ file manager ---

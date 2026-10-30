@@ -129,12 +129,12 @@ fn log_membuang_warna_dan_progress_bar() {
 }
 
 #[test]
-fn verifikasi_mendaftar_semua_file_skel() {
+fn verifikasi_mendaftar_semua_file_skel_hyprland_atau_mango() {
     use crate::verify::skel_files;
     let mut f = skel_files(
-        std::path::Path::new("data/skel/sway"),
+        std::path::Path::new("data/skel/mango"),
         std::path::Path::new(""),
     );
     f.sort();
-    assert_eq!(f, [std::path::PathBuf::from(".config/sway/config")]);
+    assert_eq!(f, [std::path::PathBuf::from(".config/mango/config.toml")]);
 }
