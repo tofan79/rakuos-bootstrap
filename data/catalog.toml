@@ -166,7 +166,7 @@ default = true
 id = "kineticwe"
 name = "KineticWE"
 description = "Tiling berbasis KWin, shell Noctalia"
-packages = ["kineticwe-git"]
+packages = ["kineticwe"]
 login_override = "kineticwe-greeter"
 autologin_cmd = "start-kineticwe"
 
@@ -305,7 +305,7 @@ greetd_cmd = "cagebreak -e -c /etc/greetd/cagebreak-greeter-config"
 greetd_user = "greeter"
 
 # Dipakai otomatis saat Desktop = KineticWE (lihat login_override di atas).
-# Tidak ditampilkan karena paketnya Requires kineticwe-git.
+# Tidak ditampilkan karena paketnya Requires kineticwe.
 [[logins]]
 id = "kineticwe-greeter"
 name = "KineticWE Greeter"
