@@ -286,11 +286,15 @@ default = true
 [[logins]]
 id = "sddm"
 name = "SDDM"
-description = "SDDM, tema Maldives, sesi Wayland terdaftar"
-packages = ["sddm-x11", "sddm-themes"]
-no_recommends = ["sddm-x11"]
+description = "SDDM Wayland (greeter miriway, sama dengan Budgie/LXQt), tema bawaan"
+# Varian greeter: `sddm-x11` (X11) atau `sddm-wayland-miriway` (Wayland,
+# compositor miriway). Dipakai varian Wayland karena itu yang dipakai image
+# Budgie/LXQt RakuOS, jadi jalur login yang paling teruji di distro ini.
+# Keduanya saling bertentangan (Provides: sddm-greeter-displayserver), jadi
+# hanya satu yang boleh terpasang. Tanpa `sddm_theme`: SDDM memakai tema
+# bawaannya sendiri.
+packages = ["sddm-wayland-miriway"]
 unit = "sddm.service"
-sddm_theme = "maldives"
 
 [[logins]]
 id = "sysc-greet"

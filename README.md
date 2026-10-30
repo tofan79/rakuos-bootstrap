@@ -129,7 +129,7 @@ Boleh centang lebih dari satu. Ukuran = paket utamanya saja.
 |---|---|---|---|---|
 | DMS Greeter | Greeter Dux (greetd), quickshell, ikut compositor | `greetd`, `dms-greeter` + `quickshell-git` bila belum ada | `greetd.service` | |
 | Noctalia Greeter | Greeter Noctalia (greetd, wlroots) | `greetd`, `noctalia-greeter` | `greetd.service` | ✅ |
-| SDDM | SDDM, tema Maldives, sesi Wayland terdaftar | `sddm-x11`, `sddm-themes` | `sddm.service` | |
+| SDDM | SDDM Wayland (greeter miriway), tema bawaan | `sddm-wayland-miriway` | `sddm.service` | |
 | sysc-greet | Greeter TUI console di cagebreak | `sysc-greet` | `greetd.service` | |
 
 Total ada 4 pilihan login. GDM dan Plasma Login sudah dihapus.
@@ -142,12 +142,18 @@ dan cara config `rakuos-hyprland: system_files/usr/libexec/rakuos-hyprland-greet
   belum ada; command greeter memakai compositor desktop yang dipilih.
 - Noctalia memakai `/usr/bin/noctalia-greeter-session` dan menjalankan
   `setup_greeter_system.sh` setelah config greetd ditulis.
-- SDDM dipasang lewat `sddm-x11 --no-recommends` supaya tidak menarik varian
-  Wayland, ditambah `sddm-themes`. Config ditulis ke
-  `/etc/sddm.conf.d/50-rakuos-theme.conf`: tema `maldives`, cursor Bibata
-  kalau tersedia, dan `InputMethod=` kosong. `60-rakuos-sessions.conf`
-  menulis `DisplayServer=x11` untuk greeter dan `[Wayland] SessionDir`
-  eksplisit supaya Hyprland/Niri/MangoWM/Sway selalu muncul di daftar sesi.
+- SDDM dipasang lewat varian **Wayland** (`sddm-wayland-miriway`, greeter
+  `miriway` + layer-shell) — varian yang sama yang dipakai image Budgie dan
+  LXQt RakuOS — tanpa paket tema tambahan, jadi memakai tema bawaan SDDM.
+  Varian `sddm-x11` tidak dipakai karena keduanya saling bertentangan
+  (`Provides: sddm-greeter-displayserver`); kalau greeter Wayland bermasalah
+  di mesin tertentu (mis. driver NVIDIA proprietary), tukar dari TTY dengan
+  `sudo dnf swap sddm-wayland-miriway sddm-x11`. `60-rakuos-sessions.conf`
+  menulis `[Wayland] SessionDir` eksplisit supaya Hyprland/Niri/MangoWM/Sway
+  selalu muncul di daftar sesi, dan **tidak** menulis `DisplayServer` supaya
+  pilihan greeter X11/Wayland tetap milik paket varian. `50-rakuos-theme.conf`
+  hanya ditulis kalau katalog mengisi `sddm_theme` (sekarang tidak); file itu
+  dari instalasi versi lama dihapus supaya tidak memaksa tema Maldives.
 - `sysc-greet` tersedia di repo RakuOS dan dipasang dengan cagebreak,
   ghostty, socat, dan greetd.
 
@@ -267,8 +273,10 @@ tidak ingin repo pihak ketiga disentuh.
   (hanya kalau desktop = Hyprland).
 - `/etc/pam.d/greetd` + `/var/lib/noctalia-greeter` — disiapkan skrip
   `setup_greeter_system.sh` milik greeter Noctalia/KineticWE.
-- `/etc/sddm.conf.d/50-rakuos-theme.conf` — tema Maldives, cursor, dan
-  `InputMethod=` kosong (hanya kalau login = SDDM).
+- `/etc/sddm.conf.d/60-rakuos-sessions.conf` — daftar `SessionDir` (Wayland
+  + X11), tanpa `DisplayServer` (hanya kalau login = SDDM). Tema hanya ditulis
+  ke `50-rakuos-theme.conf` kalau `sddm_theme` diisi katalog; dengan katalog
+  sekarang SDDM memakai tema bawaannya.
 - Display manager lain di-`disable` sebelum unit yang dipilih di-`enable`,
   supaya menjalankan wizard ulang tidak meninggalkan dua DM aktif.
 - Drop-in `getty@tty1` + `~/.bash_profile` hanya kalau login = tanpa login
@@ -300,7 +308,7 @@ Field khusus:
 | `choose_login` | desktop | `true` = wizard menanyakan login manager untuk desktop ini |
 | `unit` | login | unit systemd display manager yang di-enable |
 | `no_recommends` | login | paket yang dipasang dengan `--no-recommends` |
-| `sddm_theme` | login | tema SDDM yang ditulis ke `50-rakuos-theme.conf` |
+| `sddm_theme` | login | tema SDDM; kosong = tema bawaan (file `50-rakuos-theme.conf` lama dihapus) |
 | `greetd_setup` | login | skrip setup paket greeter, dijalankan setelah `config.toml` |
 | `hidden` | login | dipakai kode, tidak ditampilkan di layar |
 

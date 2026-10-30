@@ -18,10 +18,13 @@ fn config_sddm_sesuai_rakuos_hyprland() {
 #[test]
 fn config_sddm_mendaftarkan_sesi_wayland() {
     let body = sddm_sessions_body();
-    assert!(body.contains("DisplayServer=x11"));
+    // `DisplayServer` tidak boleh ditulis: varian greeter (`sddm-x11` /
+    // `sddm-wayland-miriway`) yang menentukan lewat drop-in di /usr/lib.
+    assert!(!body.contains("DisplayServer"));
     assert!(body.contains(
         "[Wayland]\nSessionDir=/usr/local/share/wayland-sessions,/usr/share/wayland-sessions"
     ));
+    assert!(body.contains("[X11]\nSessionDir=/usr/local/share/xsessions,/usr/share/xsessions"));
 }
 
 const PASSWD: &str = "root:x:0:0:root:/root:/bin/bash\n\

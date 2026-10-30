@@ -490,8 +490,8 @@ fn configure_login(
 
     if let Some(unit) = &login.unit {
         activate_display_manager(unit, dry_run)?;
-        if let Some(theme) = &login.sddm_theme {
-            configure_sddm(theme, dry_run)?;
+        if unit == "sddm.service" {
+            configure_sddm(login.sddm_theme.as_deref(), dry_run)?;
         }
         if login.greetd_cmd.is_some() {
             configure_greetd(login, desktop, dry_run)?;
@@ -548,11 +548,13 @@ fn configure_login(
     Ok(())
 }
 
-/// Tulis config SDDM yang dipakai `rakuos-hyprland greeter`: tema Maldives,
-/// cursor Bibata kalau ada, dan `InputMethod=` kosong supaya keyboard virtual
-/// tidak menutupi kolom password.
-fn configure_sddm(theme: &str, dry_run: bool) -> Result<()> {
-    let conf = Path::new("/etc/sddm.conf.d/50-rakuos-theme.conf");
+/// Tulis config SDDM yang dipakai `rakuos-hyprland greeter`.
+///
+/// Tema hanya ditulis kalau katalog memintanya (`sddm_theme`); tanpa itu SDDM
+/// memakai tema bawaannya dan sisa `50-rakuos-theme.conf` dari versi lama
+/// dihapus. Daftar sesi selalu ditulis supaya Hyprland/Niri/MangoWM/Sway
+/// muncul di greeter.
+fn configure_sddm(theme: Option<&str>, dry_run: bool) -> Result<()> {
     let cursor = ["Bibata-Modern-Ice", "Bibata-Modern-Classic", "Adwaita"]
         .iter()
         .find(|name| {
@@ -562,40 +564,60 @@ fn configure_sddm(theme: &str, dry_run: bool) -> Result<()> {
                 .is_dir()
         })
         .copied();
-    let body = sddm_config_body(theme, cursor);
 
+    let conf = Path::new(SDDM_THEME_CONF);
     let sessions = Path::new(SDDM_SESSIONS_CONF);
 
     if dry_run {
+        match theme {
+            Some(theme) => println!(
+                "  + tulis {} (Current={theme}, CursorTheme={}, InputMethod=)",
+                conf.display(),
+                cursor.unwrap_or("tidak ada")
+            ),
+            None => println!("  + tema SDDM bawaan ({} tidak ditulis)", conf.display()),
+        }
         println!(
-            "  + tulis {} (Current={theme}, CursorTheme={}, InputMethod=)",
-            conf.display(),
-            cursor.unwrap_or("tidak ada")
-        );
-        println!(
-            "  + tulis {} (greeter x11, SessionDir wayland-sessions)",
+            "  + tulis {} (SessionDir wayland-sessions + xsessions)",
             sessions.display()
         );
         return Ok(());
     }
 
-    if let Some(parent) = conf.parent() {
+    match theme {
+        Some(theme) => {
+            if let Some(parent) = conf.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::write(conf, sddm_config_body(theme, cursor))?;
+        }
+        None if conf.exists() => {
+            // Sisa versi lama yang memaksa tema Maldives.
+            fs::remove_file(conf)?;
+            warn!("{} dihapus; SDDM memakai tema bawaan", conf.display());
+        }
+        None => {}
+    }
+
+    if let Some(parent) = sessions.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::write(conf, body)?;
     fs::write(sessions, sddm_sessions_body())?;
     Ok(())
 }
 
+const SDDM_THEME_CONF: &str = "/etc/sddm.conf.d/50-rakuos-theme.conf";
 const SDDM_SESSIONS_CONF: &str = "/etc/sddm.conf.d/60-rakuos-sessions.conf";
 
-/// Greeter tetap `x11` (paket `sddm-x11`), tetapi daftar sesinya ditulis
-/// eksplisit supaya sesi Wayland (Hyprland, Niri, MangoWM, Sway) selalu
-/// terbaca. Nomor 60 mengalahkan drop-in vendor yang mungkin memaksa
-/// `DisplayServer=wayland` padahal greeter Wayland tidak terpasang.
+/// Daftar sesi ditulis eksplisit supaya sesi Wayland (Hyprland, Niri, MangoWM,
+/// Sway) selalu terbaca, tapi `DisplayServer` sengaja **tidak** ditulis:
+/// pemilihan greeter X11/Wayland adalah urusan paket varian yang memasang
+/// drop-in sendiri di `/usr/lib/sddm/sddm.conf.d/` (`x11.conf` untuk
+/// `sddm-x11`, `miriway.conf` untuk `sddm-wayland-miriway`). File kita di
+/// `/etc` bernomor lebih tinggi, jadi kalau ikut menulis `DisplayServer`, ia
+/// akan menimpa pilihan varian itu (mis. greeter Budgie dipaksa ke X11).
 pub(crate) fn sddm_sessions_body() -> String {
-    "[General]\nDisplayServer=x11\n\n\
-     [Wayland]\nSessionDir=/usr/local/share/wayland-sessions,/usr/share/wayland-sessions\n\
+    "[Wayland]\nSessionDir=/usr/local/share/wayland-sessions,/usr/share/wayland-sessions\n\
      SessionCommand=/usr/share/sddm/scripts/wayland-session\n\n\
      [X11]\nSessionDir=/usr/local/share/xsessions,/usr/share/xsessions\n"
         .to_string()

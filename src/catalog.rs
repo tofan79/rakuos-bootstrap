@@ -51,12 +51,13 @@ pub struct Choice {
     /// Unit systemd display manager yang di-enable (login manager).
     #[serde(default)]
     pub unit: Option<String>,
-    /// Paket yang dipasang dengan `--no-recommends` (mis. `sddm-x11` supaya
-    /// tidak menarik varian Wayland, atau `sysc-greet` supaya tidak menarik
-    /// xterm dari cagebreak).
+    /// Paket yang dipasang dengan `--no-recommends` (mis. `sysc-greet`
+    /// supaya tidak menarik xterm dari cagebreak).
     #[serde(default)]
     pub no_recommends: Vec<String>,
     /// Tema SDDM yang ditulis ke `/etc/sddm.conf.d/50-rakuos-theme.conf`.
+    /// Kosong = pakai tema bawaan SDDM (dan file lama dari versi sebelumnya
+    /// dihapus).
     #[serde(default)]
     pub sddm_theme: Option<String>,
     /// Perintah untuk `[default_session]` di `/etc/greetd/config.toml`.

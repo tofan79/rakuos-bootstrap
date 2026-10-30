@@ -79,9 +79,9 @@ fn login_resmi_memakai_paket_dan_config_rakuos_hyprland() {
     let cat = Catalog::load(None).unwrap();
 
     let sddm = cat.logins.iter().find(|l| l.id == "sddm").unwrap();
-    assert_eq!(sddm.packages, ["sddm-x11", "sddm-themes"]);
-    assert_eq!(sddm.no_recommends, ["sddm-x11"]);
-    assert_eq!(sddm.sddm_theme.as_deref(), Some("maldives"));
+    assert_eq!(sddm.packages, ["sddm-wayland-miriway"]);
+    assert!(sddm.no_recommends.is_empty());
+    assert_eq!(sddm.sddm_theme, None);
 
     let noctalia = cat
         .logins
