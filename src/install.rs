@@ -109,7 +109,28 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
         resolve_greeter_conflict(login, dry_run)?;
         resolve_dms_quickshell(login, dry_run)?;
     }
-    install_packages(&pkgs, no_recommends, dry_run)?;
+    let disabled_repos: &[&str] = if picks.desktop.id == "kineticwe" {
+        // The Mindset COPR may already be enabled from an earlier setup and
+        // its old greeter build requires kineticwe-git. Resolve both packages
+        // exclusively against the upstream KineticWE COPR for this transaction.
+        &["copr:copr.fedorainfracloud.org:mindset:Mindset-Apps"]
+    } else {
+        &[]
+    };
+    let excluded_packages: &[&str] = if picks.desktop.id == "miraclewm" {
+        // RakuOS owns the release identity RPM. Fedora's variant RPM requires
+        // a matching Fedora 45 identity version and conflicts with that base.
+        &["fedora-release-miraclewm"]
+    } else {
+        &[]
+    };
+    install_packages(
+        &pkgs,
+        no_recommends,
+        disabled_repos,
+        excluded_packages,
+        dry_run,
+    )?;
 
     if picks.desktop.id == "ryoku" {
         setup_ryoku(picks.desktop, &user, dry_run)?;
@@ -482,6 +503,8 @@ fn rpmfusion_args() -> Vec<String> {
 fn install_packages(
     pkgs: &BTreeSet<String>,
     no_recommends: &[String],
+    disabled_repos: &[&str],
+    excluded_packages: &[&str],
     dry_run: bool,
 ) -> Result<()> {
     if pkgs.is_empty() {
@@ -506,10 +529,24 @@ fn install_packages(
         .collect();
 
     if !khusus.is_empty() {
-        install_set(pm, &khusus, true, dry_run)?;
+        install_set(
+            pm,
+            &khusus,
+            true,
+            disabled_repos,
+            excluded_packages,
+            dry_run,
+        )?;
     }
     if !biasa.is_empty() {
-        install_set(pm, &biasa, false, dry_run)?;
+        install_set(
+            pm,
+            &biasa,
+            false,
+            disabled_repos,
+            excluded_packages,
+            dry_run,
+        )?;
     }
     Ok(())
 }
@@ -522,11 +559,28 @@ fn package_manager() -> (&'static str, bool) {
     }
 }
 
-fn install_set(pm: &str, pkgs: &[String], no_recommends: bool, dry_run: bool) -> Result<()> {
+fn install_set(
+    pm: &str,
+    pkgs: &[String],
+    no_recommends: bool,
+    disabled_repos: &[&str],
+    excluded_packages: &[&str],
+    dry_run: bool,
+) -> Result<()> {
     let mut args: Vec<String> = vec!["install".into(), "-y".into()];
     if no_recommends {
         args.push("--no-recommends".into());
     }
+    args.extend(
+        disabled_repos
+            .iter()
+            .map(|repo| format!("--disablerepo={repo}")),
+    );
+    args.extend(
+        excluded_packages
+            .iter()
+            .map(|package| format!("--exclude={package}")),
+    );
     args.extend(pkgs.iter().cloned());
     run(pm, &args, dry_run)
 }

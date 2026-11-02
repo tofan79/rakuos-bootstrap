@@ -47,7 +47,9 @@ desktopnya jika tidak meminta pilihan login.
 KineticWE tetap memakai pilihan aplikasi umum, tetapi mengambil paket desktop
 dari COPR `theblackdon/kwee`; COPR `mindset/Mindset-Apps` tidak diaktifkan
 untuk pilihan ini. Terra dan RPM Fusion tetap mengikuti katalog untuk aplikasi
-tambahan yang dipilih.
+tambahan yang dipilih. Saat transaksi paket KineticWE, Mindset-Apps juga
+dinonaktifkan sementara agar greeter lama dari repo itu tidak terpilih jika
+repo tersebut sudah aktif sebelumnya.
 
 `↑`/`↓` atau `j`/`k` memindahkan sorotan; `Tab` juga bergerak ke bawah.
 `Space` atau tombol `1`–`9` mencentang pilihan pada kategori jamak. Pada daftar
@@ -82,6 +84,8 @@ Budgie Wayland. MiracleWM memakai grup desktop Fedora dan katalog secara
 otomatis mengaktifkan SDDM Wayland dari grup tersebut. LXQt memakai display
 manager yang ikut terpasang bersama desktop. KineticWE dan Umbriel memakai
 login yang ditetapkan katalog.
+MiracleWM memakai grup desktop Fedora dan SDDM Wayland-nya, tetapi melewati RPM
+identitas rilis MiracleWM milik Fedora agar identitas rilis RakuOS tetap dipakai.
 
 Repo umum katalog adalah Terra, RPM Fusion, dan COPR `mindset/Mindset-Apps`.
 KineticWE mengecualikan COPR Mindset-Apps dan mengaktifkan `theblackdon/kwee`;
