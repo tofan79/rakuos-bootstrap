@@ -151,6 +151,8 @@ name = "Budgie"
 description = "Desktop tradisional modern, mode Wayland via Budgie Labwc"
 packages = ["@budgie-desktop"]
 autologin_cmd = "startbudgielabwc"
+choose_login = true
+default = true
 
 [[desktops]]
 id = "hyprland"
@@ -160,7 +162,6 @@ packages = ["hyprland", "hyprland-guiutils", "hyprland-uwsm", "xdg-desktop-porta
 session_file = "hyprland-uwsm.desktop"
 autologin_cmd = "Hyprland"
 choose_login = true
-default = true
 
 [[desktops]]
 id = "kineticwe"
@@ -187,12 +188,11 @@ autologin_cmd = "mango"
 choose_login = true
 
 [[desktops]]
-id = "niri"
-name = "Niri"
-description = "Scrollable tiling, config minimal tanpa bar"
-packages = ["niri", "xdg-desktop-portal-gnome"]
-autologin_cmd = "niri-session"
-choose_login = true
+id = "miraclewm"
+name = "MiracleWM"
+description = "Tiling Wayland, paket desktop Fedora dengan SDDM"
+packages = ["@miraclewm-desktop"]
+login_override = "miraclewm-sddm"
 
 [[desktops]]
 id = "sway"
@@ -258,8 +258,8 @@ packages = ["yazi"]
 
 # ------------------------------------------------------------------- login ---
 # Pilihan login hanya ditawarkan untuk desktop dengan `choose_login = true`
-# (Hyprland, Niri, MangoWM, Sway). Desktop lain memakai login bawaannya
-# sendiri dan tidak menanyakan login manager.
+# (Budgie, Hyprland, MangoWM, Sway). Desktop lain memakai login bawaannya
+# sendiri atau login yang ditetapkan katalog.
 # Empat greeter resmi rakuos-hyprland. Perilaku paket dan config-nya diambil
 # dari `system_files/usr/libexec/rakuos-hyprland-greeter`; UI-nya tidak.
 [[logins]]
@@ -280,7 +280,6 @@ unit = "greetd.service"
 greetd_cmd = "/usr/bin/noctalia-greeter-session"
 greetd_user = "greeter"
 greetd_setup = "/usr/share/noctalia-greeter/setup_greeter_system.sh"
-default = true
 
 [[logins]]
 id = "sddm"
@@ -294,6 +293,17 @@ description = "SDDM Wayland (greeter miriway, sama dengan Budgie/LXQt), tema baw
 # bawaannya sendiri.
 packages = ["sddm-wayland-miriway"]
 unit = "sddm.service"
+default = true
+
+# Grup MiracleWM memasang sddm-wayland-miraclewm. Pakai unit SDDM tanpa
+# memasang varian greeter lain; sesi Miracle dan greeter disediakan grup itu.
+[[logins]]
+id = "miraclewm-sddm"
+name = "SDDM untuk MiracleWM"
+description = "SDDM Wayland dari paket desktop MiracleWM Fedora"
+packages = []
+unit = "sddm.service"
+hidden = true
 
 [[logins]]
 id = "sysc-greet"
@@ -305,8 +315,8 @@ unit = "greetd.service"
 greetd_cmd = "cagebreak -e -c /etc/greetd/cagebreak-greeter-config"
 greetd_user = "greeter"
 
-# Dipakai otomatis saat Desktop = KineticWE (lihat login_override di atas).
-# Tidak ditampilkan karena paketnya Requires kineticwe.
+# Dipakai otomatis oleh desktop dengan `login_override` di atas.
+# Tidak ditampilkan sebagai pilihan login.
 [[logins]]
 id = "kineticwe-greeter"
 name = "KineticWE Greeter"

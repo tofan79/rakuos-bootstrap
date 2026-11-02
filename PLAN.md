@@ -276,7 +276,7 @@ greetd_user = "greeter"
 
 1. Smoke: GDM → sesi "Singularity" → shell, files, terminal.
 2. Greeter: config greetd + user `greeter` + reboot test (VM F45).
-3. Multi-desktop: Hyprland/Niri/Mango/Sway tetap bisa dipilih di bootstrap,
+3. Multi-desktop: Hyprland/Mango/Sway tetap bisa dipilih di bootstrap,
    tidak terpengaruh paket Singularity.
 4. No-go: `systemctl is-active systemd-logind` tetap aktif.
 5. Cek `rpm -qp --requires` keempat belas subpackage penting, pastikan tidak ada

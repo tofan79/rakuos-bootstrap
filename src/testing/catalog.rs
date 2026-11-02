@@ -114,7 +114,7 @@ fn login_tampil_empat_pilihan_tanpa_gdm_dan_plasma() {
 }
 
 #[test]
-fn login_hanya_ditanya_untuk_empat_compositor() {
+fn login_hanya_ditanya_untuk_desktop_yang_memilih_login() {
     let cat = Catalog::load(None).unwrap();
     let mut ids: Vec<&str> = cat
         .desktops
@@ -123,7 +123,7 @@ fn login_hanya_ditanya_untuk_empat_compositor() {
         .map(|d| d.id.as_str())
         .collect();
     ids.sort();
-    assert_eq!(ids, ["hyprland", "mangowm", "niri", "sway"]);
+    assert_eq!(ids, ["budgie", "hyprland", "mangowm", "sway"]);
 }
 
 #[test]
@@ -152,7 +152,7 @@ fn umbriel_memaksa_greeter_noctalia() {
 #[test]
 fn desktop_bawaan_tidak_punya_login() {
     let cat = Catalog::load(None).unwrap();
-    for id in ["budgie", "lxqt"] {
+    for id in ["lxqt"] {
         let d = cat.desktops.iter().find(|d| d.id == id).unwrap();
         assert!(!d.choose_login);
         assert!(cat.effective_login(d, None).is_none());

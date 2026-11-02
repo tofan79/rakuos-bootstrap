@@ -1,329 +1,126 @@
 # rakuos-bootstrap
 
-Wizard pasca-install untuk RakuOS minimal: memilih terminal, file manager,
-browser, desktop, dan login manager, lalu memasangnya di atas base image
-(overlay `rum`), menyalin config minimal, dan menyiapkan sesi GUI.
+Wizard TUI pasca-install untuk RakuOS minimal. Wizard membantu memilih aplikasi
+dasar dan desktop, memasang paket ke overlay `rum`, menyiapkan login manager,
+serta menyalin konfigurasi yang tersedia. Ini bukan installer OS;
+`rakuos-installer-cli` yang memasang sistem ke disk.
 
-Bukan installer OS. `rakuos-installer-cli` yang menulis sistem ke disk; program
-ini yang membuat sistem minimal itu **bisa dipakai**.
-
-- Mockup tampilan TUI: [`ui.md`](ui.md)
 - Katalog pilihan: [`data/catalog.toml`](data/catalog.toml)
-- Binary: `rakuos-bootstrap` (Rust, TUI tanpa dependensi GUI, aman di console VT)
+- Panduan tampilan TUI: [`ui.md`](ui.md)
+- Binary Rust: `rakuos-bootstrap`; tidak memerlukan GTK/Qt untuk UI
 
-## Status
-
-Kode sudah berjalan dan diuji lewat pty (`--dry-run`, 5 fase, ringkasan,
-mode ASCII, Esc → exit 130). Belum dipaketkan sebagai RPM; itu tahap
-berikutnya di `Mindset-Apps`.
-
-## Pakai
+## Menjalankan
 
 ```bash
 cargo build --release
 
-# lihat rencana, tidak menyentuh sistem
+# Tampilkan rencana tanpa mengubah sistem
 ./target/release/rakuos-bootstrap --dry-run
 
-# instalasi sungguhan (butuh root)
+# Jalankan instalasi (butuh root)
 sudo ./target/release/rakuos-bootstrap
-
-# dipanggil unit systemd saat boot pertama
-sudo rakuos-bootstrap --first-boot
 ```
 
-| Opsi | Arti |
+Opsi yang tersedia:
+
+| Opsi | Fungsi |
 |---|---|
-| `--dry-run` | tampilkan rencana, jangan ubah sistem |
-| `--first-boot` | mode unit systemd; reboot otomatis setelah selesai |
-| `--ascii` | paksa tampilan ASCII murni (juga `RAKUOS_ASCII=1`) |
-| `--catalog <PATH>` | pakai katalog TOML lain |
-| `--log <PATH>` | file log (default `/var/log/rakuos-bootstrap.log`; tidak dibuat saat `--dry-run`) |
-| `--base-dir <PATH>` | lokasi katalog/skel (default `/usr/share/rakuos/bootstrap`) |
+| `--dry-run` | Tampilkan tindakan tanpa menjalankan perintah atau menulis file |
+| `--first-boot` | Mode unit systemd; reboot otomatis setelah instalasi dan verifikasi berhasil |
+| `--ascii` | Paksa glyph ASCII; juga bisa memakai `RAKUOS_ASCII=1` |
+| `--catalog <PATH>` | Baca katalog TOML alternatif |
+| `--base-dir <PATH>` | Lokasi data katalog/skel/sesi; default `/usr/share/rakuos/bootstrap` |
+| `--log <PATH>` | Lokasi log; default `/var/log/rakuos-bootstrap.log` |
+| `--help`, `--version` | Tampilkan bantuan atau versi |
+
+Wizard perlu TTY interaktif. Instalasi sungguhan perlu dijalankan sebagai root.
+Log tidak dibuat saat `--dry-run`.
 
 ## Alur
 
-```
-1. Terminal       boleh lebih dari satu
-2. File manager   boleh lebih dari satu
-3. Browser        boleh lebih dari satu
-4. Desktop        satu
-5. Login manager  satu, hanya untuk Hyprland/Niri/MangoWM/Sway
+Urutan layar adalah Terminal, File manager, Browser, Desktop, lalu Login manager
+bila desktop yang dipilih memiliki `choose_login = true`. Pilihan untuk tiga
+kategori pertama bisa jamak; desktop dan login manager tunggal. Desktop yang
+tidak meminta login memakai display manager yang dibawa desktopnya.
 
-Esc, Backspace, panah kiri, atau `b` = kembali ke fase sebelumnya; pilihan
-lama tetap tersorot. Batal hanya lewat Ctrl-C.
-        │
-        ▼
-   ringkasan → konfirmasi → enable repo → refresh → rum install
-        │
-        ├─ salin skel desktop ke ~/.config (chown ke user)
-        ├─ enable greeter / siapkan autologin
-        └─ tulis /var/lib/rakuos/bootstrap.toml + .done
-```
+`↑`/`↓` atau `j`/`k` memindahkan sorotan; `Tab` juga bergerak ke bawah.
+`Space` atau tombol `1`–`9` mencentang pilihan pada kategori jamak. Pada daftar
+tunggal, `1`–`9` memilih item. `Enter` melanjutkan. `Esc`, `Backspace`, `←`,
+atau `b` kembali satu layar; `Ctrl-C` membatalkan wizard. Pada ringkasan,
+`n` membatalkan tanpa instalasi, sedangkan `Esc` kembali ke pilihan terakhir.
 
-Fase 1–3 memakai checkbox: `Space` mencentang, `1`–`9` mencentang nomor itu,
-`Enter` maju kalau minimal satu tercentang. Fase 4–5 tunggal karena hanya satu
-yang bisa aktif saat boot.
+Setelah konfirmasi, script mengaktifkan repo yang tercantum di katalog,
+menyegarkan metadata, memasang paket (`rum`, atau `dnf` bila `rum` tidak ada),
+menyiapkan file sesi/skel yang tersedia, mengatur login manager, menulis state,
+dan memverifikasi hasilnya. Jika verifikasi gagal, reboot ditunda dan kegagalan
+dicatat di log.
 
-Urutan tampilan selalu A-Z (diurutkan oleh kode), tidak bergantung urutan di
-`catalog.toml`.
+## Pilihan dalam katalog saat ini
 
-## Pilihan
+Daftar di layar diurutkan alfabetis oleh program. Katalog adalah sumber nama,
+deskripsi, paket, repo, dan nilai default; tabel berikut hanya merangkum nama
+agar dokumentasi tidak menyalin metadata yang bisa berubah.
 
-Deskripsi di bawah ini sama persis dengan yang tampil di layar; kalau mau
-dikoreksi, ubah `description` di `data/catalog.toml` lalu sesuaikan tabelnya.
-Ukuran = paket utamanya saja, bukan total dependency.
-
-### Terminal
-
-| Nama | Deskripsi | Paket | Repo | Ukuran | Default |
-|---|---|---|---|---|---|
-| Alacritty | GPU-accelerated, konfigurasi YAML sederhana | `alacritty` | Fedora | 7,8 MB | |
-| Foot | Ringan, Wayland-only, cocok untuk sistem minimal | `foot`, `foot-terminfo` | Fedora | 0,9 MB | |
-| Ghostty | Dari repo Terra, diaktifkan otomatis saat instalasi | `ghostty`, `ghostty-terminfo`, `ghostty-shell-integration` | Terra | 28,7 MB | |
-| Kitty | GPU-accelerated, paling umum dipakai di Hyprland | `kitty`, `kitty-kitten`, `kitty-shell-integration`, `kitty-terminfo` | Fedora | 16 MB | ✅ |
-
-`@TERMINAL@` dan `@BROWSER@` di config desktop memakai pilihan pertama
-menurut abjad dari yang dicentang; `@FILEMANAGER@` memakai file manager yang
-dipilih. Kalau kosong, fallback-nya `foot`, `firefox`, dan `nautilus`.
-
-### File manager
-
-| Nama | Deskripsi | Paket | Repo | Ukuran | Default |
-|---|---|---|---|---|---|
-| Dolphin | File manager KDE, fitur lengkap (menarik Qt/KDE stack) | `dolphin` | Fedora | 14,1 MB | |
-| HyprFM | Keyboard-first untuk Hyprland, dari repo RakuOS | `hyprfm` | RakuOS | 2,7 MB | |
-| Nautilus | File manager GNOME, ringan untuk pemakaian dasar | `nautilus` | Fedora | 14,8 MB | ✅ |
-| Nemo | File manager Cinnamon, GTK3, dukungan gvfs-fuse | `nemo` | Fedora | 4,3 MB | |
-| Superfile | File manager TUI modern (binary spf), dari repo Terra | `superfile` | Terra | 19,7 MB | |
-| Thunar | File manager Xfce, ringan dan cepat | `Thunar`, `thunar-volman` | Fedora | 11,3 MB | |
-| Yazi | File manager TUI cepat, dari repo Terra | `yazi` | Terra | 33,3 MB | |
-
-Catatan: Superfile dan Yazi berjalan di dalam terminal. Thunar memang bernama
-paket `Thunar` (huruf T besar) dan `rum` mencocokkan nama secara peka huruf
-besar.
-
-### Browser
-
-| Nama | Deskripsi | Paket | Repo | Ukuran | Default |
-|---|---|---|---|---|---|
-| Brave | Chromium dengan pemblokir iklan bawaan | `brave-browser` | RakuOS | 499 MB | |
-| Chromium | Open source, tanpa sinkronisasi akun Google | `chromium` | Fedora | 374 MB | |
-| Epiphany | GNOME Web (WebKitGTK), paling ringan | `epiphany` | Fedora | 11,5 MB | |
-| Falkon | Qt/Chromium ringan, cocok sistem minimal | `falkon` | Fedora | 14,5 MB | |
-| Firefox | Default, cepat, dan paling kompatibel | `firefox` | Fedora | 307 MB | ✅ |
-| Google Chrome | Proprietary, sinkronisasi akun Google | `google-chrome-stable` | RakuOS | 466 MB | |
-| Helium | Chromium privat dan cepat, dari Terra | `helium-browser-bin` | Terra | 410 MB | |
-| LibreWolf | Firefox tanpa telemetri, fokus privasi | `librewolf` | RakuOS | 485 MB | |
-| Microsoft Edge | Chromium Microsoft, paket paling besar | `microsoft-edge-stable` | RakuOS | 704 MB | |
-| QuteBrowser | Keyboard-only, Qt/Python | `qutebrowser` | Fedora | 11 MB | |
-| Vivaldi | Fitur banyak, proprietary | `vivaldi-stable` | RakuOS | 476 MB | |
-| Waterfox | Firefox fork, fokus privasi | `waterfox` | RakuOS | 512 MB | |
-| Zen Browser | Firefox fork, vertical tabs, dari Terra | `zen-browser` | Terra | 305 MB | |
-
-Boleh centang lebih dari satu. Ukuran = paket utamanya saja.
-
-### Login manager
-
-| Nama | Deskripsi | Paket | Unit | Default |
-|---|---|---|---|---|
-| DMS Greeter | Greeter Dux (greetd), quickshell, ikut compositor | `greetd`, `dms-greeter` + `quickshell-git` bila belum ada | `greetd.service` | |
-| Noctalia Greeter | Greeter Noctalia (greetd, wlroots) | `greetd`, `noctalia-greeter` | `greetd.service` | ✅ |
-| SDDM | SDDM Wayland (greeter miriway), tema bawaan | `sddm-wayland-miriway` | `sddm.service` | |
-| sysc-greet | Greeter TUI console di cagebreak | `sysc-greet` | `greetd.service` | |
-
-Total ada 4 pilihan login. GDM dan Plasma Login sudah dihapus.
-
-Empat greeter resmi (`DMS`, `Noctalia`, `SDDM`, `sysc-greet`) mengikuti paket
-dan cara config `rakuos-hyprland: system_files/usr/libexec/rakuos-hyprland-greeter`
-(tanpa UI-nya). Detail yang penting:
-
-- DMS memasang `quickshell-git` hanya kalau `quickshell`/`quickshell-git`
-  belum ada; command greeter memakai compositor desktop yang dipilih.
-- Noctalia memakai `/usr/bin/noctalia-greeter-session` dan menjalankan
-  `setup_greeter_system.sh` setelah config greetd ditulis.
-- SDDM dipasang lewat varian **Wayland** (`sddm-wayland-miriway`, greeter
-  `miriway` + layer-shell) — varian yang sama yang dipakai image Budgie dan
-  LXQt RakuOS — tanpa paket tema tambahan, jadi memakai tema bawaan SDDM.
-  Varian `sddm-x11` tidak dipakai karena keduanya saling bertentangan
-  (`Provides: sddm-greeter-displayserver`); kalau greeter Wayland bermasalah
-  di mesin tertentu (mis. driver NVIDIA proprietary), tukar dari TTY dengan
-  `sudo dnf swap sddm-wayland-miriway sddm-x11`. `60-rakuos-sessions.conf`
-  menulis `[Wayland] SessionDir` eksplisit supaya Hyprland/Niri/MangoWM/Sway
-  selalu muncul di daftar sesi, dan **tidak** menulis `DisplayServer` supaya
-  pilihan greeter X11/Wayland tetap milik paket varian. `50-rakuos-theme.conf`
-  hanya ditulis kalau katalog mengisi `sddm_theme` (sekarang tidak); file itu
-  dari instalasi versi lama dihapus supaya tidak memaksa tema Maldives.
-- `sysc-greet` tersedia di repo RakuOS dan dipasang dengan cagebreak,
-  ghostty, socat, dan greetd.
-
-Pilihan login hanya muncul setelah memilih desktop dengan `choose_login = true`
-(Hyprland, Niri, MangoWM, Sway). Desktop lain tidak menanyakan login:
-KineticWE memakai **KineticWE Greeter** (`login_override`), Umbriel memakai
-**Noctalia Greeter** (`login_override`), sedangkan Budgie dan LXQt
-memakai display manager bawaan yang ikut terpasang (`lightdm`, `sddm`,
-`gdm`, atau `greetd`, yang pertama terdeteksi).
-
-### Desktop
-
-| Nama | Deskripsi | Paket | Default |
-|---|---|---|---|
-| Budgie | Desktop tradisional modern, Wayland via Budgie Labwc | `@budgie-desktop` (grup Fedora) | |
-| Hyprland | Tiling dinamis, config minimal tanpa bar | `hyprland`, `hyprland-guiutils`, `hyprland-uwsm`, `xdg-desktop-portal-hyprland`, `hyprland-preview-share-picker` | ✅ |
-| KineticWE | Tiling berbasis KWin, shell Noctalia | `kineticwe` | |
-| LXQt | Desktop ringan, sesi Wayland lewat Miriway | `@lxqt-desktop` (grup Fedora) | |
-| MangoWM | Tiling ringan berbasis dwl (wlroots) | `mangowm`, `scenefx`, `wlroots`, `xcb-util-wm`, `xdg-desktop-portal-wlr`, `slurp` | |
-| Niri | Scrollable tiling, config minimal tanpa bar | `niri` | |
-| Sway | Tiling Wayland ringan, sesi wlroots | `@swaywm` (grup Fedora) | |
-| Umbriel | Compositor Wayland ringan (build harian via Mindset-Apps) | `umbriel-git` (Mindset-Apps) + `noctalia` (shell) + `noctalia-greeter` (otomatis lewat `login_override`) | |
-
-`kineticwe` sudah `Requires` versi yang sama dari `kineticwe-noctalia` dan
-`xdg-desktop-portal-kwe`, jadi cukup satu paket. `hyprland-uwsm` menarik
-`uwsm`; `xdg-desktop-portal-hyprland` menarik `grim`, `slurp`, dan
-`qt6-qtwayland`.
-
-MangoWM memakai skel `data/skel/mango` (config TOML) dengan variabel
-`$terminal`, `$launcher`, `$browser`, dan `$filemanager`. `$launcher` default
-`fuzzel`, tetapi paketnya tidak dipasang: shell seperti Noctalia atau DMS
-biasanya sudah membawa launcher dan agen polkit sendiri. Ganti `$launcher` ke
-perintah shell kalau perlu. Paket `mangowm` 0.18 sudah membawa
-`mango-portals.conf` (ScreenCast/Screenshot ke `wlr`) dan menyinkronkan
-activation environment sendiri, jadi tidak perlu `exec_once` dbus. `slurp`
-menjadi chooser screenshot interaktif dari `xdg-desktop-portal-wlr`. XWayland
-tidak diulang karena sudah ada di base image.
-
-Niri cukup memakai paket `niri`; `xwayland-satellite` ditarik otomatis dan
-portal memakai `xdg-desktop-portal-gnome`/`gtk` yang sudah ada di base. Skel
-Niri memakai placeholder `@TERMINAL@`, `@BROWSER@`, dan `@FILEMANAGER@` yang
-sama; KDL tidak punya variabel, jadi perintah launcher ditulis langsung.
-
-Hyprland memakai `hyprland.lua` (Lua, Hyprland 0.55+), bukan
-`hyprland.conf`. Skel tersedia untuk Hyprland, Niri, MangoWM, Sway, dan
-Umbriel (Umbriel memakai `config.toml` dengan placeholder `@TERMINAL@`).
-
-| Tombol | Fungsi |
-|---|---|
-| `SUPER+Return` | terminal |
-| `SUPER+D` | launcher |
-| `SUPER+B` | browser |
-| `SUPER+E` | file manager |
-| `SUPER+Q` | tutup window |
-| `SUPER+F` | fullscreen |
-| `SUPER+Shift+E` | keluar dari desktop |
-| `SUPER+panah` | fokus window |
-| `SUPER+Shift+panah` | pindah window |
-
-Di Niri, `SUPER` ditulis `Mod`. Launcher default `fuzzel` dan tidak dipasang;
-ganti ke perintah shell kalau memakai Noctalia atau DMS.
-
-### Lapisan dasar
-
-Base image RakuOS sudah memasang audio (`pipewire`, `wireplumber`), GPU/video
-(`mesa-*`, `libva`; image NVIDIA memakai driver sendiri), polkit, portal
-(`xdg-desktop-portal`, `xdg-desktop-portal-gtk`, `xdg-user-dirs-gtk`), font,
-`gvfs` + `gvfs-mtp`, `wl-clipboard`, dan `xorg-x11-server-Xwayland`. Wizard
-tidak memasang ulang paket-paket itu.
-
-Yang selalu ditambahkan wizard, apa pun pilihannya:
-
-| Paket | Alasan |
-|---|---|
-| `dbus-tools` | menyediakan `dbus-update-activation-environment` untuk skel Hyprland/Niri; image hanya membawa `dbus-broker` |
-| `egl-wayland` | platform EGL Wayland, aman untuk Mesa maupun NVIDIA |
-| `qt6-qtsvg` | ikon SVG untuk aplikasi Qt RakuOS |
-| `qt6-qtwayland` | aplikasi Qt tampil native Wayland, tidak lewat XWayland |
-| `rakuos-software-qt` | aplikasi Software RakuOS, dipakai semua desktop |
-| `rakuos-system-qt` | aplikasi System RakuOS, dipakai semua desktop |
-| `rakuos-welcome-qt` | aplikasi Welcome RakuOS, dipakai semua desktop |
-
-Kalau login = tanpa login manager, wizard juga memasang `dbus-daemon` untuk
-perintah `dbus-run-session` di autologin tty1. Untuk greetd/SDDM, paket itu
-tidak diperlukan.
-
-## Repo pihak ketiga
-
-Terra dan RPM Fusion dibawa image dalam keadaan nonaktif. Wizard
-menyalakannya sebelum instalasi, dengan cara yang sama seperti halaman
-*Third-Party Repositories* di `rakuos-welcome`:
-
-| Kunci di `catalog.toml` | Perintah |
-|---|---|
-| `terra` | `rum config-manager --set-enabled terra` |
-| `rpmfusion` | `rum config-manager --set-enabled <isi /usr/share/rakuos/rpmfusion-default-repos>`, fallback `rpmfusion-*` |
-
-Daftarnya ada di `repos = [...]` (level atas `catalog.toml`). Kosongkan kalau
-tidak ingin repo pihak ketiga disentuh.
-
-## Yang ditulis ke sistem
-
-- `/var/lib/rakuos/bootstrap.toml` — pilihan terakhir:
-  `terminals`, `file_managers`, `browsers` (dipisah spasi, boleh lebih dari
-  satu), `desktop`, `login`, `repos`, `target_user`, `time`.
-- `/var/lib/rakuos/bootstrap.done` — marker selesai; unit first-boot berhenti
-  ditawarkan.
-- `/var/log/rakuos-bootstrap.log` — semua perintah beserta keluarannya,
-  peringatan, dan hasil verifikasi (tanpa warna/progress bar). Berguna untuk
-  `--first-boot` karena layar tty1 hilang setelah reboot.
-- `$HOME/.config/...` untuk user target: `SUDO_USER`; kalau kosong (unit
-  `--first-boot`), user biasa pertama (UID 1000+, shell login); terakhir `root`.
-  Skel tersedia untuk Hyprland, Niri, MangoWM, dan Sway. Config yang sudah ada
-  dan isinya berbeda dicadangkan ke `<nama>.bak` (`.bak.1`, ... kalau sudah ada)
-  sebelum ditimpa; yang isinya sama dibiarkan. Kalau folder `skel/`
-  tidak ditemukan, wizard berhenti dengan error (tidak lagi diam-diam lewat).
-  Hyprland memakai `$HOME/.config/hypr/hyprland.lua`, bukan `.conf`.
-- `/usr/share/wayland-sessions/hyprland-uwsm.desktop` — sesi uwsm versi resmi
-  (hanya kalau desktop = Hyprland).
-- `/etc/pam.d/greetd` + `/var/lib/noctalia-greeter` — disiapkan skrip
-  `setup_greeter_system.sh` milik greeter Noctalia/KineticWE.
-- `/etc/sddm.conf.d/60-rakuos-sessions.conf` — daftar `SessionDir` (Wayland
-  + X11), tanpa `DisplayServer` (hanya kalau login = SDDM). Tema hanya ditulis
-  ke `50-rakuos-theme.conf` kalau `sddm_theme` diisi katalog; dengan katalog
-  sekarang SDDM memakai tema bawaannya.
-- Display manager lain di-`disable` sebelum unit yang dipilih di-`enable`,
-  supaya menjalankan wizard ulang tidak meninggalkan dua DM aktif.
-- Drop-in `getty@tty1` + `~/.bash_profile` hanya kalau login = tanpa login
-  manager.
-
-## Menambah atau mengubah pilihan
-
-Semua di `data/catalog.toml`, tanpa rebuild binary:
-
-```toml
-[[terminals]]
-id = "foot"                     # dipakai di bootstrap.toml dan skel
-name = "Foot"                   # yang tampil di layar
-description = "..."             # satu baris, dipotong kalau terlalu panjang
-packages = ["foot", "foot-terminfo"]
-available = true                # false = tampil abu-abu "belum tersedia"
-default = false                 # true = tercentang saat fase dibuka
-```
-
-Field khusus:
-
-| Field | Untuk | Arti |
+| Kategori | Pilihan | Default |
 |---|---|---|
-| `command` | semua | nama binary untuk skel kalau berbeda dari `id` (mis. `superfile` → `spf`) |
-| `skel` | desktop | folder di `data/skel/` yang disalin ke `$HOME` |
-| `session_file` | desktop | file di `data/sessions/` yang ditulis ke `/usr/share/wayland-sessions/` |
-| `autologin_cmd` | desktop | perintah yang dijalankan saat login = tanpa login manager |
-| `login_override` | desktop | id login yang dipaksa, apa pun pilihan user |
-| `choose_login` | desktop | `true` = wizard menanyakan login manager untuk desktop ini |
-| `unit` | login | unit systemd display manager yang di-enable |
-| `no_recommends` | login | paket yang dipasang dengan `--no-recommends` |
-| `sddm_theme` | login | tema SDDM; kosong = tema bawaan (file `50-rakuos-theme.conf` lama dihapus) |
-| `greetd_setup` | login | skrip setup paket greeter, dijalankan setelah `config.toml` |
-| `hidden` | login | dipakai kode, tidak ditampilkan di layar |
+| Terminal | Alacritty, Foot, Ghostty, Kitty | Kitty |
+| File manager | Dolphin, HyprFM, Nautilus, Nemo, Superfile, Thunar, Yazi | Nautilus |
+| Browser | Brave, Chromium, Epiphany, Falkon, Firefox, Google Chrome, Helium, LibreWolf, Microsoft Edge, QuteBrowser, Vivaldi, Waterfox, Zen Browser | Firefox |
+| Desktop | Budgie, Hyprland, KineticWE, LXQt, MangoWM, MiracleWM, Sway, Umbriel | Budgie |
+| Login manager | DMS Greeter, Noctalia Greeter, SDDM, sysc-greet | SDDM |
 
-## Dokumentasi lain
+Login manager hanya ditanyakan untuk Budgie, Hyprland, MangoWM, dan Sway; SDDM
+menjadi pilihan awal. Kombinasi awalnya adalah Budgie + SDDM, dengan sesi
+Budgie Wayland. MiracleWM memakai grup desktop Fedora dan katalog secara
+otomatis mengaktifkan SDDM Wayland dari grup tersebut. LXQt memakai display
+manager yang ikut terpasang bersama desktop. KineticWE dan Umbriel memakai
+login yang ditetapkan katalog.
 
-- [`ui.md`](ui.md) — tampilan tiap fase, charset, warna
+Repo yang diminta oleh katalog saat ini adalah Terra, RPM Fusion, dan COPR
+`mindset/Mindset-Apps`. Jika `rum` tidak ditemukan, pengaktifan repo dilewati
+dan pemasangan paket menggunakan `dnf`.
 
-## Verifikasi setelah instalasi
+## File yang dipasang atau ditulis
 
-Sebelum reboot, wizard memeriksa: semua paket terpasang (`rpm -q` untuk rpmdb
-base, lalu rpmdb overlay `rum` di `/var/lib/rakuos/rum-rpmdb` kalau ada), display
-manager aktif saat boot, sesi Wayland desktop terdaftar, dan setiap file skel
-ada di home user. Pengecekan rpmdb overlay penting di RakuOS mode overlay/split:
-`rum install` menaruh paket baru di sana, bukan di base image, sehingga
-`rpm -q` biasa saja akan melaporkan paket belum terpasang. Kalau ada yang gagal,
-reboot otomatis (termasuk `--first-boot`) ditunda dan hasilnya tercatat di log.
+- Paket dasar yang selalu diminta: `dbus-tools`, `egl-wayland`, `qt6-qtsvg`,
+  `qt6-qtwayland`, `rakuos-software-qt`, `rakuos-system-qt`, dan
+  `rakuos-welcome-qt`.
+- `data/sessions/hyprland-uwsm.desktop` menggantikan file sesi Hyprland bila
+  desktop Hyprland dipilih.
+- Skel yang tersedia di repo hanya untuk MangoWM (`data/skel/mango`) dan
+  Umbriel (`data/skel/umbriel`). Placeholder terminal, browser, dan file
+  manager di skel diganti memakai pilihan pertama yang terurut alfabetis;
+  fallback-nya `foot`, `firefox`, dan `nautilus`.
+- File skel disalin ke home user target dan dimiliki user tersebut. File lama
+  yang berbeda dicadangkan dengan akhiran `.bak` (atau `.bak.1`, dan seterusnya).
+- Sesi Wayland yang diminta desktop tetapi belum disediakan paket dapat dibuat
+  dari `autologin_cmd` di `/usr/share/wayland-sessions`.
+- Konfigurasi SDDM ditulis saat SDDM dipilih. Drop-in sesi memuat direktori
+  sesi Wayland dan X11; drop-in tema hanya ditulis jika `sddm_theme` diisi.
+- `/var/lib/rakuos/bootstrap.toml` menyimpan pilihan terakhir dan
+  `/var/lib/rakuos/bootstrap.done` menjadi penanda selesai.
+- `/var/log/rakuos-bootstrap.log` menyimpan perintah, keluaran, peringatan,
+  serta hasil verifikasi.
+
+Target user diambil dari `SUDO_USER`; jika tidak ada, script mencari user
+biasa pertama dengan home dan shell login, lalu memakai `root` sebagai fallback.
+
+## Mengubah pilihan
+
+Edit `data/catalog.toml`; tidak perlu mengubah kode untuk menambah entri
+katalog yang mengikuti struktur `Choice`. `description` adalah teks yang
+ditampilkan, `packages` adalah paket RPM, `default = true` menentukan pilihan
+awal, dan `available = false` menampilkan pilihan sebagai belum tersedia.
+
+Field khusus desktop dan login, termasuk `skel`, `session_file`,
+`autologin_cmd`, `choose_login`, `login_override`, `unit`, `greetd_cmd`, dan
+`greetd_setup`, dibaca oleh script. Lihat komentar dan contoh di
+[`data/catalog.toml`](data/catalog.toml).
+
+## Verifikasi
+
+Sebelum reboot, script memeriksa paket yang diminta, unit display manager,
+sesi Wayland untuk desktop yang memintanya, dan file skel jika desktop punya
+skel. Pemeriksaan RPM juga melihat rpmdb overlay dari `rum paths` bila ada.
+Jika ada pemeriksaan yang gagal, script menampilkan jumlah kegagalan dan tidak
+melakukan reboot otomatis.

@@ -274,13 +274,14 @@ fn resolve_dms_quickshell(login: &Choice, dry_run: bool) -> Result<()> {
     )
 }
 
-/// `noctalia-greeter` (Terra) dan `kineticwe-greeter` memiliki file yang
-/// sama, jadi tidak boleh terpasang bersamaan. Saat wizard dijalankan ulang
-/// dengan pilihan lain, singkirkan paket yang bertabrakan lebih dulu.
+/// Varian greeter Noctalia/KineticWE dan SDDM Wayland saling konflik. Saat
+/// wizard dijalankan ulang dengan pilihan lain, singkirkan varian lama dulu.
 fn resolve_greeter_conflict(login: &Choice, dry_run: bool) -> Result<()> {
     let conflicting = match login.id.as_str() {
         "kineticwe-greeter" => "noctalia-greeter",
         "noctalia-greeter" => "kineticwe-greeter",
+        "miraclewm-sddm" => "sddm-wayland-miriway",
+        "sddm" => "sddm-wayland-miraclewm",
         _ => return Ok(()),
     };
     if !package_installed(conflicting) {
@@ -496,8 +497,8 @@ fn activate_display_manager(unit: &str, dry_run: bool) -> Result<()> {
     Ok(())
 }
 
-/// Desktop tanpa pilihan login (Budgie, LXQt, Umbriel): pakai display manager
-/// yang ikut terpasang bersama desktop. Config login tidak disentuh.
+/// Desktop yang login-nya disediakan desktop (saat ini LXQt): pakai display
+/// manager yang ikut terpasang bersama desktop. Config login tidak disentuh.
 fn use_builtin_login(dry_run: bool) -> Result<()> {
     const CANDIDATES: &[&str] = &[
         "lightdm.service",
@@ -600,8 +601,8 @@ fn configure_login(
 ///
 /// Tema hanya ditulis kalau katalog memintanya (`sddm_theme`); tanpa itu SDDM
 /// memakai tema bawaannya dan sisa `50-rakuos-theme.conf` dari versi lama
-/// dihapus. Daftar sesi selalu ditulis supaya Hyprland/Niri/MangoWM/Sway
-/// muncul di greeter.
+/// dihapus. Daftar sesi selalu ditulis supaya sesi Wayland seperti
+/// Hyprland/MangoWM/Sway/MiracleWM muncul di greeter.
 fn configure_sddm(theme: Option<&str>, dry_run: bool) -> Result<()> {
     let cursor = ["Bibata-Modern-Ice", "Bibata-Modern-Classic", "Adwaita"]
         .iter()
@@ -657,11 +658,12 @@ fn configure_sddm(theme: Option<&str>, dry_run: bool) -> Result<()> {
 const SDDM_THEME_CONF: &str = "/etc/sddm.conf.d/50-rakuos-theme.conf";
 const SDDM_SESSIONS_CONF: &str = "/etc/sddm.conf.d/60-rakuos-sessions.conf";
 
-/// Daftar sesi ditulis eksplisit supaya sesi Wayland (Hyprland, Niri, MangoWM,
-/// Sway) selalu terbaca, tapi `DisplayServer` sengaja **tidak** ditulis:
+/// Daftar sesi ditulis eksplisit supaya sesi Wayland (Hyprland, MangoWM,
+/// Sway/MiracleWM) selalu terbaca, tapi `DisplayServer` sengaja **tidak** ditulis:
 /// pemilihan greeter X11/Wayland adalah urusan paket varian yang memasang
 /// drop-in sendiri di `/usr/lib/sddm/sddm.conf.d/` (`x11.conf` untuk
-/// `sddm-x11`, `miriway.conf` untuk `sddm-wayland-miriway`). File kita di
+/// `sddm-x11`, `miriway.conf` untuk `sddm-wayland-miriway`, atau drop-in
+/// `sddm-wayland-miraclewm`). File kita di
 /// `/etc` bernomor lebih tinggi, jadi kalau ikut menulis `DisplayServer`, ia
 /// akan menimpa pilihan varian itu (mis. greeter Budgie dipaksa ke X11).
 pub(crate) fn sddm_sessions_body() -> String {
@@ -849,7 +851,6 @@ fn compositor_for(desktop: &Choice) -> &'static str {
     match desktop.id.as_str() {
         "budgie" => "startbudgielabwc",
         "lxqt" => "startlxqtwayland",
-        "niri" => "niri",
         "sway" => "sway",
         "umbriel" => "start-umbriel",
         "labwc" => "labwc",

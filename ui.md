@@ -1,82 +1,67 @@
 # UI — rakuos-bootstrap
 
-Tampilan wizard pasca-install RakuOS minimal. TUI murni: tidak ada GTK/Qt,
-tidak ada mouse, dan tidak butuh font khusus — karena ISO-nya sendiri TTY-only.
+Dokumen ini menjelaskan TUI yang digambar oleh `src/ui.rs` dan alur pilihan
+di `src/main.rs`. UI berjalan di terminal teks, termasuk console VT; tidak
+memerlukan GTK, Qt, atau mouse.
 
-Digambar oleh `src/ui.rs` di atas crate `console` (tanpa `dialoguer`). Modul
-itu mendeteksi kemampuan terminal sekali di awal, lalu memilih charset dan
-warna yang cocok.
+## Charset dan warna
 
-## Cara melihat
-
-File ini teks biasa. Di editor/GitHub tampil apa adanya, di terminal bisa:
-
-```bash
-glow ui.md
-```
-
-Blok di bawah ditulis untuk lebar 80–100 kolom.
-
-## Charset
-
-| Mode | Kapan | Kotak | Penanda |
-|---|---|---|---|
-| Full | terminal emulator UTF-8 | `╭─╮` | `✔ ● ○ ❯` |
-| Tty | `TERM=linux` (console VT) | `┌─┐` | `[x] [>] [ ]` |
-| Ascii | locale non-UTF-8, `--ascii`, atau `RAKUOS_ASCII=1` | `+-+` | `[x] [>] [ ]` |
-
-Teks tetap aman walau locale `C`: yang berubah hanya glyph.
-
-## Warna
-
-| Mode | Kapan | Aksen |
+| Charset | Kondisi | Bingkai dan penanda |
 |---|---|---|
-| 256 | `COLORTERM`/`TERM=*256*` | cyan terang (51), hijau 108, abu 245 |
-| 16 | console VT | cyan terang (VGA), hijau, hitam terang |
-| None | bukan TTY / `NO_COLOR` | polos, tanpa escape |
+| Full | Terminal UTF-8 biasa | `╭─╮`, `✔ ● ○ ❯` |
+| Tty | `TERM=linux` dan locale UTF-8 | `┌─┐`, `[x] [>] [ ]` |
+| Ascii | Locale bukan UTF-8, `--ascii`, `RAKUOS_ASCII`, atau `TERM=dumb` | `+-+`, `[x] [>] [ ]` |
 
-Warna mati otomatis kalau output di-pipe, jadi log build tetap bersih.
+Warna mengikuti dukungan terminal dan `NO_COLOR`: 256 warna jika tersedia,
+warna ANSI 16 untuk terminal lain yang mendukung warna, dan polos jika warna
+dinonaktifkan atau output tidak interaktif.
 
-Tombol: `↑`/`↓` atau `j`/`k` pindah, `Enter` lanjut, `Esc` batal.
+## Tombol
 
-Fase 1–3 (Terminal, File manager, Browser) memakai **pilihan berganda**:
-`Space` mencentang item di bawah kursor, `1`–`9` mencentang item nomor itu,
-dan `Enter` maju kalau minimal satu sudah tercentang. Fase 4–5 (Login,
-Desktop) tetap tunggal karena hanya satu yang bisa aktif saat boot.
+- `↑`/`↓`, `j`/`k`: pindah sorotan; `Tab` juga bergerak ke bawah.
+- Daftar jamak: `Space` atau `1`–`9` mencentang pilihan pada posisi itu.
+- Daftar tunggal: `1`–`9` memilih pilihan pada posisi itu.
+- `Enter`: lanjut jika ada pilihan yang valid.
+- `Esc`, `Backspace`, `←`, atau `b`: kembali satu layar.
+- `Ctrl-C`: batalkan wizard. Saat berada di langkah pertama, tombol kembali
+  menampilkan pesan bahwa `Ctrl-C` digunakan untuk membatalkan.
 
-## Alur
+Kategori Terminal, File manager, dan Browser menerima satu pilihan atau lebih;
+minimal satu harus dicentang. Desktop menerima satu pilihan. Login manager
+muncul sesudah Desktop hanya untuk pilihan desktop dengan `choose_login = true`.
+Saat ringkasan terbuka, `Enter`/`y` melanjutkan, `n` membatalkan, dan tombol
+kembali mengembalikan pengguna ke pilihan terakhir.
 
+## Alur layar
+
+```text
+Terminal → File manager → Browser → Desktop → [Login manager bila diminta]
+                                      ↓
+                              Ringkasan dan konfirmasi
+                                      ↓
+                       pasang paket, siapkan sesi/config,
+                          verifikasi, lalu tanya reboot
 ```
-     ┌──────────────────────────────────────────┐
-     │ 1 Terminal    2 File manager             │
-     │ 3 Browser     4 Login     5 Desktop      │
-     └───────────────────┬──────────────────────┘
-                         ▼
-                ringkasan + konfirmasi
-                   │              │
-                tidak            ya
-                   │              ▼
-                   │       rum install (overlay)
-                   │       salin skel ke ~/.config
-                   │       enable login / autologin
-                   │       tulis bootstrap.toml + .done
-                   │              ▼
-                   │       Selesai → tanya reboot
-                   ▼
-      "Dibatalkan. Tidak ada yang diubah." (exit 130)
-```
 
----
+Stepper selalu menyediakan lima label dalam urutan Terminal, File manager,
+Browser, Desktop, Login. Login dilewati untuk desktop yang memakai login
+bawaannya atau `login_override` di katalog. Pada lebar terminal di bawah 72
+kolom, hanya nama fase aktif yang tampil di stepper.
 
-## 1. Terminal
+## Contoh layar
 
-```
- ╭────────────────────────────────────────────────────────────────────────────╮
- │ RAKUOS bootstrap                                                    v0.1.0 │
- │ Menghidupkan sistem minimal sampai punya GUI                       DRY-RUN │
- ╰────────────────────────────────────────────────────────────────────────────╯
+Contoh berikut memakai katalog saat ini. Deskripsi dan pilihan berasal dari
+`data/catalog.toml`; data katalog bisa berubah.
 
- ● Terminal ── ○ File manager ── ○ Browser ── ○ Login ── ○ Desktop
+### Terminal
+
+```text
+╭────────────────────────────────────────────────────────────────────────────╮
+│ RAKUOS bootstrap                                                    v0.2.4 │
+│ Menghidupkan sistem minimal sampai punya GUI                       DRY-RUN │
+╰────────────────────────────────────────────────────────────────────────────╯
+
+ ● Terminal ── ○ File manager ── ○ Browser ── ○ Desktop ── ○ Login
 
  Fase 1 dari 5 · Terminal
  Tempat mengetik perintah
@@ -86,265 +71,103 @@ Desktop) tetap tunggal karena hanya satu yang bisa aktif saat boot.
    [ ] Ghostty          Dari repo Terra, diaktifkan otomatis saat instalasi
  ❯ [x] Kitty            GPU-accelerated, paling umum dipakai di Hyprland
 
- ↑↓ pilih   Space centang   Enter lanjut   1-9 centang   Esc batal
+ ↑↓ pilih  Space centang  Enter lanjut  Esc/← kembali  Ctrl-C batal
 ```
 
-`default = true` di katalog menentukan item yang sudah tercentang saat fase
-dibuka (Kitty). Boleh mencentang lebih dari satu; `@TERMINAL@` dan `@BROWSER@`
-di config desktop memakai pilihan pertama menurut abjad, sedangkan
-`@FILEMANAGER@` memakai file manager yang dipilih.
+`default = true` di katalog menentukan pilihan jamak yang dicentang saat layar
+pertama kali dibuka. Urutan pilihan selalu alfabetis. Pilihan yang dicentang
+tetap tersimpan ketika pengguna kembali ke layar itu.
 
-Entri `(belum tersedia)` tetap terlihat supaya user tahu pilihannya ada tapi
-belum bisa dipakai. Kalau dicentang, baris kuning muncul dan daftar tidak
-maju.
+### Browser
 
-Di bagian bawah layar, nama pilihan sebelumnya dirangkai sebagai jejak:
+Daftar bisa lebih panjang daripada tinggi terminal. UI menampilkan jendela
+pilihan dan jumlah item tersembunyi di bawah atau di atasnya.
 
-```
- Kitty  ·  Nautilus  ·  Firefox (RPM)  ·  Noctalia Greeter
-```
-
-## 2. File manager
-
-```
- Fase 2 dari 5 · File manager
- Menjelajah file dan mount USB/HP
- ────────────────────────────────────────────────────────────────────────────
-   [ ] Dolphin          File manager KDE, fitur lengkap (menarik Qt/KDE stack)
-   [ ] HyprFM           Keyboard-first untuk Hyprland, dari repo RakuOS
- ❯ [x] Nautilus         File manager GNOME, ringan untuk pemakaian dasar
-   [ ] Nemo             File manager Cinnamon, GTK3, dukungan gvfs-fuse
-   [ ] Superfile        File manager TUI modern (binary spf), dari repo Terra
-   [ ] Thunar           File manager Xfce, ringan dan cepat
-   [ ] Yazi             File manager TUI cepat, dari repo Terra
-```
-
-## 3. Browser
-
-```
+```text
  Fase 3 dari 5 · Browser
  Pilih satu atau lebih; semuanya paket RPM
  ────────────────────────────────────────────────────────────────────────────
-   [ ] Brave                Chromium dengan pemblokir iklan bawaan
-   [ ] Chromium             Open source, tanpa sinkronisasi akun Google
-   [ ] Epiphany             GNOME Web (WebKitGTK), paling ringan
-   [ ] Falkon               Qt/Chromium ringan, cocok sistem minimal
- ❯ [x] Firefox              Default, cepat, dan paling kompatibel
-   [ ] Google Chrome        Proprietary, sinkronisasi akun Google
-   [ ] LibreWolf            Firefox tanpa telemetri, fokus privasi
-   [ ] Microsoft Edge       Chromium Microsoft, paket paling besar
-   [ ] QuteBrowser          Keyboard-only, Qt/Python
-   [ ] Vivaldi              Fitur banyak, proprietary
- ↓2 lagi
+   [ ] Brave            Chromium dengan pemblokir iklan bawaan
+   [ ] Chromium         Open source, tanpa sinkronisasi akun Google
+   [ ] Epiphany         GNOME Web (WebKitGTK), paling ringan
+   [ ] Falkon           Qt/Chromium ringan, cocok sistem minimal
+ ❯ [x] Firefox          Default, cepat, dan paling kompatibel
+   [ ] Google Chrome   Proprietary, sinkronisasi akun Google
+   [ ] Helium           Chromium privat dan cepat, dari Terra
+   [ ] LibreWolf        Firefox tanpa telemetri, fokus privasi
+   [ ] Microsoft Edge  Chromium Microsoft, paket paling besar
+   [ ] QuteBrowser      Keyboard-only, Qt/Python
+ ↓3 lagi
 ```
 
-Kalau daftar lebih panjang dari tinggi layar, hanya sebagian yang tampil dan
-baris jejak menampilkan `↑N lagi` / `↓N lagi`. Di layar 80x25 muat 10 baris;
-di terminal tinggi semua pilihan tampil sekaligus.
+### Desktop
 
-## 4. Login manager
-
-```
- Fase 4 dari 5 · Login manager
- Layar masuk setelah boot
- ────────────────────────────────────────────────────────────────────────────
-   DMS Greeter          Greeter Dux (greetd), quickshell, ikut compositor
-   GDM                  GNOME Display Manager, bisa memilih sesi Wayland
- ❯ Noctalia Greeter     Greeter Noctalia (greetd, wlroots)
-   Plasma Login         Login KDE Plasma (Wayland), bisa memilih sesi Wayland
-   SDDM                 SDDM X11, tema Maldives, fallback grafis
-   sysc-greet           Greeter TUI console di cagebreak
-```
-
-## 5. Desktop
-
-```
- Fase 5 dari 5 · Desktop
+```text
+ Fase 4 dari 5 · Desktop
  Compositor Wayland; config minimal tanpa bar
  ────────────────────────────────────────────────────────────────────────────
- ❯ Budgie               Desktop tradisional modern, Wayland via Budgie Labwc
-   Hyprland             Tiling dinamis, config minimal tanpa bar
-   KineticWE            Tiling berbasis KWin, shell Noctalia
-   LXQt                 Desktop ringan, sesi Wayland lewat Miriway
-   MangoWM              Tiling ringan berbasis dwl (wlroots)
-   Niri                 Scrollable tiling, config minimal tanpa bar
-   Sway                 Tiling Wayland ringan, sesi wlroots
-   Umbriel              Compositor Wayland ringan, build git harian
+ ❯ Budgie       Desktop tradisional modern, mode Wayland via Budgie Labwc
+   Hyprland     Tiling dinamis, config minimal tanpa bar
+   KineticWE    Tiling berbasis KWin, shell Noctalia
+   LXQt         Desktop ringan, sesi Wayland lewat Miriway
+   MangoWM      Tiling ringan berbasis dwl (wlroots)
+   MiracleWM    Tiling Wayland, paket desktop Fedora dengan SDDM
+   Sway         Tiling Wayland ringan, config minimal tanpa bar
+   Umbriel      Compositor Wayland ringan (paket Mindset-Apps, build git harian)
 ```
 
----
+Budgie adalah pilihan desktop default. Sesudah memilih desktop, wizard
+menampilkan Login manager untuk Budgie, Hyprland, MangoWM, dan Sway. Pilihan
+login yang terlihat saat ini adalah DMS Greeter, Noctalia Greeter, SDDM, dan
+sysc-greet; SDDM adalah pilihan awal. Dengan default katalog, hasilnya Budgie
+Wayland + SDDM. MiracleWM memakai grup desktop Fedora yang menyertakan SDDM dan
+greeter Wayland Miracle; katalog menetapkan SDDM untuk desktop ini tanpa
+menampilkan pilihan Login manager. LXQt memakai display manager yang tersedia
+bersama desktop, sementara KineticWE dan Umbriel memakai login yang ditetapkan
+katalog.
 
-## 6. Ringkasan
+### Ringkasan
 
-Semua langkah berubah jadi `✔`, lalu:
+Contoh ini menggambarkan isi ringkasan, bukan daftar paket tetap. Jumlah dan
+nama paket dihitung dari pilihan, katalog, serta paket dasar.
 
-```
- ✔ Terminal ── ✔ File manager ── ✔ Browser ── ✔ Login ── ✔ Desktop
+```text
+ ✔ Terminal ── ✔ File manager ── ✔ Browser ── ✔ Desktop ── ✔ Login
 
  Ringkasan
  ────────────────────────────────────────────────────────────────────────────
- Terminal       Alacritty, Kitty
- File manager   Dolphin, Nautilus
- Browser        Brave, Firefox
- Login          Noctalia Greeter
+ Terminal       Kitty
+ File manager   Nautilus
+ Browser        Firefox
+ Login          SDDM
  Desktop        Hyprland
- Repo pihak ketiga terra, rpmfusion
  User target    mindset
- Paket RPM (25)
-   dbus-tools, default-fonts, firefox, fuzzel, google-noto-color-emoji-fonts
-   google-noto-sans-fonts, greetd, gvfs, gvfs-mtp, hyprland, … +15 lainnya
+ Paket RPM (…)
+   …
 
  ? Lanjutkan instalasi?
 
- Y/Enter lanjut   n/Esc batal   Ctrl-C keluar
+ Y/Enter lanjut  Esc/← kembali  n tidak  Ctrl-C batal
 ```
 
-Daftar paket dipadatkan: maksimal 2 baris, sisanya `… +N lainnya`.
+Ringkasan membatasi daftar paket hingga dua baris. `n` keluar tanpa
+menjalankan instalasi; `Esc`/`←` kembali ke langkah terakhir.
 
-`n` atau `Esc` → keluar tanpa mengubah apa pun.
+## Saat proses dan selesai
 
-## 7. Proses instalasi
+Sesudah konfirmasi, frame pilihan diganti header dan stepper. Perintah beserta
+keluarannya tampil dan dicatat ke file log. `--dry-run` menampilkan perintah
+dengan awalan `+` dan tidak menjalankan perintah atau menulis file.
 
-Layar dibersihkan, header + stepper tetap, lalu log mengalir (tidak ada
-progress bar — output `rum`/`dnf` yang tampil apa adanya):
+Setelah verifikasi berhasil, instalasi biasa menanyakan reboot (`Y/n`);
+`--first-boot` langsung meminta reboot. Jika verifikasi gagal, reboot otomatis
+ditunda dan lokasi log ditampilkan.
 
-```
- ╭────────────────────────────────────────────────────────────────────────────╮
- │ RAKUOS bootstrap                                                    v0.1.0 │
- ╰────────────────────────────────────────────────────────────────────────────╯
+## Pembatalan dan batas tampilan
 
- ✔ Terminal ── ✔ File manager ── ✔ Browser ── ✔ Login ── ✔ Desktop
-
-Memasang paket
-  → rum install -y dbus-tools default-fonts firefox fuzzel ...
-
-Menyiapkan config desktop
-  → salin /usr/share/rakuos/bootstrap/skel/hyprland -> /home/mindset
-
-Menyiapkan login manager
-  → systemctl enable greetd.service
-  → systemctl set-default graphical.target
-```
-
-Kalau `rum` tidak ada:
-
-```
-peringatan: rum tidak ditemukan; memakai dnf (overlay RakuOS tidak aktif)
-```
-
-## 8. Selesai
-
-```
- ✔ Selesai.
-
- ? Reboot sekarang? [Y/n]
-```
-
-Jawaban ditulis di baris yang sama (`ya`/`tidak`). Kalau `tidak`:
-
-```
- Reboot nanti dengan: systemctl reboot
-```
-
----
-
-## Varian
-
-### `--dry-run`
-
-Badge `DRY-RUN` di kanan atas. Semua perintah tampil dengan `+`, tidak ada
-yang dijalankan:
-
-```
-Memasang paket
-  + rum install -y alacritty dbus-tools default-fonts firefox ...
-
-Menyiapkan config desktop
-  + salin data/skel/hyprland -> /home/mindset
-  + ganti @TERMINAL@ dengan alacritty
-  + ganti @BROWSER@ dengan firefox
-  + ganti @FILEMANAGER@ dengan nautilus
-
-Menyiapkan login manager
-  + systemctl enable greetd.service
-  + systemctl set-default graphical.target
-
-✔ Selesai.
-(dry-run: tidak ada paket yang dipasang, tidak ada file yang ditulis)
-```
-
-### `--first-boot`
-
-Badge `BOOT PERTAMA`, dipanggil unit systemd, langsung reboot setelah selesai
-tanpa tanya.
-
-### `--ascii` / `RAKUOS_ASCII=1` / locale non-UTF-8
-
-```
- +----------------------------------------------------------------------------+
- | RAKUOS bootstrap                                                    v0.1.0 |
- | Menghidupkan sistem minimal sampai punya GUI                       DRY-RUN |
- +----------------------------------------------------------------------------+
-
- [>] Terminal -- [ ] File manager -- [ ] Browser -- [ ] Login -- [ ] Desktop
-
- Fase 1 dari 5 - Terminal
- Tempat mengetik perintah
- ----------------------------------------------------------------------------
-   [ ] Alacritty        GPU-accelerated, konfigurasi YAML sederhana
-   [ ] Foot             Ringan, Wayland-only, cocok untuk sistem minimal
-   [ ] Ghostty          Dari repo Terra, diaktifkan otomatis saat instalasi
- > [x] Kitty            GPU-accelerated, paling umum dipakai di Hyprland
-```
-
-### Bukan root
-
-```
-error: jalankan dengan sudo: sudo rakuos-bootstrap
-```
-
-### Bukan TTY
-
-```
-error: butuh terminal interaktif (TTY)
-```
-
-### Kategori kosong
-
-```
-error: tidak ada pilihan tersedia untuk Terminal
-```
-
-### `Esc` / `Ctrl-C`
-
-```
-Dibatalkan. Tidak ada yang diubah.
-```
-
-Exit code `130`, tidak ada marker `.done` yang ditulis, jadi wizard ditawarkan
-lagi saat boot berikutnya.
-
----
-
-## Batasan
-
-- Lebar efektif 40–78 kolom (diturunkan dari lebar terminal, dikurangi 2).
-- Di bawah 72 kolom, stepper hanya menampilkan nama fase yang aktif.
-- Deskripsi panjang dipotong dengan `…`; nama pilihan tidak pernah dipotong.
-- Kursor disembunyikan selama layar interaktif dan dipulihkan saat keluar,
-  termasuk saat `Esc`/error.
-- Tidak ada alternate screen: setelah keluar, frame terakhir tetap di
-  scrollback, jadi log installer masih bisa dibaca.
-
-## Status implementasi
-
-| Bagian | Status |
-|---|---|
-| Header, stepper, 5 fase, ringkasan, konfirmasi | ✅ `src/ui.rs` + `src/main.rs` |
-| Entri `(belum tersedia)` tampil & ditolak | ✅ |
-| Charset Full/Tty/Ascii + `--ascii` | ✅ |
-| Warna 256/16/none, hormati `NO_COLOR` | ✅ |
-| `Esc`/`Ctrl-C` → exit 130 tanpa menulis | ✅ |
-| `--dry-run`, `--first-boot` badge | ✅ |
-| Progres install dari output `rum`/`dnf` | ✅ `src/install.rs` |
-| WezTerm di katalog | ❌ belum ada (Ghostty sudah, `available = false`) |
+- `Ctrl-C` menghasilkan pesan pembatalan dan exit code 130.
+- `n` pada ringkasan kembali dengan sukses tanpa mengubah sistem.
+- Lebar bingkai dibatasi sekitar 40–78 kolom. Deskripsi panjang dipotong,
+  sedangkan daftar pilihan dapat digulir di dalam layar.
+- Kursor terminal disembunyikan selama layar interaktif lalu dipulihkan.
+- UI tidak memakai alternate screen; frame terakhir tetap di scrollback.
