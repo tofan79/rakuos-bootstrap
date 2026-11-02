@@ -1,0 +1,15 @@
+# Config minimal dari rakuos-bootstrap.
+# Referensi: https://docs.noctalia.dev/umbriel/configuration/
+# File ini milik user; aman diedit/dihapus. Umbriel memuat ulang config ini
+# otomatis setiap kali disimpan, dan kembali ke config terakhir yang valid
+# kalau ada kesalahan.
+
+[general]
+# Noctalia sebagai shell, plus terminal yang kamu pilih di wizard.
+autostart = ["noctalia", "@TERMINAL@"]
+
+# Tombol Mod di keybind (Mod+Enter, Mod+Q, ...).
+mod_key = "Super"
+
+# Aplikasi X11 jalan lewat Xwayland (butuh paket Xwayland terpasang).
+xwayland = true

@@ -207,6 +207,7 @@ id = "umbriel"
 name = "Umbriel"
 description = "Compositor Wayland ringan (paket Mindset-Apps, build git harian)"
 packages = ["umbriel-git", "noctalia"]
+skel = "umbriel"
 login_override = "noctalia-greeter"
 autologin_cmd = "start-umbriel"
 

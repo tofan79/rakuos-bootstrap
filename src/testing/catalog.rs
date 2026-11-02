@@ -173,3 +173,26 @@ fn ada_satu_default_per_fase() {
         assert_eq!(n, 1, "default harus tepat satu: {n} di {:?}", names(list));
     }
 }
+
+#[test]
+fn skel_yang_disebut_desktop_harus_ada_dan_tidak_kosong() {
+    use crate::verify::skel_files;
+    let cat = Catalog::load(None).unwrap();
+    for d in cat.desktops.iter().filter(|d| d.skel.is_some()) {
+        let name = d.skel.as_deref().unwrap();
+        let dir = std::path::Path::new("data/skel").join(name);
+        assert!(dir.is_dir(), "skel {name} (desktop {}) tidak ada", d.id);
+        let n = skel_files(&dir, std::path::Path::new("")).len();
+        assert!(n > 0, "skel {name} (desktop {}) kosong", d.id);
+    }
+}
+
+#[test]
+fn skel_umbriel_valid_toml_dan_pakai_terminal_pilihan() {
+    let raw = std::fs::read_to_string("data/skel/umbriel/.config/umbriel/config.toml").unwrap();
+    let value: toml::Value = toml::from_str(&raw).unwrap();
+    let autostart = value["general"]["autostart"].as_array().unwrap();
+    assert!(autostart.iter().any(|v| v.as_str() == Some("noctalia")));
+    assert!(autostart.iter().any(|v| v.as_str() == Some("@TERMINAL@")));
+    assert_eq!(value["general"]["mod_key"].as_str().unwrap(), "Super");
+}

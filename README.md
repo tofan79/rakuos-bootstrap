@@ -198,7 +198,8 @@ Niri memakai placeholder `@TERMINAL@`, `@BROWSER@`, dan `@FILEMANAGER@` yang
 sama; KDL tidak punya variabel, jadi perintah launcher ditulis langsung.
 
 Hyprland memakai `hyprland.lua` (Lua, Hyprland 0.55+), bukan
-`hyprland.conf`. Keempat skel (Hyprland, Niri, MangoWM, Sway) memakai keybind dasar yang sama:
+`hyprland.conf`. Skel tersedia untuk Hyprland, Niri, MangoWM, Sway, dan
+Umbriel (Umbriel memakai `config.toml` dengan placeholder `@TERMINAL@`).
 
 | Tombol | Fungsi |
 |---|---|

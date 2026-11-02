@@ -129,12 +129,21 @@ fn log_membuang_warna_dan_progress_bar() {
 }
 
 #[test]
-fn verifikasi_mendaftar_semua_file_skel_hyprland_atau_mango() {
+fn verifikasi_mendaftar_semua_file_skel() {
     use crate::verify::skel_files;
-    let mut f = skel_files(
-        std::path::Path::new("data/skel/mango"),
-        std::path::Path::new(""),
-    );
-    f.sort();
-    assert_eq!(f, [std::path::PathBuf::from(".config/mango/config.toml")]);
+    for (skel, want) in [
+        ("mango", ".config/mango/config.toml"),
+        ("umbriel", ".config/umbriel/config.toml"),
+    ] {
+        let mut f = skel_files(
+            &std::path::Path::new("data/skel").join(skel),
+            std::path::Path::new(""),
+        );
+        f.sort();
+        assert_eq!(
+            f,
+            [std::path::PathBuf::from(want)],
+            "isi skel {skel} tidak sesuai"
+        );
+    }
 }
