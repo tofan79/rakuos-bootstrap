@@ -51,7 +51,7 @@ packages = ["foot", "foot-terminfo"]
 [[terminals]]
 id = "ghostty"
 name = "Ghostty"
-description = "From the Terra repository; enabled automatically during setup"
+description = "Fast, modern terminal emulator with GPU acceleration"
 packages = ["ghostty", "ghostty-terminfo", "ghostty-shell-integration"]
 
 [[terminals]]
@@ -104,7 +104,7 @@ command = "google-chrome-stable"
 [[browsers]]
 id = "helium"
 name = "Helium"
-description = "Private, fast Chromium browser from Terra"
+description = "Chromium-based browser with privacy-focused defaults"
 packages = ["helium-browser-bin"]
 command = "helium-browser-bin"
 
@@ -143,7 +143,7 @@ packages = ["waterfox"]
 [[browsers]]
 id = "zen-browser"
 name = "Zen Browser"
-description = "Firefox fork with vertical tabs, from Terra"
+description = "Firefox-based browser with vertical tabs and workspaces"
 packages = ["zen-browser"]
 
 # ----------------------------------------------------------------- desktop ---
@@ -192,7 +192,7 @@ choose_login = true
 [[desktops]]
 id = "miraclewm"
 name = "MiracleWM"
-description = "Wayland tiling compositor; Fedora desktop group includes SDDM"
+description = "Wayland compositor with a familiar desktop workflow and tiling"
 packages = ["@miraclewm-desktop"]
 login_override = "miraclewm-sddm"
 
@@ -223,7 +223,7 @@ choose_login = true
 [[desktops]]
 id = "umbriel"
 name = "Umbriel"
-description = "Lightweight Wayland compositor (Mindset-Apps package, daily Git build)"
+description = "Lightweight Wayland compositor with a customizable shell"
 packages = ["umbriel-git", "noctalia"]
 skel = "umbriel"
 login_override = "noctalia-greeter"
@@ -239,7 +239,7 @@ packages = ["dolphin"]
 [[file_managers]]
 id = "hyprfm"
 name = "HyprFM"
-description = "Keyboard-driven file manager for Hyprland, from the RakuOS repository"
+description = "Keyboard-driven file manager designed for Wayland compositors"
 packages = ["hyprfm"]
 
 [[file_managers]]
@@ -258,7 +258,7 @@ packages = ["nemo"]
 [[file_managers]]
 id = "superfile"
 name = "Superfile"
-description = "Modern terminal file manager (spf binary), from Terra"
+description = "Modern terminal file manager with a keyboard-driven interface"
 packages = ["superfile"]
 command = "spf"
 
@@ -271,7 +271,7 @@ packages = ["Thunar", "thunar-volman"]
 [[file_managers]]
 id = "yazi"
 name = "Yazi"
-description = "Fast terminal file manager, from Terra"
+description = "Fast terminal file manager with image previews and plugins"
 packages = ["yazi"]
 
 # ------------------------------------------------------------------- login ---

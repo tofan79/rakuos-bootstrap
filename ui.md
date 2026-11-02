@@ -74,10 +74,16 @@ The examples use the current catalog. Options and descriptions come from
  STEP 2 OF 5 · Terminal
  Terminal for running commands
  ────────────────────────────────────────────────────────────────────────────
-   [ ] Alacritty        GPU-accelerated with a simple YAML configuration
-   [ ] Foot             Lightweight, Wayland-only, ideal for minimal systems
-   [ ] Ghostty          From the Terra repository; enabled automatically
- ❯ [x] Kitty            GPU-accelerated and commonly used with Hyprland
+ Options                            │ Details
+ ───────────────────────────────────┼───────────────────────────────────
+   [ ] Alacritty                     │ Kitty
+   [ ] Foot                          │
+   [ ] Ghostty                       │ GPU-accelerated and commonly used
+ ❯ [x] Kitty                         │ with Hyprland
+                                     │ Selected
+                                     │ Packages
+                                     │ kitty
+                                     │ + 3 more
  1 selected
 
  ↑↓ Move  Space Toggle  Enter Continue  Esc/← Back  Ctrl-C Quit
@@ -85,7 +91,8 @@ The examples use the current catalog. Options and descriptions come from
 
 `default = true` in the catalog determines which multi-select options start
 checked. Options are sorted alphabetically. Selections remain checked when you
-return to a step.
+return to a step. Wide terminals show the option list beside details for the
+highlighted package; narrow terminals use the compact list layout.
 
 ### Choose a desktop
 
@@ -93,15 +100,16 @@ return to a step.
  STEP 1 OF 5 · Desktop
  Choose your Wayland desktop
  ────────────────────────────────────────────────────────────────────────────
-   Budgie       Traditional desktop with a Wayland session
- ❯ Hyprland     Dynamic tiling with a minimal configuration
-   KineticWE    KWin-based tiling desktop with the Noctalia shell
-   LXQt         Lightweight desktop with a Wayland session through Miriway
-   MangoWM      Lightweight tiling compositor based on dwl (wlroots)
-   MiracleWM    Wayland tiling compositor; Fedora group includes SDDM
-   Ryoku        Complete Wayland desktop; manages its own setup
-   Sway         Lightweight Wayland tiling desktop
-   Umbriel      Lightweight Wayland compositor; daily Git build
+ Options  ↓1                         │ Details
+ ───────────────────────────────────┼───────────────────────────────────
+   Budgie                          │ Hyprland
+ ❯ Hyprland                        │
+   KineticWE                       │ Dynamic tiling with a minimal
+   LXQt                            │ configuration and no panel
+   MangoWM                         │ Selected
+   MiracleWM                       │ Packages
+   Ryoku                           │ hyprland
+   Sway                            │ + 4 more
 
  ↑↓ Move  Enter Continue  Esc/← Back  1-9 Jump  Ctrl-C Quit
 ```
@@ -147,8 +155,9 @@ After verification, a normal run asks whether to reboot (`Y/n`). A `--first-boot
 run reboots automatically after successful verification. If verification fails,
 automatic reboot is skipped and the log location is shown.
 
-The screen width is capped at 78 columns and adapts down to 40 columns. Long
-descriptions are shortened, and long lists scroll within the available terminal
-height. The cursor is hidden while the wizard is interactive and restored when
-it exits. The UI does not use the alternate screen, so the final output remains
-in terminal scrollback.
+The screen width is capped at 78 columns and adapts down to 40 columns. On wide
+terminals, descriptions wrap in the details pane and long option lists scroll
+within the available height. Narrow terminals use a compact list with shortened
+descriptions. The cursor is hidden while the wizard is interactive and restored
+when it exits. The UI does not use the alternate screen, so the final output
+remains in terminal scrollback.

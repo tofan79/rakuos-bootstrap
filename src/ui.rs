@@ -208,6 +208,35 @@ fn locale_is_utf8() -> bool {
     false
 }
 
+fn wrap_words(text: &str, width: usize) -> Vec<String> {
+    if width == 0 {
+        return Vec::new();
+    }
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    for word in text.split_whitespace() {
+        let word_width = measure_text_width(word);
+        if !line.is_empty() && measure_text_width(&line) + 1 + word_width > width {
+            lines.push(std::mem::take(&mut line));
+        }
+        if word_width > width {
+            if !line.is_empty() {
+                lines.push(std::mem::take(&mut line));
+            }
+            lines.push(truncate_str(word, width, "…").to_string());
+        } else {
+            if !line.is_empty() {
+                line.push(' ');
+            }
+            line.push_str(word);
+        }
+    }
+    if !line.is_empty() {
+        lines.push(line);
+    }
+    lines
+}
+
 pub struct Ui {
     pal: Palette,
     g: Glyphs,
@@ -588,6 +617,128 @@ impl Ui {
         }
     }
 
+    /// Wide terminals use a list pane and a detail pane, similar to the
+    /// greeter picker. Narrow TTYs retain the existing inline layout.
+    fn split_select_body(
+        &self,
+        choices: &[Choice],
+        sel: usize,
+        picked: &[String],
+        msg: Option<&str>,
+        checked: Option<&[bool]>,
+    ) -> Vec<String> {
+        let p = &self.pal;
+        let budget = self.width.saturating_sub(2);
+        let panes = budget.saturating_sub(4);
+        let left_w = panes.div_ceil(2);
+        let right_w = panes.saturating_sub(left_w);
+        let max_rows = self.height.saturating_sub(17).max(3);
+        let start = if choices.len() > max_rows {
+            sel.saturating_sub(max_rows / 2)
+                .min(choices.len().saturating_sub(max_rows))
+        } else {
+            0
+        };
+        let end = (start + max_rows).min(choices.len());
+
+        let mut options_title = "Options".to_string();
+        if start > 0 {
+            options_title.push_str(&format!("  ↑{start}"));
+        }
+        if end < choices.len() {
+            options_title.push_str(&format!("  ↓{}", choices.len() - end));
+        }
+        let mut body = vec![format!(
+            " {} {} {}",
+            p.accent_b.apply_to(self.pad(&options_title, left_w)),
+            p.dim.apply_to(self.g.v),
+            p.accent_b.apply_to(self.pad("Details", right_w))
+        )];
+        body.push(format!(
+            " {} {} {}",
+            p.dim.apply_to(self.rule(left_w)),
+            p.dim.apply_to(self.g.v),
+            p.dim.apply_to(self.rule(right_w))
+        ));
+
+        let choice = &choices[sel];
+        let mut details = vec![p.bold.apply_to(&choice.name).to_string(), String::new()];
+        details.extend(
+            wrap_words(&choice.description, right_w)
+                .into_iter()
+                .take(4)
+                .map(|line| p.dim.apply_to(line).to_string()),
+        );
+        details.push(if !choice.available {
+            p.warn.apply_to("Not available").to_string()
+        } else if checked.map_or(true, |state| state[sel]) {
+            p.ok.apply_to("Selected").to_string()
+        } else {
+            p.dim.apply_to("Not selected").to_string()
+        });
+        if !choice.packages.is_empty() {
+            details.push(p.bold.apply_to("Packages").to_string());
+            for package in choice.packages.iter().take(3) {
+                details.push(p.dim.apply_to(self.fit(package, right_w)).to_string());
+            }
+            if choice.packages.len() > 3 {
+                details.push(
+                    p.dim
+                        .apply_to(format!("+ {} more", choice.packages.len() - 3))
+                        .to_string(),
+                );
+            }
+        }
+        details.truncate(max_rows);
+
+        for row in 0..max_rows {
+            let left = if let Some(index) = (start..end).nth(row) {
+                let item = &choices[index];
+                let cursor = if index == sel { self.g.cursor } else { " " };
+                let mark = match checked {
+                    Some(state) if state[index] => "[x]",
+                    Some(_) => "[ ]",
+                    None => "   ",
+                };
+                let label = self.fit(&format!("{cursor} {mark} {}", item.name), left_w);
+                let styled = if !item.available {
+                    p.dim.apply_to(label).to_string()
+                } else if index == sel {
+                    p.accent_b.apply_to(label).to_string()
+                } else {
+                    p.dim.apply_to(label).to_string()
+                };
+                self.pad(&styled, left_w)
+            } else {
+                " ".repeat(left_w)
+            };
+            let right = details
+                .get(row)
+                .map(|line| self.pad(line, right_w))
+                .unwrap_or_else(|| " ".repeat(right_w));
+            body.push(format!(" {} {} {}", left, p.dim.apply_to(self.g.v), right));
+        }
+
+        let mut trail = Vec::new();
+        if !picked.is_empty() {
+            trail.push(picked.join(&format!("  {}  ", self.g.dot)));
+        }
+        if let Some(state) = checked {
+            let count = state.iter().filter(|&&selected| selected).count();
+            trail.push(format!("{count} selected"));
+        }
+        body.push(match msg {
+            Some(message) => format!(" {}", p.warn.apply_to(self.fit(message, budget))),
+            None if !trail.is_empty() => format!(
+                " {}",
+                p.dim
+                    .apply_to(self.fit(&trail.join(&format!("  {}  ", self.g.dot)), budget))
+            ),
+            None => String::new(),
+        });
+        body
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn select_body(
         &self,
@@ -615,6 +766,11 @@ impl Ui {
             p.dim.apply_to(self.fit(hint, self.width - 2))
         ));
         body.push(format!(" {}", p.dim.apply_to(self.rule(self.width - 2))));
+
+        if self.width >= 68 {
+            body.extend(self.split_select_body(choices, sel, picked, msg, checked));
+            return body;
+        }
 
         let name_w = 20;
         let mark_w = if checked.is_some() { 4 } else { 0 };
