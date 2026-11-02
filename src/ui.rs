@@ -21,7 +21,7 @@ use console::{measure_text_width, truncate_str, Key, Style, Term};
 use crate::catalog::Choice;
 
 /// Nama pendek tiap fase untuk stepper.
-const STEPS: [&str; 5] = ["Terminal", "File manager", "Browser", "Desktop", "Login"];
+const STEPS: [&str; 5] = ["Desktop", "Terminal", "File Manager", "Browser", "Sign-in"];
 
 /// Hasil satu layar pilihan: lanjut dengan pilihan, atau mundur satu fase.
 pub enum Nav<T> {
@@ -50,7 +50,7 @@ pub struct Cancelled;
 
 impl fmt::Display for Cancelled {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "dibatalkan")
+        write!(f, "cancelled")
     }
 }
 
@@ -152,7 +152,7 @@ impl Glyphs {
 
 /// Warna per peran. Ganti di satu tempat ini kalau brand berubah.
 struct Palette {
-    accent: Style,   // oranye bara: elemen utama
+    accent: Style,   // cyan brand accent
     accent_b: Style, // sama, tebal
     ok: Style,
     warn: Style,
@@ -171,11 +171,11 @@ impl Palette {
                 dim: Style::new(),
                 bold: Style::new().bold(),
             },
-            // Console VT: cyan terang (VGA #00FFFF). Redup = hitam terang
+            // Console VT: bright cyan (VGA #00FFFF). Dim text uses bright black
             // (abu-abu tua) supaya tetap terbaca di latar hitam.
             ColorLevel::Vt16 => Palette {
-                accent: Style::new().cyan(),
-                accent_b: Style::new().cyan().bright(),
+                accent: Style::new().cyan().bright(),
+                accent_b: Style::new().cyan().bright().bold(),
                 ok: Style::new().green(),
                 warn: Style::new().yellow().bold(),
                 dim: Style::new().black().bright(),
@@ -321,16 +321,13 @@ impl Ui {
             "{}{} {}",
             p.accent_b.apply_to("RAKU"),
             p.bold.apply_to("OS"),
-            p.dim.apply_to("bootstrap")
+            p.dim.apply_to("setup")
         );
         let ver = p.dim.apply_to(format!("v{}", self.version)).to_string();
         let gap = inner.saturating_sub(measure_text_width(&brand) + measure_text_width(&ver));
         let line1 = format!("{brand}{}{ver}", " ".repeat(gap));
 
-        let tagline = p
-            .dim
-            .apply_to("Menghidupkan sistem minimal sampai punya GUI")
-            .to_string();
+        let tagline = p.dim.apply_to("Set up your RakuOS desktop").to_string();
         let line2 = match &self.badge {
             Some(b) => {
                 let b = p.warn.apply_to(b).to_string();
@@ -400,14 +397,14 @@ impl Ui {
 
     fn footer_select(&self) -> String {
         format!(
-            "{} pilih  Enter lanjut  Esc/← kembali  1-9 loncat  Ctrl-C batal",
+            "{} Move  Enter Continue  Esc/← Back  1-9 Jump  Ctrl-C Quit",
             self.g.updown
         )
     }
 
     fn footer_multi(&self) -> String {
         format!(
-            "{} pilih  Space centang  Enter lanjut  Esc/← kembali  Ctrl-C batal",
+            "{} Move  Space Toggle  Enter Continue  Esc/← Back  Ctrl-C Quit",
             self.g.updown
         )
     }
@@ -426,7 +423,7 @@ impl Ui {
         initial: Option<usize>,
     ) -> Result<Nav<usize>> {
         if choices.iter().all(|c| !c.available) {
-            bail!("tidak ada pilihan tersedia untuk {title}");
+            bail!("no available choices for {title}");
         }
         let _guard = CursorGuard::hide(term);
         // Kembali ke fase ini: sorot lagi pilihan sebelumnya.
@@ -454,7 +451,7 @@ impl Ui {
             let key = term.read_key()?;
             if is_back(&key) {
                 if phase == 0 {
-                    msg = Some("ini langkah pertama. Ctrl-C untuk batal.".to_string());
+                    msg = Some("You are on the first step. Press Ctrl-C to quit.".to_string());
                     continue;
                 }
                 return Ok(Nav::Back);
@@ -480,7 +477,7 @@ impl Ui {
                         return Ok(Nav::Next(sel));
                     }
                     msg = Some(format!(
-                        "{} belum tersedia; pilih yang lain.",
+                        "{} is not available. Choose another option.",
                         choices[sel].name
                     ));
                 }
@@ -503,7 +500,7 @@ impl Ui {
         initial: Option<&[usize]>,
     ) -> Result<Nav<Vec<usize>>> {
         if choices.iter().all(|c| !c.available) {
-            bail!("tidak ada pilihan tersedia untuk {title}");
+            bail!("no available choices for {title}");
         }
         let _guard = CursorGuard::hide(term);
 
@@ -539,7 +536,7 @@ impl Ui {
             let key = term.read_key()?;
             if is_back(&key) {
                 if phase == 0 {
-                    msg = Some("ini langkah pertama. Ctrl-C untuk batal.".to_string());
+                    msg = Some("You are on the first step. Press Ctrl-C to quit.".to_string());
                     continue;
                 }
                 return Ok(Nav::Back);
@@ -558,7 +555,7 @@ impl Ui {
                         checked[sel] = !checked[sel];
                         msg = None;
                     } else {
-                        msg = Some(format!("{} belum tersedia.", choices[sel].name));
+                        msg = Some(format!("{} is not available.", choices[sel].name));
                     }
                 }
                 Key::Char(c) if c.is_ascii_digit() && c != '0' => {
@@ -568,7 +565,7 @@ impl Ui {
                             checked[n] = !checked[n];
                             msg = None;
                         } else {
-                            msg = Some(format!("{} belum tersedia.", choices[n].name));
+                            msg = Some(format!("{} is not available.", choices[n].name));
                         }
                     }
                 }
@@ -583,7 +580,7 @@ impl Ui {
                                 .collect(),
                         ));
                     }
-                    msg = Some("pilih minimal satu.".to_string());
+                    msg = Some("Select at least one option.".to_string());
                 }
                 Key::CtrlC => return Err(Cancelled.into()),
                 _ => {}
@@ -609,7 +606,7 @@ impl Ui {
         body.push(format!(
             " {} {} {}",
             p.accent_b
-                .apply_to(format!("Fase {} dari {}", phase + 1, STEPS.len())),
+                .apply_to(format!("STEP {} OF {}", phase + 1, STEPS.len())),
             p.dim.apply_to(self.g.dot),
             p.bold.apply_to(title)
         ));
@@ -654,7 +651,7 @@ impl Ui {
                     p.dim.apply_to(self.pad(&c.name, name_w)).to_string(),
                     format!(
                         "{} {}",
-                        p.warn.apply_to("(belum tersedia)"),
+                        p.warn.apply_to("(not available)"),
                         p.dim
                             .apply_to(self.fit(&c.description, desc_w.saturating_sub(17)))
                     ),
@@ -686,10 +683,14 @@ impl Ui {
         });
         let mut trail_parts: Vec<String> = Vec::new();
         if start > 0 {
-            trail_parts.push(format!("{}{} lagi", self.g.up, start));
+            trail_parts.push(format!("{}{} more", self.g.up, start));
         }
         if end < choices.len() {
-            trail_parts.push(format!("{}{} lagi", self.g.down, choices.len() - end));
+            trail_parts.push(format!("{}{} more", self.g.down, choices.len() - end));
+        }
+        if let Some(selected) = checked {
+            let count = selected.iter().filter(|&&is_selected| is_selected).count();
+            trail_parts.push(format!("{count} selected"));
         }
         if !picked.is_empty() {
             trail_parts.push(picked.join(&format!("  {}  ", self.g.dot)));
@@ -719,7 +720,7 @@ impl Ui {
         let _guard = CursorGuard::hide(term);
         let p = &self.pal;
         let mut body = vec![
-            format!(" {}", p.accent_b.apply_to("Ringkasan")),
+            format!(" {}", p.accent_b.apply_to("Review your setup")),
             format!(" {}", p.dim.apply_to(self.rule(self.width - 2))),
         ];
         for (k, v) in rows {
@@ -731,7 +732,7 @@ impl Ui {
         }
         body.push(format!(
             " {}",
-            p.dim.apply_to(format!("Paket RPM ({})", packages.len()))
+            p.dim.apply_to(format!("RPM packages ({})", packages.len()))
         ));
         for line in self.wrap_list(packages, self.width - 4, 2) {
             body.push(format!("   {}", p.dim.apply_to(line)));
@@ -739,13 +740,13 @@ impl Ui {
         body.push(format!(
             " {} {}",
             p.accent_b.apply_to("?"),
-            p.bold.apply_to("Lanjutkan instalasi?")
+            p.bold.apply_to("Continue with installation?")
         ));
 
         let lines = self.frame(
             5,
             body,
-            "Y/Enter lanjut  Esc/← kembali  n tidak  Ctrl-C batal",
+            "Y/Enter Continue  Esc/← Back  n Cancel  Ctrl-C Quit",
         );
         self.paint(term, &lines)?;
         loop {
@@ -772,7 +773,7 @@ impl Ui {
         self.paint(term, &lines)
     }
 
-    /// Ya/tidak satu baris tanpa menghapus layar (mis. tawaran reboot).
+    /// A yes/no prompt on one line without clearing the screen (e.g. reboot).
     pub fn inline_confirm(&self, term: &Term, question: &str, default: bool) -> Result<bool> {
         let p = &self.pal;
         let choice = if default { "Y/n" } else { "y/N" };
@@ -794,7 +795,7 @@ impl Ui {
                 _ => None,
             };
             if let Some(a) = answer {
-                writeln!(out, "{}", if a { "ya" } else { "tidak" })?;
+                writeln!(out, "{}", if a { "yes" } else { "no" })?;
                 return Ok(a);
             }
         }
@@ -811,7 +812,7 @@ impl Ui {
         self.pal.dim.apply_to(text).to_string()
     }
 
-    /// Rapatkan daftar jadi paling banyak `max_lines` baris; sisanya "+N lainnya".
+    /// Wrap a list into at most `max_lines`; show the remainder as "+N more".
     fn wrap_list(&self, items: &[String], width: usize, max_lines: usize) -> Vec<String> {
         let mut lines: Vec<Vec<&String>> = vec![Vec::new()];
         let mut used = 0usize;
@@ -835,7 +836,7 @@ impl Ui {
         let last = lines.last_mut().unwrap();
         loop {
             let text = format!(
-                "{}, {} +{} lainnya",
+                "{}, {} +{} more",
                 join(last),
                 self.g.ellipsis,
                 items.len() - shown

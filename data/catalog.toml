@@ -19,6 +19,8 @@
 #   rpmfusion -> id yang tercatat di /usr/share/rakuos/rpmfusion-default-repos,
 #                fallback `rumfusion-*`
 #   mindset   -> COPR `mindset/Mindset-Apps` (`framework` + `umbriel-git`)
+# KineticWE mengecualikan COPR Mindset-Apps dan mengaktifkan
+# `theblackdon/kwee` secara khusus; Ryoku memakai repo khususnya sendiri.
 # Kosongkan daftar ini kalau tidak ingin repo pihak ketiga disentuh.
 repos = ["terra", "rpmfusion", "mindset"]
 
@@ -37,25 +39,25 @@ base = [
 [[terminals]]
 id = "alacritty"
 name = "Alacritty"
-description = "GPU-accelerated, konfigurasi YAML sederhana"
+description = "GPU-accelerated with a simple YAML configuration"
 packages = ["alacritty"]
 
 [[terminals]]
 id = "foot"
 name = "Foot"
-description = "Ringan, Wayland-only, cocok untuk sistem minimal"
+description = "Lightweight, Wayland-only, ideal for minimal systems"
 packages = ["foot", "foot-terminfo"]
 
 [[terminals]]
 id = "ghostty"
 name = "Ghostty"
-description = "Dari repo Terra, diaktifkan otomatis saat instalasi"
+description = "From the Terra repository; enabled automatically during setup"
 packages = ["ghostty", "ghostty-terminfo", "ghostty-shell-integration"]
 
 [[terminals]]
 id = "kitty"
 name = "Kitty"
-description = "GPU-accelerated, paling umum dipakai di Hyprland"
+description = "GPU-accelerated and commonly used with Hyprland"
 packages = ["kitty", "kitty-kitten", "kitty-shell-integration", "kitty-terminfo"]
 default = true
 
@@ -63,92 +65,92 @@ default = true
 [[browsers]]
 id = "brave"
 name = "Brave"
-description = "Chromium dengan pemblokir iklan bawaan"
+description = "Chromium with a built-in ad blocker"
 packages = ["brave-browser"]
 command = "brave-browser"
 
 [[browsers]]
 id = "chromium"
 name = "Chromium"
-description = "Open source, tanpa sinkronisasi akun Google"
+description = "Open source, without Google account sync"
 packages = ["chromium"]
 
 [[browsers]]
 id = "epiphany"
 name = "Epiphany"
-description = "GNOME Web (WebKitGTK), paling ringan"
+description = "GNOME Web (WebKitGTK), lightweight"
 packages = ["epiphany"]
 
 [[browsers]]
 id = "falkon"
 name = "Falkon"
-description = "Qt/Chromium ringan, cocok sistem minimal"
+description = "Lightweight Qt/Chromium browser for minimal systems"
 packages = ["falkon"]
 
 [[browsers]]
 id = "firefox"
 name = "Firefox"
-description = "Default, cepat, dan paling kompatibel"
+description = "Default browser; fast and widely compatible"
 packages = ["firefox"]
 default = true
 
 [[browsers]]
 id = "google-chrome"
 name = "Google Chrome"
-description = "Proprietary, sinkronisasi akun Google"
+description = "Proprietary, with Google account sync"
 packages = ["google-chrome-stable"]
 command = "google-chrome-stable"
 
 [[browsers]]
 id = "helium"
 name = "Helium"
-description = "Chromium privat dan cepat, dari Terra"
+description = "Private, fast Chromium browser from Terra"
 packages = ["helium-browser-bin"]
 command = "helium-browser-bin"
 
 [[browsers]]
 id = "librewolf"
 name = "LibreWolf"
-description = "Firefox tanpa telemetri, fokus privasi"
+description = "Firefox without telemetry, focused on privacy"
 packages = ["librewolf"]
 
 [[browsers]]
 id = "microsoft-edge"
 name = "Microsoft Edge"
-description = "Chromium Microsoft, paket paling besar"
+description = "Microsoft Chromium browser; largest package"
 packages = ["microsoft-edge-stable"]
 command = "microsoft-edge-stable"
 
 [[browsers]]
 id = "qutebrowser"
 name = "QuteBrowser"
-description = "Keyboard-only, Qt/Python"
+description = "Keyboard-driven, built with Qt and Python"
 packages = ["qutebrowser"]
 
 [[browsers]]
 id = "vivaldi"
 name = "Vivaldi"
-description = "Fitur banyak, proprietary"
+description = "Feature-rich and proprietary"
 packages = ["vivaldi-stable"]
 command = "vivaldi-stable"
 
 [[browsers]]
 id = "waterfox"
 name = "Waterfox"
-description = "Firefox fork, fokus privasi"
+description = "Firefox fork focused on privacy"
 packages = ["waterfox"]
 
 [[browsers]]
 id = "zen-browser"
 name = "Zen Browser"
-description = "Firefox fork, vertical tabs, dari Terra"
+description = "Firefox fork with vertical tabs, from Terra"
 packages = ["zen-browser"]
 
 # ----------------------------------------------------------------- desktop ---
 [[desktops]]
 id = "budgie"
 name = "Budgie"
-description = "Desktop tradisional modern, mode Wayland via Budgie Labwc"
+description = "Modern traditional desktop with Wayland support through Budgie Labwc"
 packages = ["@budgie-desktop"]
 autologin_cmd = "startbudgielabwc"
 choose_login = true
@@ -157,7 +159,7 @@ default = true
 [[desktops]]
 id = "hyprland"
 name = "Hyprland"
-description = "Tiling dinamis, config minimal tanpa bar"
+description = "Dynamic tiling with a minimal configuration and no panel"
 packages = ["hyprland", "hyprland-guiutils", "hyprland-uwsm", "xdg-desktop-portal-hyprland", "hyprland-preview-share-picker"]
 session_file = "hyprland-uwsm.desktop"
 autologin_cmd = "Hyprland"
@@ -166,7 +168,7 @@ choose_login = true
 [[desktops]]
 id = "kineticwe"
 name = "KineticWE"
-description = "Tiling berbasis KWin, shell Noctalia"
+description = "KWin-based tiling desktop with the Noctalia shell"
 packages = ["kineticwe"]
 login_override = "kineticwe-greeter"
 autologin_cmd = "start-kineticwe"
@@ -174,14 +176,14 @@ autologin_cmd = "start-kineticwe"
 [[desktops]]
 id = "lxqt"
 name = "LXQt"
-description = "Desktop ringan, sesi Wayland lewat Miriway"
+description = "Lightweight desktop with a Wayland session through Miriway"
 packages = ["@lxqt-desktop"]
 autologin_cmd = "startlxqtwayland"
 
 [[desktops]]
 id = "mangowm"
 name = "MangoWM"
-description = "Tiling ringan berbasis dwl (wlroots)"
+description = "Lightweight tiling compositor based on dwl (wlroots)"
 packages = ["mangowm", "scenefx", "wlroots", "xcb-util-wm", "xdg-desktop-portal-wlr", "slurp"]
 skel = "mango"
 autologin_cmd = "mango"
@@ -190,14 +192,30 @@ choose_login = true
 [[desktops]]
 id = "miraclewm"
 name = "MiracleWM"
-description = "Tiling Wayland, paket desktop Fedora dengan SDDM"
+description = "Wayland tiling compositor; Fedora desktop group includes SDDM"
 packages = ["@miraclewm-desktop"]
 login_override = "miraclewm-sddm"
 
 [[desktops]]
+id = "ryoku"
+name = "Ryoku"
+description = "Complete Wayland desktop; manages its own apps, sessions, and SDDM setup"
+packages = [
+    "ryoku", "ryoku-keyring", "ryoku-desktop", "ryoku-desktop-hyprland", "ryoku-desktop-niri",
+    "kitty", "nautilus", "nautilus-python", "firefox", "fish",
+    "ryotunes", "ryomanager", "neovim", "btop", "starship", "fastfetch", "yazi",
+    "eza", "bat", "fd-find", "fzf", "zoxide", "gh", "lazygit",
+    "pavucontrol", "mpv", "mpv-mpris", "songrec", "openrgb", "waifu2x-ncnn-vulkan",
+    "gamescope", "gamemode", "mangohud", "xpadneo-dkms", "game-devices-udev",
+    "qemu-kvm", "edk2-ovmf", "virglrenderer", "moby-engine", "flatpak",
+    "golang", "nodejs24", "nodejs24-npm", "python3-pip", "pipx", "mise", "ryoku-rashin",
+]
+login_override = "ryoku-sddm"
+
+[[desktops]]
 id = "sway"
 name = "Sway"
-description = "Tiling Wayland ringan, config minimal tanpa bar"
+description = "Lightweight Wayland tiling desktop with a minimal configuration and no panel"
 packages = ["@swaywm"]
 autologin_cmd = "sway"
 choose_login = true
@@ -205,7 +223,7 @@ choose_login = true
 [[desktops]]
 id = "umbriel"
 name = "Umbriel"
-description = "Compositor Wayland ringan (paket Mindset-Apps, build git harian)"
+description = "Lightweight Wayland compositor (Mindset-Apps package, daily Git build)"
 packages = ["umbriel-git", "noctalia"]
 skel = "umbriel"
 login_override = "noctalia-greeter"
@@ -215,45 +233,45 @@ autologin_cmd = "start-umbriel"
 [[file_managers]]
 id = "dolphin"
 name = "Dolphin"
-description = "File manager KDE, fitur lengkap (menarik Qt/KDE stack)"
+description = "KDE file manager with full features (pulls in the Qt/KDE stack)"
 packages = ["dolphin"]
 
 [[file_managers]]
 id = "hyprfm"
 name = "HyprFM"
-description = "Keyboard-first untuk Hyprland, dari repo RakuOS"
+description = "Keyboard-driven file manager for Hyprland, from the RakuOS repository"
 packages = ["hyprfm"]
 
 [[file_managers]]
 id = "nautilus"
 name = "Nautilus"
-description = "File manager GNOME, ringan untuk pemakaian dasar"
+description = "GNOME file manager; lightweight for everyday use"
 packages = ["nautilus"]
 default = true
 
 [[file_managers]]
 id = "nemo"
 name = "Nemo"
-description = "File manager Cinnamon, GTK3, dukungan gvfs-fuse"
+description = "Cinnamon file manager, GTK 3, with gvfs-fuse support"
 packages = ["nemo"]
 
 [[file_managers]]
 id = "superfile"
 name = "Superfile"
-description = "File manager TUI modern (binary spf), dari repo Terra"
+description = "Modern terminal file manager (spf binary), from Terra"
 packages = ["superfile"]
 command = "spf"
 
 [[file_managers]]
 id = "thunar"
 name = "Thunar"
-description = "File manager Xfce, ringan dan cepat"
+description = "Xfce file manager; lightweight and fast"
 packages = ["Thunar", "thunar-volman"]
 
 [[file_managers]]
 id = "yazi"
 name = "Yazi"
-description = "File manager TUI cepat, dari repo Terra"
+description = "Fast terminal file manager, from Terra"
 packages = ["yazi"]
 
 # ------------------------------------------------------------------- login ---
@@ -265,7 +283,7 @@ packages = ["yazi"]
 [[logins]]
 id = "dms-greeter"
 name = "DMS Greeter"
-description = "Greeter Dux (greetd), quickshell, ikut compositor"
+description = "Dux greeter (greetd, Quickshell); follows the selected compositor"
 packages = ["greetd", "dms-greeter"]
 unit = "greetd.service"
 greetd_cmd = "/usr/bin/dms-greeter --command @COMPOSITOR@"
@@ -274,7 +292,7 @@ greetd_user = "greeter"
 [[logins]]
 id = "noctalia-greeter"
 name = "Noctalia Greeter"
-description = "Greeter Noctalia (greetd, wlroots)"
+description = "Noctalia greeter (greetd, wlroots)"
 packages = ["greetd", "noctalia-greeter"]
 unit = "greetd.service"
 greetd_cmd = "/usr/bin/noctalia-greeter-session"
@@ -284,7 +302,7 @@ greetd_setup = "/usr/share/noctalia-greeter/setup_greeter_system.sh"
 [[logins]]
 id = "sddm"
 name = "SDDM"
-description = "SDDM Wayland (greeter miriway, sama dengan Budgie/LXQt), tema bawaan"
+description = "SDDM on Wayland (Miriway greeter, as used by Budgie/LXQt); default theme"
 # Varian greeter: `sddm-x11` (X11) atau `sddm-wayland-miriway` (Wayland,
 # compositor miriway). Dipakai varian Wayland karena itu yang dipakai image
 # Budgie/LXQt RakuOS, jadi jalur login yang paling teruji di distro ini.
@@ -299,16 +317,25 @@ default = true
 # memasang varian greeter lain; sesi Miracle dan greeter disediakan grup itu.
 [[logins]]
 id = "miraclewm-sddm"
-name = "SDDM untuk MiracleWM"
-description = "SDDM Wayland dari paket desktop MiracleWM Fedora"
+name = "SDDM for MiracleWM"
+description = "Wayland SDDM from the Fedora MiracleWM desktop group"
 packages = []
 unit = "sddm.service"
 hidden = true
 
 [[logins]]
+id = "ryoku-sddm"
+name = "Ryoku SDDM"
+description = "Ryoku's SDDM theme"
+packages = []
+unit = "sddm.service"
+sddm_theme = "ryoku"
+hidden = true
+
+[[logins]]
 id = "sysc-greet"
 name = "sysc-greet"
-description = "Greeter TUI console di cagebreak"
+description = "Terminal greeter running in cagebreak"
 packages = ["sysc-greet"]
 no_recommends = ["sysc-greet"]
 unit = "greetd.service"
@@ -320,7 +347,7 @@ greetd_user = "greeter"
 [[logins]]
 id = "kineticwe-greeter"
 name = "KineticWE Greeter"
-description = "Greeter Noctalia bawaan KineticWE (greetd, wlroots)"
+description = "Built-in KineticWE Noctalia greeter (greetd, wlroots)"
 packages = ["kineticwe-greeter"]
 unit = "greetd.service"
 greetd_cmd = "/usr/bin/noctalia-greeter-session"
@@ -330,8 +357,8 @@ hidden = true
 
 [[logins]]
 id = "none"
-name = "Tanpa login manager"
-description = "Autologin user langsung ke desktop di tty1"
+name = "No login manager"
+description = "Automatically sign in to the desktop on tty1"
 packages = ["dbus-daemon"]
 available = false
 hidden = true

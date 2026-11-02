@@ -38,10 +38,16 @@ Log tidak dibuat saat `--dry-run`.
 
 ## Alur
 
-Urutan layar adalah Terminal, File manager, Browser, Desktop, lalu Login manager
-bila desktop yang dipilih memiliki `choose_login = true`. Pilihan untuk tiga
-kategori pertama bisa jamak; desktop dan login manager tunggal. Desktop yang
-tidak meminta login memakai display manager yang dibawa desktopnya.
+Urutan layar adalah Desktop, Terminal, File manager, Browser, lalu Login
+manager bila desktop yang dipilih memiliki `choose_login = true`. Pilihan untuk
+tiga kategori aplikasi bisa jamak; desktop dan login manager tunggal. Ryoku
+melewati pilihan aplikasi dan login manager umum, lalu memakai repo RPM serta
+konfigurasi khusus Ryoku. Desktop lain memakai display manager yang dibawa
+desktopnya jika tidak meminta pilihan login.
+KineticWE tetap memakai pilihan aplikasi umum, tetapi mengambil paket desktop
+dari COPR `theblackdon/kwee`; COPR `mindset/Mindset-Apps` tidak diaktifkan
+untuk pilihan ini. Terra dan RPM Fusion tetap mengikuti katalog untuk aplikasi
+tambahan yang dipilih.
 
 `↑`/`↓` atau `j`/`k` memindahkan sorotan; `Tab` juga bergerak ke bawah.
 `Space` atau tombol `1`–`9` mencentang pilihan pada kategori jamak. Pada daftar
@@ -49,8 +55,9 @@ tunggal, `1`–`9` memilih item. `Enter` melanjutkan. `Esc`, `Backspace`, `←`,
 atau `b` kembali satu layar; `Ctrl-C` membatalkan wizard. Pada ringkasan,
 `n` membatalkan tanpa instalasi, sedangkan `Esc` kembali ke pilihan terakhir.
 
-Setelah konfirmasi, script mengaktifkan repo yang tercantum di katalog,
-menyegarkan metadata, memasang paket (`rum`, atau `dnf` bila `rum` tidak ada),
+Setelah konfirmasi, script mengaktifkan repo sesuai desktop (termasuk repo
+khusus Ryoku atau KineticWE), menyegarkan metadata, memasang paket (`rum`, atau
+`dnf` bila `rum` tidak ada),
 menyiapkan file sesi/skel yang tersedia, mengatur login manager, menulis state,
 dan memverifikasi hasilnya. Jika verifikasi gagal, reboot ditunda dan kegagalan
 dicatat di log.
@@ -66,7 +73,7 @@ agar dokumentasi tidak menyalin metadata yang bisa berubah.
 | Terminal | Alacritty, Foot, Ghostty, Kitty | Kitty |
 | File manager | Dolphin, HyprFM, Nautilus, Nemo, Superfile, Thunar, Yazi | Nautilus |
 | Browser | Brave, Chromium, Epiphany, Falkon, Firefox, Google Chrome, Helium, LibreWolf, Microsoft Edge, QuteBrowser, Vivaldi, Waterfox, Zen Browser | Firefox |
-| Desktop | Budgie, Hyprland, KineticWE, LXQt, MangoWM, MiracleWM, Sway, Umbriel | Budgie |
+| Desktop | Budgie, Hyprland, KineticWE, LXQt, MangoWM, MiracleWM, Ryoku, Sway, Umbriel | Budgie |
 | Login manager | DMS Greeter, Noctalia Greeter, SDDM, sysc-greet | SDDM |
 
 Login manager hanya ditanyakan untuk Budgie, Hyprland, MangoWM, dan Sway; SDDM
@@ -76,9 +83,11 @@ otomatis mengaktifkan SDDM Wayland dari grup tersebut. LXQt memakai display
 manager yang ikut terpasang bersama desktop. KineticWE dan Umbriel memakai
 login yang ditetapkan katalog.
 
-Repo yang diminta oleh katalog saat ini adalah Terra, RPM Fusion, dan COPR
-`mindset/Mindset-Apps`. Jika `rum` tidak ditemukan, pengaktifan repo dilewati
-dan pemasangan paket menggunakan `dnf`.
+Repo umum katalog adalah Terra, RPM Fusion, dan COPR `mindset/Mindset-Apps`.
+KineticWE mengecualikan COPR Mindset-Apps dan mengaktifkan `theblackdon/kwee`;
+Ryoku menggunakan repo RPM serta COPR dependensinya sendiri. Jika `rum` tidak
+ditemukan, repo umum dilewati dan pemasangan paket menggunakan `dnf`; pilihan
+KineticWE memerlukan `rum` untuk mengaktifkan COPR upstream-nya.
 
 ## File yang dipasang atau ditulis
 

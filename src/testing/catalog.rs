@@ -149,6 +149,31 @@ fn umbriel_memaksa_greeter_noctalia() {
 }
 
 #[test]
+fn ryoku_mengambil_alih_instalasi_dan_memakai_sddm_sendiri() {
+    let cat = Catalog::load(None).unwrap();
+    let ryoku = cat.desktops.iter().find(|d| d.id == "ryoku").unwrap();
+    assert!(!ryoku.choose_login);
+    assert_eq!(ryoku.login_override.as_deref(), Some("ryoku-sddm"));
+    for package in [
+        "ryoku",
+        "ryoku-keyring",
+        "ryoku-desktop",
+        "ryoku-desktop-hyprland",
+        "ryoku-desktop-niri",
+        "kitty",
+        "nautilus",
+        "firefox",
+        "fish",
+    ] {
+        assert!(ryoku.packages.iter().any(|p| p == package), "{package}");
+    }
+    let sddm = cat.logins.iter().find(|l| l.id == "ryoku-sddm").unwrap();
+    assert!(sddm.hidden);
+    assert_eq!(sddm.unit.as_deref(), Some("sddm.service"));
+    assert_eq!(sddm.sddm_theme.as_deref(), Some("ryoku"));
+}
+
+#[test]
 fn desktop_bawaan_tidak_punya_login() {
     let cat = Catalog::load(None).unwrap();
     for id in ["lxqt"] {

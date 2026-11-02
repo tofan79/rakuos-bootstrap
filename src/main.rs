@@ -30,7 +30,7 @@ struct Opts {
 fn main() {
     if let Err(err) = run() {
         if err.downcast_ref::<Cancelled>().is_some() {
-            println!("\nDibatalkan. Tidak ada yang diubah.");
+            println!("\nCancelled. No changes were made.");
             std::process::exit(130);
         }
         log::note(&format!("error: {err:#}"));
@@ -43,17 +43,17 @@ fn run() -> Result<()> {
     let opts = parse_args()?;
 
     if !opts.dry_run && !is_root() {
-        bail!("jalankan dengan sudo: sudo rakuos-bootstrap");
+        bail!("Run with sudo: sudo rakuos-bootstrap");
     }
 
     let term = Term::stdout();
     if !term.is_term() {
-        bail!("butuh terminal interaktif (TTY)");
+        bail!("An interactive terminal (TTY) is required");
     }
 
     if !opts.dry_run {
         if let Err(msg) = log::init(&opts.log_file, &install::timestamp()) {
-            eprintln!("peringatan: {msg}; lanjut tanpa log");
+            eprintln!("warning: {msg}; continuing without a log file");
         }
     }
 
@@ -61,19 +61,18 @@ fn run() -> Result<()> {
     let badge = if opts.dry_run {
         Some("DRY-RUN".to_string())
     } else if opts.first_boot {
-        Some("BOOT PERTAMA".to_string())
+        Some("FIRST BOOT".to_string())
     } else {
         None
     };
     let ui = Ui::new(&term, opts.ascii, VERSION, badge);
 
-    // Urutan fase = urutan tampil (dan STEPS di ui.rs). Login sengaja setelah
-    // Desktop: pilihan login hanya muncul untuk desktop dengan `choose_login`,
-    // dan perintah greeter butuh tahu compositor yang dipilih.
-    const PHASE_TERMINAL: usize = 0;
-    const PHASE_FILE_MANAGER: usize = 1;
-    const PHASE_BROWSER: usize = 2;
-    const PHASE_DESKTOP: usize = 3;
+    // Urutan fase = urutan tampil (dan STEPS di ui.rs). Desktop dipilih dulu;
+    // desktop yang dikelola installer lain dapat langsung mengambil alih.
+    const PHASE_DESKTOP: usize = 0;
+    const PHASE_TERMINAL: usize = 1;
+    const PHASE_FILE_MANAGER: usize = 2;
+    const PHASE_BROWSER: usize = 3;
     const PHASE_LOGIN: usize = 4;
     const PHASE_SUMMARY: usize = 5;
 
@@ -105,10 +104,15 @@ fn run() -> Result<()> {
         idx.iter().map(|&i| list[i].name.clone()).collect()
     };
 
-    let mut phase = PHASE_TERMINAL;
+    let mut phase = PHASE_DESKTOP;
     while phase != PHASE_SUMMARY {
         // Jejak pilihan dari fase-fase sebelumnya, ditampilkan di bawah daftar.
         let mut picked: Vec<String> = Vec::new();
+        if phase > PHASE_DESKTOP {
+            if let Some(d) = desktop {
+                picked.push(catalog.desktops[d].name.clone());
+            }
+        }
         if phase > PHASE_TERMINAL {
             picked.extend(names(&catalog.terminals, &terminals));
         }
@@ -118,34 +122,54 @@ fn run() -> Result<()> {
         if phase > PHASE_BROWSER {
             picked.extend(names(&catalog.browsers, &browsers));
         }
-        if phase > PHASE_DESKTOP {
-            if let Some(d) = desktop {
-                picked.push(catalog.desktops[d].name.clone());
-            }
-        }
-
         match phase {
+            PHASE_DESKTOP => {
+                let nav = ui.select(
+                    &term,
+                    phase,
+                    "Desktop",
+                    "Choose your Wayland desktop",
+                    &catalog.desktops,
+                    &picked,
+                    desktop,
+                )?;
+                match nav {
+                    Nav::Next(i) => {
+                        desktop = Some(i);
+                        login = None;
+                        phase = if catalog.desktops[i].id == "ryoku" {
+                            PHASE_SUMMARY
+                        } else {
+                            PHASE_TERMINAL
+                        };
+                    }
+                    Nav::Back => {}
+                }
+            }
             PHASE_TERMINAL => {
                 let nav = ui.multi_select(
                     &term,
                     phase,
                     "Terminal",
-                    "Tempat mengetik perintah",
+                    "Terminal for running commands",
                     &catalog.terminals,
                     &picked,
                     Some(&terminals),
                 )?;
-                if let Nav::Next(v) = nav {
-                    terminals = v;
-                    phase = PHASE_FILE_MANAGER;
+                match nav {
+                    Nav::Next(v) => {
+                        terminals = v;
+                        phase = PHASE_FILE_MANAGER;
+                    }
+                    Nav::Back => phase = PHASE_DESKTOP,
                 }
             }
             PHASE_FILE_MANAGER => {
                 let nav = ui.multi_select(
                     &term,
                     phase,
-                    "File manager",
-                    "Menjelajah file dan mount USB/HP",
+                    "File Manager",
+                    "Browse files and mount USB drives or phones",
                     &catalog.file_managers,
                     &picked,
                     Some(&file_managers),
@@ -163,7 +187,7 @@ fn run() -> Result<()> {
                     &term,
                     phase,
                     "Browser",
-                    "Pilih satu atau lebih; semuanya paket RPM",
+                    "Select one or more; all options are RPM packages",
                     &catalog.browsers,
                     &picked,
                     Some(&browsers),
@@ -171,33 +195,14 @@ fn run() -> Result<()> {
                 match nav {
                     Nav::Next(v) => {
                         browsers = v;
-                        phase = PHASE_DESKTOP;
+                        let d = desktop.expect("desktop was selected before apps");
+                        phase = if catalog.desktops[d].choose_login {
+                            PHASE_LOGIN
+                        } else {
+                            PHASE_SUMMARY
+                        };
                     }
                     Nav::Back => phase = PHASE_FILE_MANAGER,
-                }
-            }
-            PHASE_DESKTOP => {
-                let nav = ui.select(
-                    &term,
-                    phase,
-                    "Desktop",
-                    "Compositor Wayland; config minimal tanpa bar",
-                    &catalog.desktops,
-                    &picked,
-                    desktop,
-                )?;
-                match nav {
-                    Nav::Next(i) => {
-                        desktop = Some(i);
-                        if catalog.desktops[i].choose_login {
-                            phase = PHASE_LOGIN;
-                        } else {
-                            // Memakai login bawaan desktop: tidak ada pilihan.
-                            login = None;
-                            phase = PHASE_SUMMARY;
-                        }
-                    }
-                    Nav::Back => phase = PHASE_BROWSER,
                 }
             }
             PHASE_LOGIN => {
@@ -205,8 +210,8 @@ fn run() -> Result<()> {
                 let nav = ui.select(
                     &term,
                     phase,
-                    "Login manager",
-                    "Layar masuk setelah boot",
+                    "Login Manager",
+                    "Sign-in screen shown after boot",
                     &visible_logins,
                     &picked,
                     prev,
@@ -216,7 +221,7 @@ fn run() -> Result<()> {
                         login = Some(login_indices[pos]);
                         phase = PHASE_SUMMARY;
                     }
-                    Nav::Back => phase = PHASE_DESKTOP,
+                    Nav::Back => phase = PHASE_BROWSER,
                 }
             }
             _ => unreachable!(),
@@ -232,27 +237,29 @@ fn run() -> Result<()> {
                 &terminals,
                 &file_managers,
                 &browsers,
-                desktop.expect("desktop sudah dipilih"),
+                desktop.expect("desktop has been selected"),
                 login,
             )? {
                 Confirm::Yes => break,
                 Confirm::No => {
-                    println!("\nDibatalkan. Tidak ada yang diubah.");
+                    println!("\nCancelled. No changes were made.");
                     return Ok(());
                 }
                 Confirm::Back => {
-                    let d = desktop.expect("desktop sudah dipilih");
-                    phase = if catalog.desktops[d].choose_login {
+                    let d = desktop.expect("desktop has been selected");
+                    phase = if catalog.desktops[d].id == "ryoku" {
+                        PHASE_DESKTOP
+                    } else if catalog.desktops[d].choose_login {
                         PHASE_LOGIN
                     } else {
-                        PHASE_DESKTOP
+                        PHASE_BROWSER
                     };
                 }
             }
         }
     }
 
-    let desktop_choice = &catalog.desktops[desktop.expect("desktop sudah dipilih")];
+    let desktop_choice = &catalog.desktops[desktop.expect("desktop has been selected")];
     let login_choice = catalog.effective_login(desktop_choice, login.map(|i| &catalog.logins[i]));
     let picks = install::Picks {
         terminals: terminals.iter().map(|&i| &catalog.terminals[i]).collect(),
@@ -269,11 +276,11 @@ fn run() -> Result<()> {
     let checks = install::apply(&catalog, &picks, opts.dry_run, &opts.base_dir)?;
     let failed = checks.iter().filter(|c| !c.ok).count();
 
-    println!("\n{}", ui.success("Selesai."));
+    println!("\n{}", ui.success("Setup complete."));
     if opts.dry_run {
         println!(
             "{}",
-            ui.note("(dry-run: tidak ada paket yang dipasang, tidak ada file yang ditulis)")
+            ui.note("(Dry run: no packages installed and no files written)")
         );
         return Ok(());
     }
@@ -282,21 +289,21 @@ fn run() -> Result<()> {
         println!(
             "\n{}",
             ui.note(&format!(
-                "{failed} pemeriksaan gagal. Reboot ditunda; lihat {}.",
+                "{failed} checks failed. Reboot postponed; see {}.",
                 log::hint()
             ))
         );
-        println!("Perbaiki lalu jalankan ulang wizard, atau reboot dengan: systemctl reboot");
+        println!("Fix the issues and rerun the wizard, or reboot with: systemctl reboot");
         return Ok(());
     }
 
     if opts.first_boot {
-        println!("Sistem akan reboot untuk masuk ke desktop...");
+        println!("Rebooting into the desktop...");
         let _ = Command::new("systemctl").arg("reboot").status();
-    } else if ui.inline_confirm(&term, "Reboot sekarang?", true)? {
+    } else if ui.inline_confirm(&term, "Reboot now?", true)? {
         let _ = Command::new("systemctl").arg("reboot").status();
     } else {
-        println!("Reboot nanti dengan: systemctl reboot");
+        println!("You can reboot later with: systemctl reboot");
     }
 
     Ok(())
@@ -336,27 +343,56 @@ fn summarize(
     };
 
     let packages: Vec<String> = install::packages(catalog, &picks).into_iter().collect();
-    let repos = if catalog.repos.is_empty() {
-        "tidak ada".to_string()
+    let repos = if desktop_choice.id == "ryoku" {
+        "Ryoku RPM, restricted dependency COPRs".to_string()
+    } else if desktop_choice.id == "kineticwe" {
+        catalog
+            .repos
+            .iter()
+            .filter(|repo| repo.as_str() != "mindset")
+            .cloned()
+            .chain(std::iter::once("theblackdon/kwee".to_string()))
+            .collect::<Vec<_>>()
+            .join(", ")
+    } else if catalog.repos.is_empty() {
+        "None".to_string()
     } else {
         catalog.repos.join(", ")
     };
     let login_text = match (login_choice, picked_login) {
         (Some(l), Some(p)) if l.id == p.id => l.name.clone(),
-        (Some(l), _) => format!("{} (otomatis dari {})", l.name, desktop_choice.name),
-        (None, _) => format!("bawaan {}", desktop_choice.name),
+        (Some(l), _) => format!("{} (automatic from {})", l.name, desktop_choice.name),
+        (None, _) => format!("built-in for {}", desktop_choice.name),
     };
     let rows = [
-        ("Terminal", chosen(&catalog.terminals, terminals)),
         (
-            "File manager",
-            chosen(&catalog.file_managers, file_managers),
+            "Terminal",
+            if desktop_choice.id == "ryoku" {
+                "Kitty (Ryoku default)".to_string()
+            } else {
+                chosen(&catalog.terminals, terminals)
+            },
         ),
-        ("Browser", chosen(&catalog.browsers, browsers)),
+        (
+            "File Manager",
+            if desktop_choice.id == "ryoku" {
+                "Nautilus (Ryoku default)".to_string()
+            } else {
+                chosen(&catalog.file_managers, file_managers)
+            },
+        ),
+        (
+            "Browser",
+            if desktop_choice.id == "ryoku" {
+                "Firefox (Ryoku default)".to_string()
+            } else {
+                chosen(&catalog.browsers, browsers)
+            },
+        ),
         ("Desktop", desktop_choice.name.clone()),
         ("Login", login_text),
-        ("Repo pihak ketiga", repos),
-        ("User target", install::target_user()),
+        ("Repositories", repos),
+        ("Target user", install::target_user()),
     ];
     ui.confirm_summary(term, &rows, &packages)
 }
@@ -396,22 +432,22 @@ fn parse_args() -> Result<Opts> {
             "--catalog" => {
                 let path = args
                     .next()
-                    .ok_or_else(|| anyhow::anyhow!("--catalog butuh path"))?;
+                    .ok_or_else(|| anyhow::anyhow!("--catalog requires a path"))?;
                 opts.catalog = Some(PathBuf::from(path));
             }
             "--base-dir" => {
                 let path = args
                     .next()
-                    .ok_or_else(|| anyhow::anyhow!("--base-dir butuh path"))?;
+                    .ok_or_else(|| anyhow::anyhow!("--base-dir requires a path"))?;
                 opts.base_dir = PathBuf::from(path);
             }
             "--log" => {
                 let path = args
                     .next()
-                    .ok_or_else(|| anyhow::anyhow!("--log butuh path"))?;
+                    .ok_or_else(|| anyhow::anyhow!("--log requires a path"))?;
                 opts.log_file = PathBuf::from(path);
             }
-            other => bail!("argumen tidak dikenal: {other}\nCoba `rakuos-bootstrap --help`."),
+            other => bail!("unknown argument: {other}\nRun `rakuos-bootstrap --help` for usage."),
         }
     }
 
@@ -438,20 +474,20 @@ fn print_help() {
     println!(
         "\
 rakuos-bootstrap {VERSION}
-Wizard pasca-install untuk RakuOS minimal.
+Post-install setup wizard for minimal RakuOS.
 
 USAGE:
     sudo rakuos-bootstrap [OPTIONS]
 
 OPTIONS:
-    --dry-run           Tampilkan rencana, jangan ubah sistem
-    --first-boot        Dipakai unit systemd saat boot pertama (auto reboot)
-    --ascii             Paksa tampilan ASCII murni (juga: RAKUOS_ASCII=1)
-    --catalog <PATH>    Pakai katalog TOML lain
-    --base-dir <PATH>   Lokasi katalog/skel (default: {DEFAULT_BASE_DIR})
-    --log <PATH>        File log (default: {})
-    -h, --help          Tampilkan bantuan
-    -V, --version       Tampilkan versi
+    --dry-run           Show planned actions without changing the system
+    --first-boot        Used by the systemd unit on first boot (reboots automatically)
+    --ascii             Force plain ASCII output (also: RAKUOS_ASCII=1)
+    --catalog <PATH>    Use a different TOML catalog
+    --base-dir <PATH>   Catalog and skel directory (default: {DEFAULT_BASE_DIR})
+    --log <PATH>        Log file (default: {})
+    -h, --help          Show this help message
+    -V, --version       Show version information
 ",
         log::DEFAULT_PATH
     );

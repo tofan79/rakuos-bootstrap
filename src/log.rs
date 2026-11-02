@@ -14,9 +14,9 @@ static PATH: OnceLock<String> = OnceLock::new();
 
 pub const DEFAULT_PATH: &str = "/var/log/rakuos-bootstrap.log";
 
-/// Lokasi log untuk pesan galat; "log wizard" kalau log tidak aktif.
+/// Lokasi log untuk pesan galat; "the wizard log" kalau log tidak aktif.
 pub fn hint() -> &'static str {
-    PATH.get().map(String::as_str).unwrap_or("log wizard")
+    PATH.get().map(String::as_str).unwrap_or("the wizard log")
 }
 
 /// Buka file log (append). Mengembalikan pesan galat kalau gagal.
@@ -25,7 +25,7 @@ pub fn init(path: &Path, stamp: &str) -> Result<(), String> {
         .create(true)
         .append(true)
         .open(path)
-        .map_err(|e| format!("tidak bisa membuka log {}: {e}", path.display()))?;
+        .map_err(|e| format!("unable to open log file {}: {e}", path.display()))?;
     let _ = writeln!(file, "\n==== rakuos-bootstrap {stamp} ====");
     let _ = PATH.set(path.display().to_string());
     let _ = LOG.set(Mutex::new(file));

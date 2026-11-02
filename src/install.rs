@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 use std::fs;
 use std::io::{Read, Write};
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::OnceLock;
@@ -16,8 +17,8 @@ use crate::verify::{verify, Check};
 macro_rules! warn {
     ($($arg:tt)*) => {{
         let msg = format!($($arg)*);
-        eprintln!("{} {msg}", style("peringatan:").yellow().bold());
-        log::note(&format!("peringatan: {msg}"));
+        eprintln!("{} {msg}", style("warning:").yellow().bold());
+        log::note(&format!("warning: {msg}"));
     }};
 }
 
@@ -63,6 +64,10 @@ impl Picks<'_> {
 
 /// Semua paket RPM: lapisan dasar + paket dari tiap pilihan.
 pub fn packages(cat: &Catalog, p: &Picks) -> BTreeSet<String> {
+    if p.desktop.id == "ryoku" {
+        return p.desktop.packages.iter().cloned().collect();
+    }
+
     let mut set: BTreeSet<String> = cat.base.iter().cloned().collect();
     for choice in p
         .terminals
@@ -82,13 +87,23 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
     let user = target_user();
     let pkgs = packages(cat, picks);
 
-    heading("Menyiapkan repo pihak ketiga");
-    enable_repos(cat, dry_run)?;
+    heading("Enable package repositories");
+    if picks.desktop.id == "ryoku" {
+        enable_ryoku_repos(dry_run)?;
+    } else if picks.desktop.id == "kineticwe" {
+        // KineticWE is published by its upstream COPR. Keep the standard
+        // Terra/RPM Fusion repos available for the separately chosen apps,
+        // but do not enable Mindset-Apps for this desktop.
+        enable_repos(cat, dry_run, &["mindset"])?;
+        enable_kineticwe_repo(dry_run)?;
+    } else {
+        enable_repos(cat, dry_run, &[])?;
+    }
 
-    heading("Menyegarkan metadata repo");
+    heading("Refresh repository metadata");
     refresh_metadata(dry_run)?;
 
-    heading("Memasang paket");
+    heading("Install packages");
     let no_recommends: &[String] = picks.login.map_or(&[], |l| l.no_recommends.as_slice());
     if let Some(login) = picks.login {
         resolve_greeter_conflict(login, dry_run)?;
@@ -96,7 +111,31 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
     }
     install_packages(&pkgs, no_recommends, dry_run)?;
 
-    heading("Menyiapkan config desktop");
+    if picks.desktop.id == "ryoku" {
+        setup_ryoku(picks.desktop, &user, dry_run)?;
+        heading("Verification");
+        if dry_run {
+            println!("  + Check Ryoku RPMs, SDDM, and installed Wayland sessions");
+            return Ok(Vec::new());
+        }
+        let checks = verify(cat, picks, &user, base_dir);
+        for c in &checks {
+            let mark = if c.ok {
+                style("✔").green()
+            } else {
+                style("✘").red().bold()
+            };
+            println!("  {mark} {}", c.label);
+            log::note(&format!(
+                "Verification: {} {}",
+                if c.ok { "OK  " } else { "FAILED" },
+                c.label
+            ));
+        }
+        return Ok(checks);
+    }
+
+    heading("Set up desktop configuration");
     install_skel(
         picks.desktop,
         picks.primary_terminal(),
@@ -109,14 +148,14 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
     install_session_file(picks.desktop, base_dir, dry_run)?;
     ensure_wayland_session(picks.desktop, dry_run)?;
 
-    heading("Menyiapkan login manager");
+    heading("Configure the login manager");
     configure_login(picks.login, picks.desktop, &user, dry_run)?;
 
     write_state(cat, picks, &user, dry_run)?;
 
-    heading("Verifikasi");
+    heading("Verification");
     if dry_run {
-        println!("  + cek paket, display manager, sesi Wayland, dan skel");
+        println!("  + Check packages, display manager, Wayland session, and skel files");
         return Ok(Vec::new());
     }
     let checks = verify(cat, picks, &user, base_dir);
@@ -128,12 +167,226 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
         };
         println!("  {mark} {}", c.label);
         log::note(&format!(
-            "verifikasi: {} {}",
-            if c.ok { "OK  " } else { "GAGAL" },
+            "Verification: {} {}",
+            if c.ok { "OK  " } else { "FAILED" },
             c.label
         ));
     }
     Ok(checks)
+}
+
+const RYOKU_FEDORA_KEY_URL: &str = "https://repo.ryoku.dev/stable/ryoku-release-key.pub.asc";
+const RYOKU_FEDORA_KEY_FINGERPRINT: &str = "EB6D3C0F55A7B3CABA6B2838847B274F025DD6E3";
+const RYOKU_FEDORA_REPO: &str = "https://repo.ryoku.dev/stable/fedora/$releasever/x86_64";
+const RYOKU_COPRS: &[(&str, &str, &str)] = &[
+    ("atim/lazygit", "lazygit", "atim-lazygit"),
+    ("atim/starship", "starship", "atim-starship"),
+    ("lihaohong/yazi", "resvg yazi", "lihaohong-yazi"),
+    (
+        "sdegler/hyprland",
+        "aquamarine hyprcursor hyprgraphics hypridle hyprland hyprland-guiutils hyprland-qt-support hyprland-uwsm hyprlang hyprpicker hyprpolkitagent hyprsunset hyprtoolkit hyprutils hyprwire uwsm xdg-desktop-portal-hyprland",
+        "sdegler-hyprland",
+    ),
+];
+
+fn enable_ryoku_repos(dry_run: bool) -> Result<()> {
+    let fedora = Command::new("rpm").args(["-E", "%fedora"]).output()?;
+    let fedora = String::from_utf8_lossy(&fedora.stdout).trim().to_string();
+    if !["44", "45"].contains(&fedora.as_str()) {
+        bail!("Ryoku RPMs are currently published for Fedora 44 and 45; detected Fedora {fedora}");
+    }
+
+    let key_path = Path::new("/etc/pki/rpm-gpg/RPM-GPG-KEY-ryoku");
+    let repo_path = Path::new("/etc/rum.repos.d/ryoku.repo");
+    let repo = format!(
+        "[ryoku]\nname=Ryoku Fedora $releasever\nbaseurl={RYOKU_FEDORA_REPO}\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=0\ngpgkey=file://{}\n",
+        key_path.display()
+    );
+    if dry_run {
+        println!(
+            "  + Verify and import the Ryoku RPM signing key ({RYOKU_FEDORA_KEY_FINGERPRINT})"
+        );
+        println!("  + Write {}", repo_path.display());
+        for (_, _, slug) in RYOKU_COPRS {
+            println!("  + Write /etc/rum.repos.d/ryoku-copr-{slug}.repo (restricted package list)");
+        }
+        return Ok(());
+    }
+
+    let temp_key = std::env::temp_dir().join(format!("ryoku-rpm-key-{}", std::process::id()));
+    let download = Command::new("curl")
+        .args([
+            "--fail",
+            "--location",
+            "--retry",
+            "3",
+            "--proto",
+            "=https",
+            "--proto-redir",
+            "=https",
+            "--output",
+        ])
+        .arg(&temp_key)
+        .arg(RYOKU_FEDORA_KEY_URL)
+        .output()
+        .context("download Ryoku RPM signing key")?;
+    if !download.status.success() {
+        let _ = fs::remove_file(&temp_key);
+        bail!(
+            "could not download the Ryoku RPM signing key: {}",
+            String::from_utf8_lossy(&download.stderr).trim()
+        );
+    }
+
+    let listing = Command::new("gpg")
+        .args(["--batch", "--with-colons", "--show-keys", "--fingerprint"])
+        .arg(&temp_key)
+        .output()
+        .context("inspect Ryoku RPM signing key (gpg is required)")?;
+    if !listing.status.success() {
+        let _ = fs::remove_file(&temp_key);
+        bail!("could not inspect the downloaded Ryoku RPM signing key");
+    }
+    let key_listing = String::from_utf8_lossy(&listing.stdout);
+    if primary_rpm_fingerprint(&key_listing).as_deref() != Some(RYOKU_FEDORA_KEY_FINGERPRINT) {
+        let _ = fs::remove_file(&temp_key);
+        bail!("Ryoku RPM key fingerprint mismatch; refusing to add the repository");
+    }
+
+    fs::create_dir_all(key_path.parent().unwrap())?;
+    write_managed_file(key_path, &fs::read(&temp_key)?)?;
+    let _ = fs::remove_file(&temp_key);
+    run(
+        "rpm",
+        &["--import".into(), key_path.display().to_string()],
+        false,
+    )?;
+    fs::create_dir_all(repo_path.parent().unwrap())?;
+    write_managed_file(repo_path, repo.as_bytes())?;
+    for (project, includepkgs, slug) in RYOKU_COPRS {
+        let base = format!("https://download.copr.fedorainfracloud.org/results/{project}");
+        let repo_id = format!("ryoku-copr-{slug}");
+        let copr = format!(
+            "[{repo_id}]\nname=Ryoku dependency: {project}\nbaseurl={base}/fedora-$releasever-$basearch/\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=0\ngpgkey={base}/pubkey.gpg\nincludepkgs={includepkgs}\nskip_if_unavailable=1\n"
+        );
+        let path = repo_path.parent().unwrap().join(format!("{repo_id}.repo"));
+        write_managed_file(&path, copr.as_bytes())?;
+    }
+    Ok(())
+}
+
+fn setup_ryoku(desktop: &Choice, user: &str, dry_run: bool) -> Result<()> {
+    // SDDM's theme is installed by the Ryoku desktop RPM. Materialize the
+    // shipped compositor config into the selected user's home after install.
+    if desktop.login_override.as_deref() != Some("ryoku-sddm") {
+        bail!("Ryoku desktop must select the Ryoku SDDM configuration");
+    }
+    configure_sddm(Some("ryoku"), dry_run)?;
+    activate_display_manager("sddm.service", dry_run)?;
+    let home = home_for(user)?;
+    if dry_run {
+        println!(
+            "  + Run `ryoku materialize` as {user} (home {})",
+            home.display()
+        );
+        println!("  + Set {user}'s login shell to /usr/bin/fish");
+        println!("  + Configure the Ryoku Fish shell loader");
+        println!("  + Set Firefox and Nautilus as the default applications");
+        println!("  + Run `ryoku doctor`");
+        return Ok(());
+    }
+    run(
+        "usermod",
+        &["-s".into(), "/usr/bin/fish".into(), user.into()],
+        false,
+    )?;
+    run_as_user(user, &home, &["ryoku".into(), "materialize".into()])?;
+    run_as_user(
+        user,
+        &home,
+        &[
+            "ryoku-hub".into(),
+            "shell".into(),
+            "loaders".into(),
+            "fish".into(),
+        ],
+    )?;
+    for (desktop_entry, mime) in [
+        ("firefox.desktop", "x-scheme-handler/http"),
+        ("firefox.desktop", "x-scheme-handler/https"),
+        ("firefox.desktop", "text/html"),
+        ("org.gnome.Nautilus.desktop", "inode/directory"),
+    ] {
+        run_as_user(
+            user,
+            &home,
+            &[
+                "xdg-mime".into(),
+                "default".into(),
+                desktop_entry.into(),
+                mime.into(),
+            ],
+        )?;
+    }
+    if let Err(err) = run_as_user(user, &home, &["ryoku".into(), "doctor".into()]) {
+        warn!("ryoku doctor reported findings: {err:#}");
+    }
+    Ok(())
+}
+
+pub(crate) fn primary_rpm_fingerprint(listing: &str) -> Option<String> {
+    let mut primary_count = 0;
+    let mut primary_fingerprint = None;
+    let mut after_primary = false;
+    for line in listing.lines() {
+        if line.starts_with("pub:") {
+            primary_count += 1;
+            after_primary = true;
+        } else if line.starts_with("sub:") {
+            after_primary = false;
+        } else if after_primary && line.starts_with("fpr:") {
+            primary_fingerprint = line.split(':').nth(9).map(str::to_string);
+            after_primary = false;
+        }
+    }
+    (primary_count == 1)
+        .then_some(primary_fingerprint)
+        .flatten()
+}
+
+fn write_managed_file(path: &Path, contents: &[u8]) -> Result<()> {
+    match fs::read(path) {
+        Ok(existing) if existing == contents => return Ok(()),
+        Ok(_) => bail!(
+            "{} already exists with different contents; refusing to overwrite it",
+            path.display()
+        ),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+        Err(err) => return Err(err).with_context(|| format!("read {}", path.display())),
+    }
+    let parent = path
+        .parent()
+        .with_context(|| format!("{} has no parent directory", path.display()))?;
+    fs::create_dir_all(parent)?;
+    let temp = parent.join(format!(
+        ".{}.{}.tmp",
+        path.file_name().unwrap().to_string_lossy(),
+        std::process::id()
+    ));
+    fs::write(&temp, contents)?;
+    fs::set_permissions(&temp, fs::Permissions::from_mode(0o644))?;
+    fs::rename(&temp, path).with_context(|| format!("write {}", path.display()))
+}
+
+fn run_as_user(user: &str, home: &Path, command: &[String]) -> Result<()> {
+    if command.is_empty() {
+        bail!("cannot run an empty command as {user}");
+    }
+    let mut args = vec!["-u".to_string(), user.to_string(), "--".to_string()];
+    args.push("env".into());
+    args.push(format!("HOME={}", home.display()));
+    args.extend(command.iter().cloned());
+    run("runuser", &args, false)
 }
 
 /// Menyalakan repo pihak ketiga yang diminta katalog.
@@ -142,18 +395,22 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
 /// disamakan dengan rakuos-welcome: Terra cukup satu id, RPM Fusion memakai
 /// daftar di `/usr/share/rakuos/rpmfusion-default-repos` (ditulis
 /// rakuos-base) supaya tidak ikut menyalakan repo source/debuginfo.
-fn enable_repos(cat: &Catalog, dry_run: bool) -> Result<()> {
+fn enable_repos(cat: &Catalog, dry_run: bool, excluded: &[&str]) -> Result<()> {
     if cat.repos.is_empty() {
-        println!("  (tidak ada repo pihak ketiga yang diminta)");
+        println!("  (No third-party repositories requested)");
         return Ok(());
     }
 
     if !command_exists("rum") {
-        warn!("rum tidak ditemukan; repo pihak ketiga dilewati",);
+        warn!("rum was not found; skipping third-party repository setup",);
         return Ok(());
     }
 
-    for repo in &cat.repos {
+    for repo in cat
+        .repos
+        .iter()
+        .filter(|repo| !excluded.contains(&repo.as_str()))
+    {
         let args = match repo.as_str() {
             "terra" => vec![
                 "config-manager".into(),
@@ -168,11 +425,29 @@ fn enable_repos(cat: &Catalog, dry_run: bool) -> Result<()> {
                 "mindset/Mindset-Apps".into(),
                 "fedora-45-x86_64".into(),
             ],
-            other => bail!("repo pihak ketiga tidak dikenal: {other}"),
+            other => bail!("unknown third-party repository: {other}"),
         };
         run("rum", &args, dry_run)?;
     }
     Ok(())
+}
+
+/// Enable the upstream KineticWE COPR without adding Mindset-Apps.
+fn enable_kineticwe_repo(dry_run: bool) -> Result<()> {
+    if !command_exists("rum") {
+        bail!("rum is required to enable COPR theblackdon/kwee for KineticWE");
+    }
+    run(
+        "rum",
+        &[
+            "copr".into(),
+            "enable".into(),
+            "-y".into(),
+            "theblackdon/kwee".into(),
+            "fedora-45-x86_64".into(),
+        ],
+        dry_run,
+    )
 }
 
 /// Segarkan metadata setelah repo pihak ketiga dinyalakan. `rum make-cache`
@@ -215,7 +490,7 @@ fn install_packages(
 
     let (pm, overlay) = package_manager();
     if !overlay {
-        warn!("rum tidak ditemukan; memakai dnf (overlay RakuOS tidak aktif)",);
+        warn!("rum was not found; using dnf (the RakuOS overlay is inactive)",);
     }
 
     let tanpa_rekomendasi: BTreeSet<&str> = no_recommends.iter().map(String::as_str).collect();
@@ -360,15 +635,15 @@ fn install_skel(
     dry_run: bool,
 ) -> Result<()> {
     let Some(name) = &desktop.skel else {
-        println!("  (desktop ini tidak membawa config minimal)");
+        println!("  (This desktop has no bundled minimal configuration)");
         return Ok(());
     };
 
     let src = base_dir.join("skel").join(name);
     if !src.is_dir() {
         bail!(
-            "skel {} tidak ditemukan; config desktop tidak bisa disalin. \
-             Cek --base-dir (sekarang {})",
+            "skel directory {} was not found; desktop configuration cannot be copied. \
+             Check --base-dir (currently {})",
             src.display(),
             base_dir.display()
         );
@@ -376,11 +651,11 @@ fn install_skel(
 
     let home = home_for(user)?;
     if dry_run {
-        println!("  + salin {} -> {}", src.display(), home.display());
-        println!("  + config yang sudah ada dicadangkan ke <nama>.bak");
-        println!("  + ganti @TERMINAL@ dengan {terminal}");
-        println!("  + ganti @BROWSER@ dengan {browser}");
-        println!("  + ganti @FILEMANAGER@ dengan {file_manager}");
+        println!("  + Copy {} -> {}", src.display(), home.display());
+        println!("  + Existing configuration will be backed up as <name>.bak");
+        println!("  + Replace @TERMINAL@ with {terminal}");
+        println!("  + Replace @BROWSER@ with {browser}");
+        println!("  + Replace @FILEMANAGER@ with {file_manager}");
         return Ok(());
     }
 
@@ -399,14 +674,14 @@ fn install_skel(
             &config_dir.to_string_lossy(),
         ])
         .status()
-        .context("chown gagal dijalankan")?;
+        .context("failed to run chown")?;
     if !status.success() {
-        bail!("chown -R {user}:{user} {} gagal", config_dir.display());
+        bail!("chown -R {user}:{user} failed for {}", config_dir.display());
     }
     for file in &copied {
         let line = match &file.backup {
             Some(bak) => format!(
-                "{} (config lama dicadangkan ke {})",
+                "{} (previous configuration backed up to {})",
                 file.path.display(),
                 bak.display()
             ),
@@ -429,39 +704,39 @@ fn install_session_file(desktop: &Choice, base_dir: &Path, dry_run: bool) -> Res
 
     let src = base_dir.join("sessions").join(name);
     if !src.is_file() {
-        warn!("sesi {} tidak ada; file sesi dilewati", src.display());
+        warn!("session file {} is missing; skipping it", src.display());
         return Ok(());
     }
 
     let dst = Path::new("/usr/share/wayland-sessions").join(name);
     if dry_run {
-        println!("  + salin {} -> {}", src.display(), dst.display());
+        println!("  + Copy {} -> {}", src.display(), dst.display());
         return Ok(());
     }
 
     if let Some(parent) = dst.parent() {
         if let Err(err) = fs::create_dir_all(parent) {
             if is_immutable_fs_error(&err) {
-                warn!("skel sesi {} tidak bisa dipasang ke {} karena {} (root immutable); versi paket tetap dipakai",
+                warn!("session file {} could not be installed to {} because {} (immutable root filesystem); keeping the packaged version",
                     name,
                     dst.display(),
                     err
                 );
                 return Ok(());
             }
-            return Err(err).with_context(|| format!("tidak bisa membuat {}", parent.display()));
+            return Err(err).with_context(|| format!("unable to create {}", parent.display()));
         }
     }
     if let Err(err) = fs::copy(&src, &dst) {
         if is_immutable_fs_error(&err) {
-            warn!("skel sesi {} tidak bisa memodifikasi {} karena {} (root immutable); versi paket tetap dipakai",
+            warn!("session file {} could not modify {} because {} (immutable root filesystem); keeping the packaged version",
                     name,
                 dst.display(),
                 err
             );
             return Ok(());
         }
-        return Err(err).with_context(|| format!("tidak bisa menulis {}", dst.display()));
+        return Err(err).with_context(|| format!("unable to write {}", dst.display()));
     }
     Ok(())
 }
@@ -507,13 +782,13 @@ fn use_builtin_login(dry_run: bool) -> Result<()> {
         "greetd.service",
     ];
     if dry_run {
-        println!("  + pakai login bawaan desktop (lightdm/sddm/gdm/greetd yang terpasang)");
+        println!("  + Use the display manager provided by the desktop (installed LightDM, SDDM, GDM, or greetd)");
         return Ok(());
     }
     match CANDIDATES.iter().find(|u| unit_exists(u)) {
         Some(unit) => activate_display_manager(unit, false),
         None => {
-            warn!("desktop ini tidak membawa display manager; login manager tidak diubah",);
+            warn!("This desktop does not provide a display manager; leaving the login configuration unchanged",);
             Ok(())
         }
     }
@@ -554,7 +829,7 @@ fn configure_login(
     let cmd = desktop
         .autologin_cmd
         .as_deref()
-        .with_context(|| format!("desktop {} tidak punya autologin_cmd", desktop.id))?;
+        .with_context(|| format!("desktop {} has no autologin_cmd", desktop.id))?;
 
     let dropin_dir = Path::new("/etc/systemd/system/getty@tty1.service.d");
     let dropin = dropin_dir.join("autologin.conf");
@@ -563,9 +838,9 @@ fn configure_login(
     );
 
     if dry_run {
-        println!("  + tulis {}", dropin.display());
+        println!("  + Write {}", dropin.display());
         println!("  + systemctl set-default multi-user.target");
-        println!("  + autologin: dbus-run-session {cmd}");
+        println!("  + Autologin command: dbus-run-session {cmd}");
         return Ok(());
     }
 
@@ -585,7 +860,7 @@ fn configure_login(
     let home = home_for(user)?;
     let profile = home.join(".bash_profile");
     let snippet = format!(
-        "\n# rakuos-bootstrap: autologin desktop di tty1\nif [ -z \"$WAYLAND_DISPLAY\" ] && [ \"$(tty)\" = \"/dev/tty1\" ]; then\n    exec dbus-run-session {cmd}\nfi\n"
+        "\n# rakuos-bootstrap: desktop autologin on tty1\nif [ -z \"$WAYLAND_DISPLAY\" ] && [ \"$(tty)\" = \"/dev/tty1\" ]; then\n    exec dbus-run-session {cmd}\nfi\n"
     );
     let existing = fs::read_to_string(&profile).unwrap_or_default();
     if !existing.contains("rakuos-bootstrap: autologin") {
@@ -620,14 +895,17 @@ fn configure_sddm(theme: Option<&str>, dry_run: bool) -> Result<()> {
     if dry_run {
         match theme {
             Some(theme) => println!(
-                "  + tulis {} (Current={theme}, CursorTheme={}, InputMethod=)",
+                "  + Write {} (Current={theme}, CursorTheme={}, InputMethod=)",
                 conf.display(),
-                cursor.unwrap_or("tidak ada")
+                cursor.unwrap_or("not installed")
             ),
-            None => println!("  + tema SDDM bawaan ({} tidak ditulis)", conf.display()),
+            None => println!(
+                "  + Use the default SDDM theme ({} will not be written)",
+                conf.display()
+            ),
         }
         println!(
-            "  + tulis {} (SessionDir wayland-sessions + xsessions)",
+            "  + Write {} (SessionDir wayland-sessions + xsessions)",
             sessions.display()
         );
         return Ok(());
@@ -643,7 +921,10 @@ fn configure_sddm(theme: Option<&str>, dry_run: bool) -> Result<()> {
         None if conf.exists() => {
             // Sisa versi lama yang memaksa tema Maldives.
             fs::remove_file(conf)?;
-            warn!("{} dihapus; SDDM memakai tema bawaan", conf.display());
+            warn!(
+                "{} was removed; SDDM will use its default theme",
+                conf.display()
+            );
         }
         None => {}
     }
@@ -704,7 +985,7 @@ fn ensure_wayland_session(desktop: &Choice, dry_run: bool) -> Result<()> {
 
     if dry_run {
         println!(
-            "  + pastikan ada sesi Wayland untuk {} (Exec={cmd})",
+            "  + Ensure a Wayland session exists for {} (Exec={cmd})",
             desktop.name
         );
         return Ok(());
@@ -728,12 +1009,12 @@ fn ensure_wayland_session(desktop: &Choice, dry_run: bool) -> Result<()> {
         Ok(()) => Ok(()),
         Err(err) if is_immutable_fs_error(&err) => {
             warn!(
-                "sesi {} tidak bisa ditulis ({err}); root immutable",
+                "session {} could not be written ({err}); root filesystem is immutable",
                 dst.display()
             );
             Ok(())
         }
-        Err(err) => Err(err).with_context(|| format!("tidak bisa menulis {}", dst.display())),
+        Err(err) => Err(err).with_context(|| format!("unable to write {}", dst.display())),
     }
 }
 
@@ -827,7 +1108,7 @@ fn configure_greetd(login: &Choice, desktop: &Choice, dry_run: bool) -> Result<(
             )?;
         }
         if dry_run {
-            println!("  + tambah {user} ke grup video, render, input");
+            println!("  + Add {user} to the video, render, and input groups");
         } else {
             add_to_groups(user);
         }
@@ -835,13 +1116,13 @@ fn configure_greetd(login: &Choice, desktop: &Choice, dry_run: bool) -> Result<(
 
     if dry_run {
         println!(
-            "  + tulis {} (command = {cmd}, user = {user})",
+            "  + Write {} (command = {cmd}, user = {user})",
             conf.display()
         );
         if let Some(setup) = &login.greetd_setup {
-            println!("  + jalankan {setup}");
+            println!("  + Run {setup}");
             println!(
-                "  + betulkan pemilik /var/lib/{} dan /var/lib/{} (mode 700)",
+                "  + Fix ownership of /var/lib/{} and /var/lib/{} (mode 700)",
                 user, login.id
             );
         }
@@ -850,13 +1131,13 @@ fn configure_greetd(login: &Choice, desktop: &Choice, dry_run: bool) -> Result<(
 
     let backup = Path::new("/etc/greetd/config.toml.bak");
     if conf.exists() && !backup.exists() {
-        fs::copy(conf, backup).context("gagal mencadangkan config greetd")?;
+        fs::copy(conf, backup).context("failed to back up the greetd configuration")?;
     }
     if let Some(parent) = conf.parent() {
         fs::create_dir_all(parent)?;
     }
     let body = format!(
-        "# ditulis oleh rakuos-bootstrap\n[terminal]\nvt = 1\n\n[default_session]\ncommand = \"{cmd}\"\nuser = \"{user}\"\n"
+        "# Written by rakuos-bootstrap\n[terminal]\nvt = 1\n\n[default_session]\ncommand = \"{cmd}\"\nuser = \"{user}\"\n"
     );
     fs::write(conf, body)?;
 
@@ -911,20 +1192,20 @@ fn write_state(cat: &Catalog, picks: &Picks, user: &str, dry_run: bool) -> Resul
             .join(" ")
     };
     let body = format!(
-        "# ditulis oleh rakuos-bootstrap\ntime = \"{}\"\ntarget_user = \"{}\"\nterminals = \"{}\"\nbrowsers = \"{}\"\ndesktop = \"{}\"\nfile_managers = \"{}\"\nlogin = \"{}\"\nrepos = \"{}\"\n",
+        "# Written by rakuos-bootstrap\ntime = \"{}\"\ntarget_user = \"{}\"\nterminals = \"{}\"\nbrowsers = \"{}\"\ndesktop = \"{}\"\nfile_managers = \"{}\"\nlogin = \"{}\"\nrepos = \"{}\"\n",
         iso8601_now(),
         user,
         ids(&picks.terminals),
         ids(&picks.browsers),
         picks.desktop.id,
         ids(&picks.file_managers),
-        picks.login.map_or("bawaan", |l| l.id.as_str()),
+        picks.login.map_or("builtin", |l| l.id.as_str()),
         cat.repos.join(" "),
     );
 
     if dry_run {
         println!(
-            "  + tulis {}\n  + tulis marker {}",
+            "  + Write {}\n  + Write completion marker {}",
             state.display(),
             done.display()
         );
@@ -953,7 +1234,7 @@ fn run(program: &str, args: &[String], dry_run: bool) -> Result<()> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .with_context(|| format!("gagal menjalankan {program}"))?;
+        .with_context(|| format!("failed to run {program}"))?;
 
     // Keluaran ditampilkan apa adanya di layar dan dicatat ke log.
     let out = child.stdout.take().map(|r| tee(r, false));
@@ -965,7 +1246,7 @@ fn run(program: &str, args: &[String], dry_run: bool) -> Result<()> {
 
     log::note(&format!("  -> {status}"));
     if !status.success() {
-        bail!("{program} keluar dengan {status} (lihat {})", log::hint());
+        bail!("{program} exited with {status} (see {})", log::hint());
     }
     Ok(())
 }
@@ -1045,14 +1326,14 @@ pub(crate) fn home_for(user: &str) -> Result<PathBuf> {
     let output = Command::new("getent")
         .args(["passwd", user])
         .output()
-        .context("getent tidak bisa dijalankan")?;
+        .context("failed to run getent")?;
     let line = String::from_utf8_lossy(&output.stdout);
     let home = line
         .trim()
         .split(':')
         .nth(5)
         .filter(|h| !h.is_empty())
-        .with_context(|| format!("home directory untuk {user} tidak ditemukan"))?;
+        .with_context(|| format!("home directory for {user} was not found"))?;
     Ok(PathBuf::from(home))
 }
 
@@ -1092,11 +1373,11 @@ pub(crate) fn copy_dir(src: &Path, dst: &Path, subs: &[(&str, &str)]) -> Result<
                 }
                 let bak = backup_path(&target);
                 fs::rename(&target, &bak)
-                    .with_context(|| format!("gagal mencadangkan {}", target.display()))?;
+                    .with_context(|| format!("failed to back up {}", target.display()))?;
                 backup = Some(bak);
             }
             fs::write(&target, data)
-                .with_context(|| format!("gagal menulis {}", target.display()))?;
+                .with_context(|| format!("failed to write {}", target.display()))?;
             written.push(Copied {
                 path: target,
                 backup,

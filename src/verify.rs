@@ -32,26 +32,29 @@ pub fn verify(cat: &Catalog, picks: &Picks, user: &str, base_dir: &Path) -> Vec<
             .filter(|p| !p.starts_with('@') && !package_installed(p))
             .collect();
         out.push(if missing.is_empty() {
-            check(true, "semua paket terpasang")
+            check(true, "All packages are installed")
         } else {
-            check(
-                false,
-                format!("paket belum terpasang: {}", missing.join(", ")),
-            )
+            check(false, format!("missing packages: {}", missing.join(", ")))
         });
     }
 
     // Display manager.
     match picks.login.and_then(|l| l.unit.as_deref()) {
-        Some(unit) => out.push(check(unit_enabled(unit), format!("{unit} aktif saat boot"))),
+        Some(unit) => out.push(check(
+            unit_enabled(unit),
+            format!("{unit} is enabled at boot"),
+        )),
         None if picks.login.is_none() => {
             let dm = ["lightdm", "sddm", "gdm", "greetd"]
                 .iter()
                 .map(|n| format!("{n}.service"))
                 .find(|u| unit_enabled(u));
             out.push(match dm {
-                Some(u) => check(true, format!("{u} aktif saat boot (bawaan desktop)")),
-                None => check(false, "tidak ada display manager yang aktif"),
+                Some(u) => check(
+                    true,
+                    format!("{u} is enabled at boot (provided by the desktop)"),
+                ),
+                None => check(false, "No display manager is enabled"),
             });
         }
         None => {}
@@ -70,8 +73,24 @@ pub fn verify(cat: &Catalog, picks: &Picks, user: &str, base_dir: &Path) -> Vec<
             .is_some_and(wayland_session_exists);
         out.push(check(
             by_file || by_cmd,
-            format!("sesi Wayland {} terdaftar", d.name),
+            format!("Wayland session {} is registered", d.name),
         ));
+    } else if d.id == "ryoku" {
+        let (mut hyprland, mut niri) = (false, false);
+        if let Ok(entries) = fs::read_dir("/usr/share/wayland-sessions") {
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().to_ascii_lowercase();
+                hyprland |= name.ends_with(".desktop") && name.contains("hyprland");
+                niri |= name.ends_with(".desktop") && name.contains("niri");
+            }
+        }
+        out.push(check(
+            hyprland && niri,
+            "Ryoku Hyprland and niri sessions are registered",
+        ));
+        let theme = fs::read_to_string("/etc/sddm.conf.d/50-rakuos-theme.conf")
+            .is_ok_and(|text| text.contains("Current=ryoku"));
+        out.push(check(theme, "Ryoku SDDM theme is selected"));
     }
 
     // Skel: setiap file di skel harus ada di home user.
@@ -84,12 +103,15 @@ pub fn verify(cat: &Catalog, picks: &Picks, user: &str, base_dir: &Path) -> Vec<
                     .filter(|rel| !home.join(rel).is_file())
                     .collect();
                 out.push(if missing.is_empty() {
-                    check(true, format!("config {} ada di {}", d.name, home.display()))
+                    check(
+                        true,
+                        format!("{} configuration is present in {}", d.name, home.display()),
+                    )
                 } else {
                     check(
                         false,
                         format!(
-                            "config {} belum tersalin: {}",
+                            "{} configuration was not copied: {}",
                             d.name,
                             missing
                                 .iter()
@@ -100,7 +122,10 @@ pub fn verify(cat: &Catalog, picks: &Picks, user: &str, base_dir: &Path) -> Vec<
                     )
                 });
             }
-            Err(e) => out.push(check(false, format!("home {user} tidak ditemukan: {e}"))),
+            Err(e) => out.push(check(
+                false,
+                format!("home directory for {user} was not found: {e}"),
+            )),
         }
     }
     out

@@ -108,10 +108,10 @@ impl Catalog {
     pub fn load(path: Option<&std::path::Path>) -> Result<Self> {
         let text = match path {
             Some(p) => std::fs::read_to_string(p)
-                .with_context(|| format!("tidak bisa membaca katalog {}", p.display()))?,
+                .with_context(|| format!("unable to read catalog {}", p.display()))?,
             None => include_str!("../data/catalog.toml").to_string(),
         };
-        let mut cat: Catalog = toml::from_str(&text).context("katalog TOML tidak valid")?;
+        let mut cat: Catalog = toml::from_str(&text).context("invalid catalog TOML")?;
         cat.sort_by_name();
         Ok(cat)
     }

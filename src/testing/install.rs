@@ -1,5 +1,7 @@
+use crate::catalog::Catalog;
 use crate::install::{
-    parse_overlay_rpmdb, parse_regular_user, sddm_config_body, sddm_sessions_body,
+    packages, parse_overlay_rpmdb, parse_regular_user, primary_rpm_fingerprint, sddm_config_body,
+    sddm_sessions_body, Picks,
 };
 
 #[test]
@@ -53,6 +55,41 @@ fn overlay_rpmdb_mengabaikan_keluaran_kosong_atau_sampah() {
     assert_eq!(parse_overlay_rpmdb("bukan keluaran rum paths\n"), None);
     assert_eq!(parse_overlay_rpmdb("overlay rpmdb:\n"), None);
     assert_eq!(parse_overlay_rpmdb("overlay rpmdb:   \n"), None);
+}
+
+#[test]
+fn fingerprint_rpm_memastikan_satu_kunci_utama_dan_mengabaikan_subkey() {
+    let listing = "pub:-:4096:1:ABCDEF1234567890:0:0:::::scSC::::::23:\n\
+fpr:::::::::EB6D3C0F55A7B3CABA6B2838847B274F025DD6E3:\n\
+uid:::::::::Ryoku Releases::::::\n\
+sub:-:4096:1:1111222233334444:0:0:::::e::::::23:\n\
+fpr:::::::::1111222233334444555566667777888899990000:";
+    assert_eq!(
+        primary_rpm_fingerprint(listing).as_deref(),
+        Some("EB6D3C0F55A7B3CABA6B2838847B274F025DD6E3")
+    );
+    assert!(primary_rpm_fingerprint(&format!("{listing}\npub:-:1:1:OTHER::::::")).is_none());
+}
+
+#[test]
+fn ryoku_tidak_mengambil_paket_base_dan_pilihan_aplikasi_umum() {
+    let cat = Catalog::load(None).unwrap();
+    let desktop = cat.desktops.iter().find(|d| d.id == "ryoku").unwrap();
+    let picks = Picks {
+        terminals: vec![],
+        browsers: vec![],
+        file_managers: vec![],
+        desktop,
+        login: cat.logins.iter().find(|l| l.id == "ryoku-sddm"),
+    };
+    let pkgs = packages(&cat, &picks);
+    assert!(pkgs.contains("ryoku-desktop"));
+    assert!(pkgs.contains("ryoku-rashin"));
+    assert!(pkgs.contains("yazi"));
+    assert!(pkgs.contains("starship"));
+    assert!(pkgs.contains("firefox"));
+    assert!(!pkgs.contains("rakuos-software-qt"));
+    assert!(!pkgs.contains("@budgie-desktop"));
 }
 
 const PASSWD: &str = "root:x:0:0:root:/root:/bin/bash\n\

@@ -1,173 +1,154 @@
-# UI — rakuos-bootstrap
+# RakuOS Bootstrap UI
 
-Dokumen ini menjelaskan TUI yang digambar oleh `src/ui.rs` dan alur pilihan
-di `src/main.rs`. UI berjalan di terminal teks, termasuk console VT; tidak
-memerlukan GTK, Qt, atau mouse.
+This guide describes the terminal UI rendered by `src/ui.rs` and the setup flow
+in `src/main.rs`. The wizard runs in a text terminal, including the Linux VT. It
+does not require GTK, Qt, or a mouse.
 
-## Charset dan warna
+## Visual design
 
-| Charset | Kondisi | Bingkai dan penanda |
+The interface uses a cyan accent for the RakuOS brand, clear step progress, a
+highlighted current choice, concise descriptions, and a consistent keyboard
+help line. Colors adapt to the terminal and `NO_COLOR`; the UI falls back to
+plain text when colors are unavailable or output is not interactive.
+
+| Mode | When it is used | Frame and markers |
 |---|---|---|
-| Full | Terminal UTF-8 biasa | `╭─╮`, `✔ ● ○ ❯` |
-| Tty | `TERM=linux` dan locale UTF-8 | `┌─┐`, `[x] [>] [ ]` |
-| Ascii | Locale bukan UTF-8, `--ascii`, `RAKUOS_ASCII`, atau `TERM=dumb` | `+-+`, `[x] [>] [ ]` |
+| Full | UTF-8 terminal emulator | `╭─╮`, `✔ ● ○ ❯` |
+| TTY | `TERM=linux` with a UTF-8 locale | `┌─┐`, `[x] [>] [ ]` |
+| ASCII | Non-UTF-8 locale, `--ascii`, `RAKUOS_ASCII`, or `TERM=dumb` | `+-+`, `[x] [>] [ ]` |
 
-Warna mengikuti dukungan terminal dan `NO_COLOR`: 256 warna jika tersedia,
-warna ANSI 16 untuk terminal lain yang mendukung warna, dan polos jika warna
-dinonaktifkan atau output tidak interaktif.
+The terminal uses bright cyan when supported. On the Linux VT it uses the
+bright ANSI cyan color; on other terminals it uses 256-color cyan when
+available.
 
-## Tombol
+## Keyboard controls
 
-- `↑`/`↓`, `j`/`k`: pindah sorotan; `Tab` juga bergerak ke bawah.
-- Daftar jamak: `Space` atau `1`–`9` mencentang pilihan pada posisi itu.
-- Daftar tunggal: `1`–`9` memilih pilihan pada posisi itu.
-- `Enter`: lanjut jika ada pilihan yang valid.
-- `Esc`, `Backspace`, `←`, atau `b`: kembali satu layar.
-- `Ctrl-C`: batalkan wizard. Saat berada di langkah pertama, tombol kembali
-  menampilkan pesan bahwa `Ctrl-C` digunakan untuk membatalkan.
+- `↑` / `↓`, `j` / `k`, or `Tab`: move the highlight.
+- Multi-select lists: `Space` or `1`–`9` toggles an option.
+- Single-select lists: `1`–`9` selects an option.
+- `Enter`: continue when the selection is valid.
+- `Esc`, `Backspace`, `←`, or `b`: go back one step.
+- `Ctrl-C`: quit the wizard. On the first step, the back keys show a hint to
+  use `Ctrl-C` to quit.
 
-Kategori Terminal, File manager, dan Browser menerima satu pilihan atau lebih;
-minimal satu harus dicentang. Desktop menerima satu pilihan. Login manager
-muncul sesudah Desktop hanya untuk pilihan desktop dengan `choose_login = true`.
-Saat ringkasan terbuka, `Enter`/`y` melanjutkan, `n` membatalkan, dan tombol
-kembali mengembalikan pengguna ke pilihan terakhir.
+Terminal, File Manager, and Browser allow multiple selections and require at
+least one option. Desktop and Login Manager allow one selection. Login Manager
+appears only when the selected desktop has `choose_login = true`. On the review
+screen, `Enter` or `y` continues, `n` cancels, and a back key returns to the
+last visible selection step.
 
-## Alur layar
+## Setup flow
 
 ```text
-Terminal → File manager → Browser → Desktop → [Login manager bila diminta]
-                                      ↓
-                              Ringkasan dan konfirmasi
-                                      ↓
-                       pasang paket, siapkan sesi/config,
-                          verifikasi, lalu tanya reboot
+Desktop → Terminal → File Manager → Browser → [Login Manager when needed]
+   ↓                                      ↓
+Ryoku setup                          Review your setup
+                                           ↓
+                              Install, configure, and verify
 ```
 
-Stepper selalu menyediakan lima label dalam urutan Terminal, File manager,
-Browser, Desktop, Login. Login dilewati untuk desktop yang memakai login
-bawaannya atau `login_override` di katalog. Pada lebar terminal di bawah 72
-kolom, hanya nama fase aktif yang tampil di stepper.
+Ryoku skips the generic app and login selections and uses its own setup path.
+For other desktops, login is skipped when the desktop provides its own login
+manager or the catalog sets `login_override`. On terminals under 72 columns,
+the stepper shows only the active step name.
 
-## Contoh layar
+KineticWE uses the `theblackdon/kwee` COPR for its desktop package and skips
+`mindset/Mindset-Apps`. Terra and RPM Fusion can still be enabled for separately
+selected apps. Ryoku uses only its dedicated RPM and dependency COPR setup.
 
-Contoh berikut memakai katalog saat ini. Deskripsi dan pilihan berasal dari
-`data/catalog.toml`; data katalog bisa berubah.
+## Example screens
 
-### Terminal
+The examples use the current catalog. Options and descriptions come from
+`data/catalog.toml` and may change.
+
+### Choose a terminal
 
 ```text
 ╭────────────────────────────────────────────────────────────────────────────╮
-│ RAKUOS bootstrap                                                    v0.2.4 │
-│ Menghidupkan sistem minimal sampai punya GUI                       DRY-RUN │
+│ RAKUOS setup                                                       v0.3.0 │
+│ Set up your RakuOS desktop                                        DRY-RUN │
 ╰────────────────────────────────────────────────────────────────────────────╯
 
- ● Terminal ── ○ File manager ── ○ Browser ── ○ Desktop ── ○ Login
+ ✔ Desktop ── ● Terminal ── ○ File Manager ── ○ Browser ── ○ Sign-in
 
- Fase 1 dari 5 · Terminal
- Tempat mengetik perintah
+ STEP 2 OF 5 · Terminal
+ Terminal for running commands
  ────────────────────────────────────────────────────────────────────────────
-   [ ] Alacritty        GPU-accelerated, konfigurasi YAML sederhana
-   [ ] Foot             Ringan, Wayland-only, cocok untuk sistem minimal
-   [ ] Ghostty          Dari repo Terra, diaktifkan otomatis saat instalasi
- ❯ [x] Kitty            GPU-accelerated, paling umum dipakai di Hyprland
+   [ ] Alacritty        GPU-accelerated with a simple YAML configuration
+   [ ] Foot             Lightweight, Wayland-only, ideal for minimal systems
+   [ ] Ghostty          From the Terra repository; enabled automatically
+ ❯ [x] Kitty            GPU-accelerated and commonly used with Hyprland
+ 1 selected
 
- ↑↓ pilih  Space centang  Enter lanjut  Esc/← kembali  Ctrl-C batal
+ ↑↓ Move  Space Toggle  Enter Continue  Esc/← Back  Ctrl-C Quit
 ```
 
-`default = true` di katalog menentukan pilihan jamak yang dicentang saat layar
-pertama kali dibuka. Urutan pilihan selalu alfabetis. Pilihan yang dicentang
-tetap tersimpan ketika pengguna kembali ke layar itu.
+`default = true` in the catalog determines which multi-select options start
+checked. Options are sorted alphabetically. Selections remain checked when you
+return to a step.
 
-### Browser
-
-Daftar bisa lebih panjang daripada tinggi terminal. UI menampilkan jendela
-pilihan dan jumlah item tersembunyi di bawah atau di atasnya.
+### Choose a desktop
 
 ```text
- Fase 3 dari 5 · Browser
- Pilih satu atau lebih; semuanya paket RPM
+ STEP 1 OF 5 · Desktop
+ Choose your Wayland desktop
  ────────────────────────────────────────────────────────────────────────────
-   [ ] Brave            Chromium dengan pemblokir iklan bawaan
-   [ ] Chromium         Open source, tanpa sinkronisasi akun Google
-   [ ] Epiphany         GNOME Web (WebKitGTK), paling ringan
-   [ ] Falkon           Qt/Chromium ringan, cocok sistem minimal
- ❯ [x] Firefox          Default, cepat, dan paling kompatibel
-   [ ] Google Chrome   Proprietary, sinkronisasi akun Google
-   [ ] Helium           Chromium privat dan cepat, dari Terra
-   [ ] LibreWolf        Firefox tanpa telemetri, fokus privasi
-   [ ] Microsoft Edge  Chromium Microsoft, paket paling besar
-   [ ] QuteBrowser      Keyboard-only, Qt/Python
- ↓3 lagi
+   Budgie       Traditional desktop with a Wayland session
+ ❯ Hyprland     Dynamic tiling with a minimal configuration
+   KineticWE    KWin-based tiling desktop with the Noctalia shell
+   LXQt         Lightweight desktop with a Wayland session through Miriway
+   MangoWM      Lightweight tiling compositor based on dwl (wlroots)
+   MiracleWM    Wayland tiling compositor; Fedora group includes SDDM
+   Ryoku        Complete Wayland desktop; manages its own setup
+   Sway         Lightweight Wayland tiling desktop
+   Umbriel      Lightweight Wayland compositor; daily Git build
+
+ ↑↓ Move  Enter Continue  Esc/← Back  1-9 Jump  Ctrl-C Quit
 ```
 
-### Desktop
+Selecting Ryoku skips the generic terminal, file manager, browser, and login
+manager screens. It installs Ryoku's default Kitty, Nautilus, Firefox, Fish,
+both compositor sessions, its default app bundle, and SDDM theme through the
+dedicated RPM path.
+
+### Review your setup
+
+The review shows the selected software, login method, repositories, target user,
+and the number of RPM packages that will be installed. Package names wrap to at
+most two lines.
 
 ```text
- Fase 4 dari 5 · Desktop
- Compositor Wayland; config minimal tanpa bar
+ ✔ Desktop ── ✔ Terminal ── ✔ File Manager ── ✔ Browser ── ✔ Sign-in
+
+ Review your setup
  ────────────────────────────────────────────────────────────────────────────
- ❯ Budgie       Desktop tradisional modern, mode Wayland via Budgie Labwc
-   Hyprland     Tiling dinamis, config minimal tanpa bar
-   KineticWE    Tiling berbasis KWin, shell Noctalia
-   LXQt         Desktop ringan, sesi Wayland lewat Miriway
-   MangoWM      Tiling ringan berbasis dwl (wlroots)
-   MiracleWM    Tiling Wayland, paket desktop Fedora dengan SDDM
-   Sway         Tiling Wayland ringan, config minimal tanpa bar
-   Umbriel      Compositor Wayland ringan (paket Mindset-Apps, build git harian)
-```
-
-Budgie adalah pilihan desktop default. Sesudah memilih desktop, wizard
-menampilkan Login manager untuk Budgie, Hyprland, MangoWM, dan Sway. Pilihan
-login yang terlihat saat ini adalah DMS Greeter, Noctalia Greeter, SDDM, dan
-sysc-greet; SDDM adalah pilihan awal. Dengan default katalog, hasilnya Budgie
-Wayland + SDDM. MiracleWM memakai grup desktop Fedora yang menyertakan SDDM dan
-greeter Wayland Miracle; katalog menetapkan SDDM untuk desktop ini tanpa
-menampilkan pilihan Login manager. LXQt memakai display manager yang tersedia
-bersama desktop, sementara KineticWE dan Umbriel memakai login yang ditetapkan
-katalog.
-
-### Ringkasan
-
-Contoh ini menggambarkan isi ringkasan, bukan daftar paket tetap. Jumlah dan
-nama paket dihitung dari pilihan, katalog, serta paket dasar.
-
-```text
- ✔ Terminal ── ✔ File manager ── ✔ Browser ── ✔ Desktop ── ✔ Login
-
- Ringkasan
- ────────────────────────────────────────────────────────────────────────────
- Terminal       Kitty
- File manager   Nautilus
- Browser        Firefox
- Login          SDDM
- Desktop        Hyprland
- User target    mindset
- Paket RPM (…)
+ Desktop                Budgie
+ Terminal               Kitty
+ File Manager           Nautilus
+ Browser                Firefox
+ Login                  SDDM
+ Repositories           terra, rpmfusion, mindset
+ Target user            mindset
+ RPM packages (…)
    …
+ ? Continue with installation?
 
- ? Lanjutkan instalasi?
-
- Y/Enter lanjut  Esc/← kembali  n tidak  Ctrl-C batal
+ Y/Enter Continue  Esc/← Back  n Cancel  Ctrl-C Quit
 ```
 
-Ringkasan membatasi daftar paket hingga dua baris. `n` keluar tanpa
-menjalankan instalasi; `Esc`/`←` kembali ke langkah terakhir.
+## Installation and completion
 
-## Saat proses dan selesai
+After confirmation, the selection UI gives way to the cyan RakuOS header and
+live command output. Commands and their output are written to the log. In
+`--dry-run` mode, planned commands are prefixed with `+`; no packages are
+installed and no files are written.
 
-Sesudah konfirmasi, frame pilihan diganti header dan stepper. Perintah beserta
-keluarannya tampil dan dicatat ke file log. `--dry-run` menampilkan perintah
-dengan awalan `+` dan tidak menjalankan perintah atau menulis file.
+After verification, a normal run asks whether to reboot (`Y/n`). A `--first-boot`
+run reboots automatically after successful verification. If verification fails,
+automatic reboot is skipped and the log location is shown.
 
-Setelah verifikasi berhasil, instalasi biasa menanyakan reboot (`Y/n`);
-`--first-boot` langsung meminta reboot. Jika verifikasi gagal, reboot otomatis
-ditunda dan lokasi log ditampilkan.
-
-## Pembatalan dan batas tampilan
-
-- `Ctrl-C` menghasilkan pesan pembatalan dan exit code 130.
-- `n` pada ringkasan kembali dengan sukses tanpa mengubah sistem.
-- Lebar bingkai dibatasi sekitar 40–78 kolom. Deskripsi panjang dipotong,
-  sedangkan daftar pilihan dapat digulir di dalam layar.
-- Kursor terminal disembunyikan selama layar interaktif lalu dipulihkan.
-- UI tidak memakai alternate screen; frame terakhir tetap di scrollback.
+The screen width is capped at 78 columns and adapts down to 40 columns. Long
+descriptions are shortened, and long lists scroll within the available terminal
+height. The cursor is hidden while the wizard is interactive and restored when
+it exits. The UI does not use the alternate screen, so the final output remains
+in terminal scrollback.

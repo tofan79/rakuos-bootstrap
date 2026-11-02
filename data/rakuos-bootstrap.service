@@ -1,5 +1,5 @@
 [Unit]
-Description=RakuOS bootstrap (pilih desktop & aplikasi dasar)
+Description=RakuOS setup wizard (desktop and essential applications)
 After=network-online.target
 Wants=network-online.target
 ConditionPathExists=!/var/lib/rakuos/bootstrap.done
