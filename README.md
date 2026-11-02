@@ -59,8 +59,9 @@ atau `b` kembali satu layar; `Ctrl-C` membatalkan wizard. Pada ringkasan,
 `n` membatalkan tanpa instalasi, sedangkan `Esc` kembali ke pilihan terakhir.
 
 Setelah konfirmasi, script mengaktifkan repo sesuai desktop (termasuk repo
-khusus Ryoku atau KineticWE), menyegarkan metadata, memasang paket (`rum`, atau
-`dnf` bila `rum` tidak ada),
+khusus Ryoku atau KineticWE), membersihkan cache paket (`rum clean all`, atau
+`dnf clean all` bila `rum` tidak ada), lalu memasang paket dengan `--refresh`
+agar metadata diperbarui di transaksi install pertama. Script kemudian
 menyiapkan file sesi/skel yang tersedia, mengatur login manager, menulis state,
 dan memverifikasi hasilnya. Jika verifikasi gagal, reboot ditunda dan kegagalan
 dicatat di log.
@@ -90,7 +91,7 @@ generik `fedora-release-common` yang meminta identitas rilis Fedora dengan versi
 persis. `rakuos-release-common` menyediakan kapabilitas penggantinya, sedangkan
 paket `fedora-release-miraclewm` dari grup tetap dipasang.
 
-Repo umum katalog adalah Terra, RPM Fusion, dan COPR `mindset/Mindset-Apps`.
+Repo umum katalog adalah Terra, RPM Fusion stabil, dan COPR `mindset/Mindset-Apps`.
 KineticWE mengecualikan COPR Mindset-Apps dan mengaktifkan `theblackdon/kwee`;
 Ryoku (Niri) dan Ryoku (Hyprland) memakai repo RPM serta COPR dependensinya
 sendiri, dan masing-masing hanya memasang komponen sesi yang dipilih. Pilihan

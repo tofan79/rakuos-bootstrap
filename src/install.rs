@@ -101,8 +101,8 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
         enable_repos(cat, dry_run, &[])?;
     }
 
-    heading("Refresh repository metadata");
-    refresh_metadata(dry_run)?;
+    heading("Clear package manager cache");
+    clean_package_cache(dry_run)?;
 
     heading("Install packages");
     let no_recommends: &[String] = picks.login.map_or(&[], |l| l.no_recommends.as_slice());
@@ -418,7 +418,7 @@ fn run_as_user(user: &str, home: &Path, command: &[String]) -> Result<()> {
 /// Terra dan RPM Fusion dibawa image dalam keadaan `enabled=0`. Perilakunya
 /// disamakan dengan rakuos-welcome: Terra cukup satu id, RPM Fusion memakai
 /// daftar di `/usr/share/rakuos/rpmfusion-default-repos` (ditulis
-/// rakuos-base) supaya tidak ikut menyalakan repo source/debuginfo.
+/// rakuos-base), sambil memastikan repo updates-testing tetap nonaktif.
 fn enable_repos(cat: &Catalog, dry_run: bool, excluded: &[&str]) -> Result<()> {
     if cat.repos.is_empty() {
         println!("  (No third-party repositories requested)");
@@ -441,7 +441,19 @@ fn enable_repos(cat: &Catalog, dry_run: bool, excluded: &[&str]) -> Result<()> {
                 "--set-enabled".into(),
                 "terra".into(),
             ],
-            "rpmfusion" => rpmfusion_args(),
+            "rpmfusion" => {
+                run(
+                    "rum",
+                    &[
+                        "config-manager".into(),
+                        "--set-disabled".into(),
+                        "rpmfusion-free-updates-testing".into(),
+                        "rpmfusion-nonfree-updates-testing".into(),
+                    ],
+                    dry_run,
+                )?;
+                rpmfusion_args()
+            }
             "mindset" => vec![
                 "copr".into(),
                 "enable".into(),
@@ -510,15 +522,10 @@ fn enable_kineticwe_repo(dry_run: bool) -> Result<()> {
     )
 }
 
-/// Segarkan metadata setelah repo pihak ketiga dinyalakan. `rum make-cache`
-/// hanya mengambil metadata (tidak menyentuh paket overlay seperti
-/// `rum update`), jadi aman dijalankan sebelum instalasi.
-fn refresh_metadata(dry_run: bool) -> Result<()> {
-    if command_exists("rum") {
-        run("rum", &["make-cache".into()], dry_run)
-    } else {
-        run("dnf", &["makecache".into()], dry_run)
-    }
+/// Clear stale package and repository caches before the install transaction.
+fn clean_package_cache(dry_run: bool) -> Result<()> {
+    let (pm, _) = package_manager();
+    run(pm, &["clean".into(), "all".into()], dry_run)
 }
 
 /// Argumen `rum config-manager` untuk RPM Fusion, mengikuti rakuos-welcome.
@@ -529,6 +536,7 @@ fn rpmfusion_args() -> Vec<String> {
     let defaults: Vec<String> = fs::read_to_string(DEFAULTS)
         .unwrap_or_default()
         .split_whitespace()
+        .filter(|repo| !repo.contains("-updates-testing"))
         .map(str::to_string)
         .collect();
     if defaults.is_empty() {
@@ -621,6 +629,7 @@ fn install_set(
             .map(|package| format!("--exclude={package}")),
     );
     args.extend(pkgs.iter().cloned());
+    args.push("--refresh".into());
     run(pm, &args, dry_run)
 }
 
