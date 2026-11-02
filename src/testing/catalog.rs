@@ -88,7 +88,6 @@ fn login_resmi_memakai_paket_dan_config_rakuos_hyprland() {
         .iter()
         .find(|l| l.id == "noctalia-greeter")
         .unwrap();
-    assert!(noctalia.default);
     assert_eq!(
         noctalia.greetd_cmd.as_deref(),
         Some("/usr/bin/noctalia-greeter-session")

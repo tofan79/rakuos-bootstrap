@@ -784,6 +784,21 @@ pub(crate) fn unit_enabled(unit: &str) -> bool {
         .unwrap_or(false)
 }
 
+/// Betulkan pemilik & mode direktori data greeter yang dibuat oleh skrip
+/// setup (biasanya milik user sistem lain, mis. `greetd`), supaya greeter
+/// process bisa menulis sync.toml dan file datanya. Idempotent & best-effort:
+/// kegagalan tidak menghentikan instalasi, cuma diperingatkan.
+fn fix_greeter_data_dir(dir: &str, user: &str) {
+    use std::process::Command;
+    if !std::path::Path::new(dir).exists() {
+        return;
+    }
+    let _ = Command::new("chown")
+        .args(["-R", &format!("{user}:{user}"), dir])
+        .status();
+    let _ = Command::new("chmod").args(["700", dir]).status();
+}
+
 /// Tulis `/etc/greetd/config.toml` untuk greeter berbasis greetd (DMS,
 /// Noctalia, sysc-greet). Config lama disimpan sekali sebagai `config.toml.bak`.
 fn configure_greetd(login: &Choice, desktop: &Choice, dry_run: bool) -> Result<()> {
@@ -825,6 +840,11 @@ fn configure_greetd(login: &Choice, desktop: &Choice, dry_run: bool) -> Result<(
         );
         if let Some(setup) = &login.greetd_setup {
             println!("  + jalankan {setup}");
+            println!(
+                "  + betulkan pemilik /var/lib/{} dan /var/lib/{} (mode 700)",
+                user,
+                login.id
+            );
         }
         return Ok(());
     }
@@ -843,6 +863,12 @@ fn configure_greetd(login: &Choice, desktop: &Choice, dry_run: bool) -> Result<(
 
     if let Some(setup) = &login.greetd_setup {
         run(setup, &[], false)?;
+        let home = format!("/var/lib/{}", user);
+        fix_greeter_data_dir(&home, user);
+        let data_dir = format!("/var/lib/{}", login.id);
+        if Path::new(&data_dir).is_dir() {
+            fix_greeter_data_dir(&data_dir, user);
+        }
     }
     Ok(())
 }
