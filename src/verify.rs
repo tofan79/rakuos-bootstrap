@@ -75,18 +75,22 @@ pub fn verify(cat: &Catalog, picks: &Picks, user: &str, base_dir: &Path) -> Vec<
             by_file || by_cmd,
             format!("Wayland session {} is registered", d.name),
         ));
-    } else if d.id == "ryoku" {
-        let (mut hyprland, mut niri) = (false, false);
+    } else if d.is_ryoku() {
+        let mut session_found = false;
         if let Ok(entries) = fs::read_dir("/usr/share/wayland-sessions") {
             for entry in entries.flatten() {
                 let name = entry.file_name().to_string_lossy().to_ascii_lowercase();
-                hyprland |= name.ends_with(".desktop") && name.contains("hyprland");
-                niri |= name.ends_with(".desktop") && name.contains("niri");
+                let expected = if d.id == "ryoku-niri" {
+                    "niri"
+                } else {
+                    "hyprland"
+                };
+                session_found |= name.ends_with(".desktop") && name.contains(expected);
             }
         }
         out.push(check(
-            hyprland && niri,
-            "Ryoku Hyprland and niri sessions are registered",
+            session_found,
+            format!("Ryoku {} session is registered", d.name),
         ));
         let theme = fs::read_to_string("/etc/sddm.conf.d/50-rakuos-theme.conf")
             .is_ok_and(|text| text.contains("Current=ryoku"));

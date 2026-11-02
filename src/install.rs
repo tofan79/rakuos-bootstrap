@@ -64,7 +64,7 @@ impl Picks<'_> {
 
 /// Semua paket RPM: lapisan dasar + paket dari tiap pilihan.
 pub fn packages(cat: &Catalog, p: &Picks) -> BTreeSet<String> {
-    if p.desktop.id == "ryoku" {
+    if p.desktop.is_ryoku() {
         return p.desktop.packages.iter().cloned().collect();
     }
 
@@ -88,14 +88,15 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
     let pkgs = packages(cat, picks);
 
     heading("Enable package repositories");
-    if picks.desktop.id == "ryoku" {
+    if picks.desktop.is_ryoku() {
         enable_ryoku_repos(dry_run)?;
     } else if picks.desktop.id == "kineticwe" {
         // KineticWE is published by its upstream COPR. Keep the standard
         // Terra/RPM Fusion repos available for the separately chosen apps,
         // but do not enable Mindset-Apps for this desktop.
-        enable_repos(cat, dry_run, &["mindset"])?;
+        disable_mindset_copr(dry_run)?;
         enable_kineticwe_repo(dry_run)?;
+        enable_repos(cat, dry_run, &["mindset"])?;
     } else {
         enable_repos(cat, dry_run, &[])?;
     }
@@ -118,9 +119,11 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
         &[]
     };
     let excluded_packages: &[&str] = if picks.desktop.id == "miraclewm" {
-        // RakuOS owns the release identity RPM. Fedora's variant RPM requires
-        // a matching Fedora 45 identity version and conflicts with that base.
-        &["fedora-release-miraclewm"]
+        // RakuOS release-common already provides fedora-release-common and
+        // owns the release identity. Do not pull Fedora's generic common RPM,
+        // which requires an exact-version Fedora identity and conflicts with
+        // the RakuOS base. Keep fedora-release-miraclewm from the group.
+        &["fedora-release-common"]
     } else {
         &[]
     };
@@ -132,7 +135,7 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
         dry_run,
     )?;
 
-    if picks.desktop.id == "ryoku" {
+    if picks.desktop.is_ryoku() {
         setup_ryoku(picks.desktop, &user, dry_run)?;
         heading("Verification");
         if dry_run {
@@ -449,6 +452,42 @@ fn enable_repos(cat: &Catalog, dry_run: bool, excluded: &[&str]) -> Result<()> {
             other => bail!("unknown third-party repository: {other}"),
         };
         run("rum", &args, dry_run)?;
+    }
+    Ok(())
+}
+
+/// Permanently disable Mindset-Apps for KineticWE, if it is currently enabled.
+fn disable_mindset_copr(dry_run: bool) -> Result<()> {
+    const REPO_ID: &str = "copr:copr.fedorainfracloud.org:mindset:Mindset-Apps";
+    if !command_exists("rum") {
+        bail!("rum is required to disable COPR mindset/Mindset-Apps for KineticWE");
+    }
+    if dry_run {
+        println!("  + Disable COPR mindset/Mindset-Apps if currently enabled");
+        return Ok(());
+    }
+
+    let output = Command::new("rum")
+        .args(["repolist", "--all"])
+        .output()
+        .context("check whether COPR mindset/Mindset-Apps is enabled")?;
+    if !output.status.success() {
+        bail!("could not list repositories before configuring KineticWE");
+    }
+    let enabled = String::from_utf8_lossy(&output.stdout).lines().any(|line| {
+        let mut columns = line.split_whitespace();
+        columns.next() == Some(REPO_ID) && columns.any(|column| column == "enabled")
+    });
+    if enabled {
+        run(
+            "rum",
+            &[
+                "config-manager".into(),
+                "--set-disabled".into(),
+                REPO_ID.into(),
+            ],
+            false,
+        )?;
     }
     Ok(())
 }

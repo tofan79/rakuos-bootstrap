@@ -137,7 +137,7 @@ fn run() -> Result<()> {
                     Nav::Next(i) => {
                         desktop = Some(i);
                         login = None;
-                        phase = if catalog.desktops[i].id == "ryoku" {
+                        phase = if catalog.desktops[i].is_ryoku() {
                             PHASE_SUMMARY
                         } else {
                             PHASE_TERMINAL
@@ -247,7 +247,7 @@ fn run() -> Result<()> {
                 }
                 Confirm::Back => {
                     let d = desktop.expect("desktop has been selected");
-                    phase = if catalog.desktops[d].id == "ryoku" {
+                    phase = if catalog.desktops[d].is_ryoku() {
                         PHASE_DESKTOP
                     } else if catalog.desktops[d].choose_login {
                         PHASE_LOGIN
@@ -343,7 +343,7 @@ fn summarize(
     };
 
     let packages: Vec<String> = install::packages(catalog, &picks).into_iter().collect();
-    let repos = if desktop_choice.id == "ryoku" {
+    let repos = if desktop_choice.is_ryoku() {
         "Ryoku RPM, restricted dependency COPRs".to_string()
     } else if desktop_choice.id == "kineticwe" {
         catalog
@@ -367,7 +367,7 @@ fn summarize(
     let rows = [
         (
             "Terminal",
-            if desktop_choice.id == "ryoku" {
+            if desktop_choice.is_ryoku() {
                 "Kitty (Ryoku default)".to_string()
             } else {
                 chosen(&catalog.terminals, terminals)
@@ -375,7 +375,7 @@ fn summarize(
         ),
         (
             "File Manager",
-            if desktop_choice.id == "ryoku" {
+            if desktop_choice.is_ryoku() {
                 "Nautilus (Ryoku default)".to_string()
             } else {
                 chosen(&catalog.file_managers, file_managers)
@@ -383,7 +383,7 @@ fn summarize(
         ),
         (
             "Browser",
-            if desktop_choice.id == "ryoku" {
+            if desktop_choice.is_ryoku() {
                 "Firefox (Ryoku default)".to_string()
             } else {
                 chosen(&catalog.browsers, browsers)

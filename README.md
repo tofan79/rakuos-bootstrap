@@ -41,13 +41,14 @@ Log tidak dibuat saat `--dry-run`.
 Urutan layar adalah Desktop, Terminal, File manager, Browser, lalu Login
 manager bila desktop yang dipilih memiliki `choose_login = true`. Pilihan untuk
 tiga kategori aplikasi bisa jamak; desktop dan login manager tunggal. Ryoku
-melewati pilihan aplikasi dan login manager umum, lalu memakai repo RPM serta
-konfigurasi khusus Ryoku. Desktop lain memakai display manager yang dibawa
-desktopnya jika tidak meminta pilihan login.
+(Niri) dan Ryoku (Hyprland) melewati pilihan aplikasi dan login manager umum,
+lalu memakai repo RPM serta konfigurasi khusus Ryoku. Desktop lain memakai
+display manager yang dibawa desktopnya jika tidak meminta pilihan login.
 KineticWE tetap memakai pilihan aplikasi umum, tetapi mengambil paket desktop
 dari COPR `theblackdon/kwee`; COPR `mindset/Mindset-Apps` tidak diaktifkan
 untuk pilihan ini. Terra dan RPM Fusion tetap mengikuti katalog untuk aplikasi
-tambahan yang dipilih. Saat transaksi paket KineticWE, Mindset-Apps juga
+tambahan yang dipilih. Jika Mindset-Apps masih aktif dari konfigurasi lama,
+bootstrap menonaktifkannya sebelum mengaktifkan COPR KineticWE. Saat transaksi paket KineticWE, Mindset-Apps juga
 dinonaktifkan sementara agar greeter lama dari repo itu tidak terpilih jika
 repo tersebut sudah aktif sebelumnya.
 
@@ -75,7 +76,7 @@ agar dokumentasi tidak menyalin metadata yang bisa berubah.
 | Terminal | Alacritty, Foot, Ghostty, Kitty | Kitty |
 | File manager | Dolphin, HyprFM, Nautilus, Nemo, Superfile, Thunar, Yazi | Nautilus |
 | Browser | Brave, Chromium, Epiphany, Falkon, Firefox, Google Chrome, Helium, LibreWolf, Microsoft Edge, QuteBrowser, Vivaldi, Waterfox, Zen Browser | Firefox |
-| Desktop | Budgie, Hyprland, KineticWE, LXQt, MangoWM, MiracleWM, Ryoku, Sway, Umbriel | Budgie |
+| Desktop | Budgie, Hyprland, KineticWE, LXQt, MangoWM, MiracleWM, Ryoku (Hyprland), Ryoku (Niri), Sway, Umbriel | Budgie |
 | Login manager | DMS Greeter, Noctalia Greeter, SDDM, sysc-greet | SDDM |
 
 Login manager hanya ditanyakan untuk Budgie, Hyprland, MangoWM, dan Sway; SDDM
@@ -85,12 +86,17 @@ otomatis mengaktifkan SDDM Wayland dari grup tersebut. LXQt memakai display
 manager yang ikut terpasang bersama desktop. KineticWE dan Umbriel memakai
 login yang ditetapkan katalog.
 MiracleWM memakai grup desktop Fedora dan SDDM Wayland-nya, tetapi melewati RPM
-identitas rilis MiracleWM milik Fedora agar identitas rilis RakuOS tetap dipakai.
+generik `fedora-release-common` yang meminta identitas rilis Fedora dengan versi
+persis. `rakuos-release-common` menyediakan kapabilitas penggantinya, sedangkan
+paket `fedora-release-miraclewm` dari grup tetap dipasang.
 
 Repo umum katalog adalah Terra, RPM Fusion, dan COPR `mindset/Mindset-Apps`.
 KineticWE mengecualikan COPR Mindset-Apps dan mengaktifkan `theblackdon/kwee`;
-Ryoku menggunakan repo RPM serta COPR dependensinya sendiri. Jika `rum` tidak
-ditemukan, repo umum dilewati dan pemasangan paket menggunakan `dnf`; pilihan
+Ryoku (Niri) dan Ryoku (Hyprland) memakai repo RPM serta COPR dependensinya
+sendiri, dan masing-masing hanya memasang komponen sesi yang dipilih. Pilihan
+Niri tidak memasang `hyprglass`; pilihan Hyprland tetap memerlukannya dan dapat
+gagal jika ABI Aquamarine di repo belum cocok. Jika `rum` tidak ditemukan,
+repo umum dilewati dan pemasangan paket menggunakan `dnf`; pilihan
 KineticWE memerlukan `rum` untuk mengaktifkan COPR upstream-nya.
 
 ## File yang dipasang atau ditulis

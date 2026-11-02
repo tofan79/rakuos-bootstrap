@@ -74,7 +74,7 @@ fpr:::::::::1111222233334444555566667777888899990000:";
 #[test]
 fn ryoku_tidak_mengambil_paket_base_dan_pilihan_aplikasi_umum() {
     let cat = Catalog::load(None).unwrap();
-    let desktop = cat.desktops.iter().find(|d| d.id == "ryoku").unwrap();
+    let desktop = cat.desktops.iter().find(|d| d.id == "ryoku-niri").unwrap();
     let picks = Picks {
         terminals: vec![],
         browsers: vec![],

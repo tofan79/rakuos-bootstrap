@@ -197,11 +197,27 @@ packages = ["@miraclewm-desktop"]
 login_override = "miraclewm-sddm"
 
 [[desktops]]
-id = "ryoku"
-name = "Ryoku"
-description = "Complete Wayland desktop; manages its own apps, sessions, and SDDM setup"
+id = "ryoku-niri"
+name = "Ryoku (Niri)"
+description = "Complete Ryoku desktop using the Niri Wayland session"
 packages = [
-    "ryoku", "ryoku-keyring", "ryoku-desktop", "ryoku-desktop-hyprland", "ryoku-desktop-niri",
+    "ryoku", "ryoku-keyring", "ryoku-desktop", "ryoku-desktop-niri",
+    "kitty", "nautilus", "nautilus-python", "firefox", "fish",
+    "ryotunes", "ryomanager", "neovim", "btop", "starship", "fastfetch", "yazi",
+    "eza", "bat", "fd-find", "fzf", "zoxide", "gh", "lazygit",
+    "pavucontrol", "mpv", "mpv-mpris", "songrec", "openrgb", "waifu2x-ncnn-vulkan",
+    "gamescope", "gamemode", "mangohud", "xpadneo-dkms", "game-devices-udev",
+    "qemu-kvm", "edk2-ovmf", "virglrenderer", "moby-engine", "flatpak",
+    "golang", "nodejs24", "nodejs24-npm", "python3-pip", "pipx", "mise", "ryoku-rashin",
+]
+login_override = "ryoku-sddm"
+
+[[desktops]]
+id = "ryoku-hyprland"
+name = "Ryoku (Hyprland)"
+description = "Complete Ryoku desktop using the Hyprland Wayland session"
+packages = [
+    "ryoku", "ryoku-keyring", "ryoku-desktop", "ryoku-desktop-hyprland",
     "kitty", "nautilus", "nautilus-python", "firefox", "fish",
     "ryotunes", "ryomanager", "neovim", "btop", "starship", "fastfetch", "yazi",
     "eza", "bat", "fd-find", "fzf", "zoxide", "gh", "lazygit",
