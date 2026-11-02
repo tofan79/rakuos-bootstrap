@@ -842,8 +842,7 @@ fn configure_greetd(login: &Choice, desktop: &Choice, dry_run: bool) -> Result<(
             println!("  + jalankan {setup}");
             println!(
                 "  + betulkan pemilik /var/lib/{} dan /var/lib/{} (mode 700)",
-                user,
-                login.id
+                user, login.id
             );
         }
         return Ok(());
