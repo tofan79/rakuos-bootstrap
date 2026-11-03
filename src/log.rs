@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 //! Log ke file (default `/var/log/rakuos-bootstrap.log`).
 //!
 //! Mode `--first-boot` jalan di tty1 lalu reboot, jadi layar tidak bisa
@@ -34,10 +35,10 @@ pub fn init(path: &Path, stamp: &str) -> Result<(), String> {
 
 /// Tulis satu baris ke log (kalau log aktif).
 pub fn note(text: &str) {
-    if let Some(lock) = LOG.get() {
-        if let Ok(mut f) = lock.lock() {
-            let _ = writeln!(f, "{text}");
-        }
+    if let Some(lock) = LOG.get()
+        && let Ok(mut f) = lock.lock()
+    {
+        let _ = writeln!(f, "{text}");
     }
 }
 

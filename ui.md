@@ -1,127 +1,131 @@
-# RakuOS Bootstrap UI
+# Tampilan RakuOS Bootstrap
 
-This guide describes the terminal UI rendered by `src/ui.rs` and the setup flow
-in `src/main.rs`. The wizard runs in a text terminal, including the Linux VT. It
-does not require GTK, Qt, or a mouse.
+Panduan ini menjelaskan tampilan terminal yang digambar oleh `src/ui.rs` dan
+alur setup di `src/main.rs`. Wizard berjalan di terminal teks, termasuk di
+virtual console Linux. Tidak perlu GTK, Qt, atau mouse.
 
-## Visual design
+## Desain tampilan
 
-The interface uses a cyan accent for the RakuOS brand, clear step progress, a
-highlighted current choice, concise descriptions, and a consistent keyboard
-help line. Colors adapt to the terminal and `NO_COLOR`; the UI falls back to
-plain text when colors are unavailable or output is not interactive.
+Antarmuka memakai aksen cyan untuk merek RakuOS, progres langkah yang jelas,
+baris pilihan yang disorot, deskripsi singkat, dan baris bantuan keyboard yang
+konsisten. Warna menyesuaikan kemampuan terminal dan `NO_COLOR`; UI kembali ke
+teks polos jika warna tidak tersedia atau output bukan terminal interaktif.
 
-| Mode | When it is used | Frame and markers |
+| Mode | Kapan dipakai | Kotak dan penanda |
 |---|---|---|
-| Full | UTF-8 terminal emulator | `╭─╮`, `✔ ● ○ ❯` |
-| TTY | `TERM=linux` with a UTF-8 locale | `┌─┐`, `[x] [>] [ ]` |
-| ASCII | Non-UTF-8 locale, `--ascii`, `RAKUOS_ASCII`, or `TERM=dumb` | `+-+`, `[x] [>] [ ]` |
+| Full | Emulator terminal UTF-8 | `╭─╮`, `✔ ● ○ ❯` |
+| TTY | `TERM=linux` dengan locale UTF-8 | `┌─┐`, `[x] [>] [ ]` |
+| ASCII | Locale bukan UTF-8, `--ascii`, `RAKUOS_ASCII`, atau `TERM=dumb` | `+-+`, `[x] [>] [ ]` |
 
-The terminal uses bright cyan when supported. On the Linux VT it uses the
-bright ANSI cyan color; on other terminals it uses 256-color cyan when
-available.
+Terminal memakai cyan terang bila didukung. Di virtual console Linux dipakai
+warna ANSI cyan terang; di terminal lain dipakai cyan 256 warna bila tersedia.
 
-## Keyboard controls
+## Kontrol keyboard
 
-- `↑` / `↓`, `j` / `k`, or `Tab`: move the highlight.
-- Multi-select lists: `Space` or `1`–`9` toggles an option.
-- Single-select lists: `1`–`9` selects an option.
-- `Enter`: continue when the selection is valid.
-- `Esc`, `Backspace`, `←`, or `b`: go back one step.
-- `Ctrl-C`: quit the wizard. On the first step, the back keys show a hint to
-  use `Ctrl-C` to quit.
+- `↑` / `↓`, `j` / `k`, atau `Tab`: memindahkan sorotan.
+- Daftar multi-pilih: `Space` mencentang atau melepas pilihan.
+- `Enter`: lanjut bila pilihan sudah valid.
+- `Esc`, `Backspace`, `←`, atau `b`: kembali satu layar.
+- `Ctrl-C`: keluar dari wizard. Di layar pertama, tombol kembali hanya
+  menampilkan petunjuk untuk memakai `Ctrl-C`.
 
-Terminal, File Manager, and Browser allow multiple selections and require at
-least one option. Desktop and Login Manager allow one selection. Login Manager
-appears only when the selected desktop has `choose_login = true`. On the review
-screen, `Enter` or `y` continues, `n` cancels, and a back key returns to the
-last visible selection step.
+Terminal, File Manager, dan Browser boleh memilih lebih dari satu dan wajib
+memilih minimal satu. Desktop dan Login Manager hanya boleh satu pilihan.
+Layar Login Manager muncul hanya jika desktop yang dipilih punya
+`choose_login = true`. Di layar ringkasan, `Enter` atau `y` melanjutkan,
+`n` membatalkan, dan tombol kembali mengembalikan ke layar pilihan terakhir
+yang benar-benar ditampilkan.
 
-## Setup flow
+## Alur setup
 
 ```text
-Desktop → Terminal → File Manager → Browser → [Login Manager when needed]
-   ↓                                      ↓
-
-                                           ↓
+Desktop → Terminal → File Manager → Browser → [Login Manager bila perlu]
+                                                    ↓
+                                         Review your setup
+                                                    ↓
                               Install, configure, and verify
 ```
 
+Untuk desktop lain, layar login dilewati bila desktop sudah membawa login
+manager sendiri atau katalog menetapkan `login_override`. Di terminal dengan
+lebar di bawah 72 kolom, stepper hanya menampilkan nama langkah aktif.
 
-For other desktops, login is skipped when the desktop provides its own login
-manager or the catalog sets `login_override`. On terminals under 72 columns,
-the stepper shows only the active step name.
+KineticWE mengaktifkan COPR `theblackdon/kwee` untuk paket desktopnya dan tidak
+mengaktifkan `mindset/Mindset-Apps`. Terra dan RPM Fusion tetap bisa
+diaktifkan untuk aplikasi lain yang dipilih.
 
-KineticWE disables `mindset/Mindset-Apps` if it is already enabled, then enables
-the `theblackdon/kwee` COPR for its desktop package. Terra and RPM Fusion can
-still be enabled for separately selected apps.
-RPM and dependency COPR setup.
+## Contoh layar
 
-## Example screens
+Contoh memakai katalog saat ini. Pilihan dan deskripsi berasal dari
+`data/catalog.toml` dan bisa berubah.
 
-The examples use the current catalog. Options and descriptions come from
-`data/catalog.toml` and may change.
-
-### Choose a terminal
+### Pilih terminal
 
 ```text
-╭────────────────────────────────────────────────────────────────────────────╮
-│ RAKUOS setup                                                       v0.3.0 │
-│ Set up your RakuOS desktop                                        DRY-RUN │
-╰────────────────────────────────────────────────────────────────────────────╯
+ ╭────────────────────────────────────────────────────────────────────────────╮
+ │ ◆ RakuOS Setup                                                      v0.5.0 │
+ │ Post-install setup: choose your desktop and apps                  DRY-RUN  │
+ ╰────────────────────────────────────────────────────────────────────────────╯
 
- ✔ Desktop ── ● Terminal ── ○ File Manager ── ○ Browser ── ○ Sign-in
+ ✔ Desktop ── ● Terminal ── ○ File Manager ── ○ Browser ── ○ Login
 
- STEP 2 OF 5 · Terminal
- Terminal for running commands
+ Terminal                                                         Step 2 of 5
+ Where you type commands. Pick one or more
  ────────────────────────────────────────────────────────────────────────────
- Options                            │ Details
- ───────────────────────────────────┼───────────────────────────────────
-   [ ] Alacritty                     │ Kitty
-   [ ] Foot                          │
-   [ ] Ghostty                       │ GPU-accelerated and commonly used
- ❯ [x] Kitty                         │ with Hyprland
-                                     │ Selected
-                                     │ Packages
-                                     │ kitty
-                                     │ + 3 more
- 1 selected
+ Options                      │ Details
+ ─────────────────────────────┼─────────────────────────────────────────────
+   □ Alacritty                │ Kitty
+   □ Foot                     │ ✔ Selected  ·  Default
+   □ Ghostty                  │
+ ❯ ■ Kitty                    │ GPU-accelerated and commonly used with
+                              │ Hyprland
+                              │
+                              │ Packages (4)
+ 1 selected  ·  So far: Hyprland
 
  ↑↓ Move  Space Toggle  Enter Continue  Esc/← Back  Ctrl-C Quit
 ```
 
-`default = true` in the catalog determines which multi-select options start
-checked. Options are sorted alphabetically. Selections remain checked when you
-return to a step. Wide terminals show the option list beside details for the
-highlighted package; narrow terminals use the compact list layout.
+`default = true` di katalog menentukan pilihan multi-pilih yang tercentang saat
+layar dibuka. Pilihan diurutkan A-Z. Centang tetap tersimpan saat kembali ke
+langkah sebelumnya. Terminal lebar menampilkan daftar pilihan di samping detail
+paket yang disorot; terminal sempit memakai daftar ringkas.
 
-### Choose a desktop
+### Pilih desktop
 
 ```text
- STEP 1 OF 5 · Desktop
+ ╭────────────────────────────────────────────────────────────────────────────╮
+ │ ◆ RakuOS Setup                                                      v0.5.0 │
+ │ Post-install setup: choose your desktop and apps                  DRY-RUN  │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+ ● Desktop ── ○ Terminal ── ○ File Manager ── ○ Browser ── ○ Login
+
+ Desktop                                                          Step 1 of 5
  Choose your Wayland desktop
  ────────────────────────────────────────────────────────────────────────────
- Options  ↓1                         │ Details
- ───────────────────────────────────┼───────────────────────────────────
-   Budgie                          │ Hyprland
- ❯ Hyprland                        │
-   KineticWE                       │ Dynamic tiling with a minimal
-   LXQt                            │ configuration and no panel
-   MangoWM                         │ Selected
-   MiracleWM                       │ Packages
-   Sway                            │ + 4 more
+ Options  ↓1                  │ Details
+ ─────────────────────────────┼─────────────────────────────────────────────
+   ○ Budgie                   │ Hyprland
+ ❯ ● Hyprland                 │
+   ○ KineticWE                │ Dynamic-tiling compositor with smooth
+   ○ LXQt                     │ animations; no panel, highly customizable
+   ○ MangoWM                  │
+   ○ MiracleWM                │
+   ○ Sway                     │ Packages (5)
+                              │ hyprland, hyprland-guiutils, … +3 more
 
- ↑↓ Move  Enter Continue  Esc/← Back  1-9 Jump  Ctrl-C Quit
+ ↑↓ Move  Enter Continue  Esc/← Back  Ctrl-C Quit
 ```
 
 ### Review your setup
 
-The review shows the selected software, login method, repositories, target user,
-and the number of RPM packages that will be installed. Package names wrap to at
-most two lines.
+Ringkasan menampilkan perangkat lunak yang dipilih, metode login, repositori,
+target user, dan jumlah paket RPM yang akan dipasang. Nama paket dibungkus
+maksimal dua baris.
 
 ```text
- ✔ Desktop ── ✔ Terminal ── ✔ File Manager ── ✔ Browser ── ✔ Sign-in
+ ✔ Desktop ── ✔ Terminal ── ✔ File Manager ── ✔ Browser ── ✔ Login
 
  Review your setup
  ────────────────────────────────────────────────────────────────────────────
@@ -136,23 +140,23 @@ most two lines.
    …
  ? Continue with installation?
 
- Y/Enter Continue  Esc/← Back  n Cancel  Ctrl-C Quit
+ Enter/Y Continue  Esc/← Back  N Cancel  Ctrl-C Quit
 ```
 
-## Installation and completion
+## Instalasi dan penyelesaian
 
-After confirmation, the selection UI gives way to the cyan RakuOS header and
-live command output. Commands and their output are written to the log. In
-`--dry-run` mode, planned commands are prefixed with `+`; no packages are
-installed and no files are written.
+Setelah konfirmasi, layar pilihan digantikan header cyan RakuOS dan keluaran
+perintah secara langsung. Perintah beserta keluarannya ditulis ke log. Di mode
+`--dry-run`, perintah yang direncanakan diawali `+`; tidak ada paket yang
+dipasang dan tidak ada file yang ditulis.
 
-After verification, a normal run asks whether to reboot (`Y/n`). A `--first-boot`
-run reboots automatically after successful verification. If verification fails,
-automatic reboot is skipped and the log location is shown.
+Setelah verifikasi, proses normal menanyakan apakah akan reboot (`Y/n`). Mode
+`--first-boot` melakukan reboot otomatis setelah verifikasi berhasil. Jika
+verifikasi gagal, reboot otomatis dilewati dan lokasi log ditampilkan.
 
-The screen width is capped at 78 columns and adapts down to 40 columns. On wide
-terminals, descriptions wrap in the details pane and long option lists scroll
-within the available height. Narrow terminals use a compact list with shortened
-descriptions. The cursor is hidden while the wizard is interactive and restored
-when it exits. The UI does not use the alternate screen, so the final output
-remains in terminal scrollback.
+Lebar layar dibatasi 78 kolom dan menyesuaikan sampai 40 kolom. Di terminal
+lebar, deskripsi dibungkus di panel detail dan daftar pilihan panjang bisa
+digulir sesuai tinggi yang tersedia. Terminal sempit memakai daftar ringkas
+dengan deskripsi yang dipotong. Kursor disembunyikan selama wizard interaktif
+dan dikembalikan saat keluar. UI tidak memakai alternate screen, jadi keluaran
+akhir tetap tersimpan di scrollback terminal.

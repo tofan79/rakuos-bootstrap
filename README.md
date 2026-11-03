@@ -7,6 +7,8 @@ serta menyalin konfigurasi yang tersedia. Ini bukan installer OS;
 
 - Katalog pilihan: [`data/catalog.toml`](data/catalog.toml)
 - Panduan tampilan TUI: [`ui.md`](ui.md)
+- Dokumentasi teknis (bahasa Inggris): [`docs/`](docs/README.md)
+- Panduan kontribusi (bahasa Inggris): [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - Binary Rust: `rakuos-bootstrap`; tidak memerlukan GTK/Qt untuk UI
 
 ## Menjalankan
@@ -46,18 +48,16 @@ pilihan login.
 KineticWE tetap memakai pilihan aplikasi umum, tetapi mengambil paket desktop
 dari COPR `theblackdon/kwee`; COPR `mindset/Mindset-Apps` tidak diaktifkan
 untuk pilihan ini. Terra dan RPM Fusion tetap mengikuti katalog untuk aplikasi
-tambahan yang dipilih. Jika Mindset-Apps masih aktif dari konfigurasi lama,
-bootstrap menonaktifkannya sebelum mengaktifkan COPR KineticWE. Saat transaksi paket KineticWE, Mindset-Apps juga
-dinonaktifkan sementara agar greeter lama dari repo itu tidak terpilih jika
-repo tersebut sudah aktif sebelumnya.
+tambahan yang dipilih.
 
 `↑`/`↓` atau `j`/`k` memindahkan sorotan; `Tab` juga bergerak ke bawah.
-`Space` atau tombol `1`–`9` mencentang pilihan pada kategori jamak. Pada daftar
-tunggal, `1`–`9` memilih item. `Enter` melanjutkan. `Esc`, `Backspace`, `←`,
-atau `b` kembali satu layar; `Ctrl-C` membatalkan wizard. Pada ringkasan,
+`Space` mencentang pilihan pada kategori jamak. Pada daftar tunggal, `Enter`
+memilih item. `Esc`, `Backspace`, `←`, atau `b` kembali satu layar; `Ctrl-C`
+membatalkan wizard. Pada ringkasan,
 `n` membatalkan tanpa instalasi, sedangkan `Esc` kembali ke pilihan terakhir.
 
-Setelah konfirmasi, script mengaktifkan repo sesuai desktop (termasuk repo khusus KineticWE), membersihkan cache paket (`rum clean all`, atau
+Setelah konfirmasi, script mengaktifkan repo sesuai desktop (termasuk repo
+khusus KineticWE), membersihkan cache paket (`rum clean all`, atau
 `dnf clean all` bila `rum` tidak ada), lalu memasang paket dengan `--refresh`
 agar metadata diperbarui di transaksi install pertama. Script kemudian
 menyiapkan file sesi/skel yang tersedia, mengatur login manager, menulis state,
@@ -80,26 +80,24 @@ agar dokumentasi tidak menyalin metadata yang bisa berubah.
 
 Login manager hanya ditanyakan untuk Budgie, Hyprland, MangoWM, dan Sway; SDDM
 menjadi pilihan awal. Kombinasi awalnya adalah Budgie + SDDM, dengan sesi
-Budgie Wayland. MiracleWM memakai grup desktop Fedora dan katalog secara
-otomatis mengaktifkan SDDM Wayland dari grup tersebut. LXQt memakai display
-manager yang ikut terpasang bersama desktop. KineticWE dan Umbriel memakai
-login yang ditetapkan katalog.
-MiracleWM memakai grup desktop Fedora dan SDDM Wayland-nya, tetapi melewati RPM
-generik `fedora-release-common` yang meminta identitas rilis Fedora dengan versi
-persis. `rakuos-release-common` menyediakan kapabilitas penggantinya, sedangkan
-paket `fedora-release-miraclewm` dari grup tetap dipasang.
+Budgie Wayland. MiracleWM memakai grup desktop Fedora dan SDDM Wayland-nya,
+tetapi melewati RPM generik `fedora-release-common` yang meminta identitas
+rilis Fedora dengan versi persis; `rakuos-release-common` menyediakan
+kapabilitas penggantinya, sedangkan paket `fedora-release-miraclewm` dari grup
+tetap dipasang. LXQt memakai display manager yang ikut terpasang bersama
+desktop. KineticWE dan Umbriel memakai login yang ditetapkan katalog.
 
-Repo umum katalog adalah Terra, RPM Fusion stabil, dan COPR `mindset/Mindset-Apps`.
-KineticWE mengecualikan COPR Mindset-Apps dan mengaktifkan `theblackdon/kwee`.
-Jika `rum` tidak ditemukan,
-repo umum dilewati dan pemasangan paket menggunakan `dnf`; pilihan
-KineticWE memerlukan `rum` untuk mengaktifkan COPR upstream-nya.
+Repo umum katalog adalah Terra, RPM Fusion stabil, dan COPR
+`mindset/Mindset-Apps`. KineticWE mengecualikan COPR Mindset-Apps dan
+mengaktifkan `theblackdon/kwee`. Jika `rum` tidak ditemukan, repo umum
+dilewati dan pemasangan paket menggunakan `dnf`; pilihan KineticWE memerlukan
+`rum` untuk mengaktifkan COPR upstream-nya.
 
 ## File yang dipasang atau ditulis
 
 - Paket dasar yang selalu diminta: `dbus-tools`, `egl-wayland`, `qt6-qtsvg`,
-  `qt6-qtwayland`, `rakuos-software-qt`, `rakuos-system-qt`, dan
-  `rakuos-welcome-qt`.
+  `qt6-qtwayland`, `rakuos-software-gtk`, `rakuos-system-gtk`, dan
+  `rakuos-welcome-gtk`.
 - `data/sessions/hyprland-uwsm.desktop` menggantikan file sesi Hyprland bila
   desktop Hyprland dipilih.
 - Skel yang tersedia di repo hanya untuk MangoWM (`data/skel/mango`) dan
@@ -139,3 +137,31 @@ sesi Wayland untuk desktop yang memintanya, dan file skel jika desktop punya
 skel. Pemeriksaan RPM juga melihat rpmdb overlay dari `rum paths` bila ada.
 Jika ada pemeriksaan yang gagal, script menampilkan jumlah kegagalan dan tidak
 melakukan reboot otomatis.
+
+## Dokumentasi
+
+Dokumentasi teknis ditulis dalam bahasa Inggris di [`docs/`](docs/README.md):
+
+- [`docs/architecture.md`](docs/architecture.md) — struktur kode dan alur data
+- [`docs/catalog.md`](docs/catalog.md) — referensi lengkap `data/catalog.toml`
+- [`docs/install-flow.md`](docs/install-flow.md) — langkah instalasi setelah
+  konfirmasi
+- [`docs/ui.md`](docs/ui.md) — perilaku TUI secara teknis
+- [`docs/building-and-testing.md`](docs/building-and-testing.md) — build offline
+  dan pengujian
+- [`docs/releasing.md`](docs/releasing.md) — rilis GitHub dan build COPR
+- [`docs/troubleshooting.md`](docs/troubleshooting.md) — masalah umum dan
+  diagnosis
+- [`docs/licensing.md`](docs/licensing.md) — lisensi proyek dan dependensi
+
+## Lisensi
+
+Proyek ini memakai lisensi MIT. Teks lengkap ada di [`LICENSE`](LICENSE).
+Dependensi Rust di `vendor/` mempertahankan lisensi masing-masing; lihat
+[`docs/licensing.md`](docs/licensing.md).
+
+## Kontribusi
+
+Pull request dan issue dipersilakan. Baca [`CONTRIBUTING.md`](CONTRIBUTING.md)
+(bahasa Inggris) untuk alur kerja, gaya kode, dan pemeriksaan yang harus
+lulus sebelum mengirim perubahan.

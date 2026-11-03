@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 //! Tampilan TUI RakuOS: aman di TTY (`TERM=linux`) sampai terminal modern.
 //!
 //! Tanpa dependensi baru, hanya `console`. Kemampuan terminal dideteksi sekali
@@ -15,8 +16,8 @@
 use std::fmt;
 use std::io::Write;
 
-use anyhow::{bail, Result};
-use console::{measure_text_width, truncate_str, Key, Style, Term};
+use anyhow::{Result, bail};
+use console::{Key, Style, Term, measure_text_width, truncate_str};
 
 use crate::catalog::Choice;
 
@@ -506,7 +507,6 @@ impl Ui {
             (self.g.updown, "Move"),
             ("Enter", "Continue"),
             (&back, "Back"),
-            ("1-9", "Jump"),
             ("Ctrl-C", "Quit"),
         ])
     }
@@ -525,6 +525,7 @@ impl Ui {
     // ------------------------------------------------------------- layar ---
 
     /// Layar pilihan satu fase. Mengembalikan indeks di `choices`.
+    #[allow(clippy::too_many_arguments)]
     pub fn select(
         &self,
         term: &Term,
@@ -578,13 +579,6 @@ impl Ui {
                     sel = (sel + 1) % choices.len();
                     msg = None;
                 }
-                Key::Char(c) if c.is_ascii_digit() && c != '0' => {
-                    let n = c as usize - '1' as usize;
-                    if n < choices.len() {
-                        sel = n;
-                        msg = None;
-                    }
-                }
                 Key::Enter => {
                     if choices[sel].available {
                         return Ok(Nav::Next(sel));
@@ -602,6 +596,7 @@ impl Ui {
 
     /// Layar pilihan berganda (boleh lebih dari satu). Mengembalikan indeks
     /// yang dicentang, urut sesuai tampilan. Minimal satu harus dipilih.
+    #[allow(clippy::too_many_arguments)]
     pub fn multi_select(
         &self,
         term: &Term,
@@ -624,10 +619,10 @@ impl Ui {
                 .collect(),
             _ => choices.iter().map(|c| c.available && c.default).collect(),
         };
-        if !checked.iter().any(|&b| b) {
-            if let Some(i) = choices.iter().position(|c| c.available) {
-                checked[i] = true;
-            }
+        if !checked.iter().any(|&b| b)
+            && let Some(i) = choices.iter().position(|c| c.available)
+        {
+            checked[i] = true;
         }
         let mut sel = checked.iter().position(|&b| b).unwrap_or(0);
         let mut msg: Option<String> = None;
@@ -671,24 +666,13 @@ impl Ui {
                         msg = Some(format!("{} is not available.", choices[sel].name));
                     }
                 }
-                Key::Char(c) if c.is_ascii_digit() && c != '0' => {
-                    let n = c as usize - '1' as usize;
-                    if n < choices.len() {
-                        if choices[n].available {
-                            checked[n] = !checked[n];
-                            msg = None;
-                        } else {
-                            msg = Some(format!("{} is not available.", choices[n].name));
-                        }
-                    }
-                }
                 Key::Enter => {
                     if checked.iter().any(|&b| b) {
                         return Ok(Nav::Next(
                             checked
                                 .iter()
                                 .enumerate()
-                                .filter(|(_, &b)| b)
+                                .filter(|(_, b)| **b)
                                 .map(|(i, _)| i)
                                 .collect(),
                         ));
@@ -701,26 +685,14 @@ impl Ui {
         }
     }
 
-    /// Sel awal satu baris daftar (kursor, nomor lompat, penanda) sebagai
+    /// Sel awal satu baris daftar (kursor dan penanda) sebagai
     /// `(polos, berwarna)`. Versi polos dipakai saat baris disorot.
-    fn row_lead(
-        &self,
-        index: usize,
-        active: bool,
-        multi: bool,
-        on: bool,
-        available: bool,
-    ) -> (String, String) {
+    fn row_lead(&self, active: bool, multi: bool, on: bool, available: bool) -> (String, String) {
         let p = &self.pal;
         let cursor = if active {
             self.g.cursor.to_string()
         } else {
             " ".repeat(measure_text_width(self.g.cursor))
-        };
-        let num = if index < 9 {
-            (index + 1).to_string()
-        } else {
-            " ".to_string()
         };
         let mark = match (multi, on) {
             (true, true) => self.g.check_on,
@@ -737,12 +709,8 @@ impl Ui {
         } else {
             &p.dim
         };
-        let plain = format!("{cursor} {num} {mark} ");
-        let styled = format!(
-            "{cursor} {} {} ",
-            p.dim.apply_to(&num),
-            mark_style.apply_to(mark)
-        );
+        let plain = format!("{cursor} {mark} ");
+        let styled = format!("{cursor} {} ", mark_style.apply_to(mark));
         (plain, styled)
     }
 
@@ -813,10 +781,11 @@ impl Ui {
 
         // --- panel detail untuk pilihan yang disorot ---
         let choice = &choices[sel];
-        let mut details = vec![p
-            .accent_b
-            .apply_to(self.fit(&choice.name, right_w))
-            .to_string()];
+        let mut details = vec![
+            p.accent_b
+                .apply_to(self.fit(&choice.name, right_w))
+                .to_string(),
+        ];
         let mut tags: Vec<String> = Vec::new();
         if !choice.available {
             tags.push(p.warn.apply_to("Not available").to_string());
@@ -863,8 +832,7 @@ impl Ui {
                     Some(state) => state[index],
                     None => active,
                 };
-                let (lead_plain, lead_styled) =
-                    self.row_lead(index, active, multi, on, item.available);
+                let (lead_plain, lead_styled) = self.row_lead(active, multi, on, item.available);
                 if active {
                     let text = self.fit(&format!("{lead_plain}{}", item.name), left_w);
                     p.sel.apply_to(self.pad(&text, left_w)).to_string()
@@ -942,8 +910,6 @@ impl Ui {
         let name_w = 16;
         let lead_w = measure_text_width(self.g.cursor)
             + 1
-            + 1
-            + 1
             + measure_text_width(self.g.check_on).max(measure_text_width(self.g.radio_on))
             + 1;
         let desc_w = inner.saturating_sub(lead_w + name_w + 1);
@@ -968,7 +934,7 @@ impl Ui {
                 Some(state) => state[i],
                 None => active,
             };
-            let (lead_plain, lead_styled) = self.row_lead(i, active, multi, on, c.available);
+            let (lead_plain, lead_styled) = self.row_lead(active, multi, on, c.available);
             let name = self.pad(&self.fit(&c.name, name_w), name_w);
             let desc = if c.available {
                 self.fit(&c.description, desc_w)

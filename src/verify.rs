@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 //! Pemeriksaan setelah instalasi: pastikan hasilnya benar-benar ada sebelum
 //! sistem di-reboot. Hanya membaca; tidak mengubah apa pun.
 
@@ -6,8 +7,8 @@ use std::path::{Path, PathBuf};
 
 use crate::catalog::Catalog;
 use crate::install::{
-    command_exists, home_for, package_installed, packages, unit_enabled, wayland_session_exists,
-    Picks,
+    Picks, command_exists, home_for, package_installed, packages, unit_enabled,
+    wayland_session_exists,
 };
 
 pub struct Check {

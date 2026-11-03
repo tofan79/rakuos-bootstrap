@@ -1,6 +1,6 @@
-use crate::catalog::Catalog;
+// SPDX-License-Identifier: MIT
 use crate::install::{
-    packages, parse_overlay_rpmdb, parse_regular_user, sddm_config_body, sddm_sessions_body, Picks,
+    parse_overlay_rpmdb, parse_regular_user, sddm_config_body, sddm_sessions_body,
 };
 
 #[test]

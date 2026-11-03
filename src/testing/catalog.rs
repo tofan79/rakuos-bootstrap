@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 use crate::catalog::{Catalog, Choice};
 
 fn sorted(names: &[&str]) -> bool {
@@ -106,10 +107,11 @@ fn login_tampil_empat_pilihan_tanpa_gdm_dan_plasma() {
     let cat = Catalog::load(None).unwrap();
     let visible = cat.logins.iter().filter(|l| !l.hidden).count();
     assert_eq!(visible, 4);
-    assert!(!cat
-        .logins
-        .iter()
-        .any(|l| l.id == "gdm" || l.id == "plasma-login"));
+    assert!(
+        !cat.logins
+            .iter()
+            .any(|l| l.id == "gdm" || l.id == "plasma-login")
+    );
 }
 
 #[test]
@@ -151,11 +153,9 @@ fn umbriel_memaksa_greeter_noctalia() {
 #[test]
 fn desktop_bawaan_tidak_punya_login() {
     let cat = Catalog::load(None).unwrap();
-    for id in ["lxqt"] {
-        let d = cat.desktops.iter().find(|d| d.id == id).unwrap();
-        assert!(!d.choose_login);
-        assert!(cat.effective_login(d, None).is_none());
-    }
+    let d = cat.desktops.iter().find(|d| d.id == "lxqt").unwrap();
+    assert!(!d.choose_login);
+    assert!(cat.effective_login(d, None).is_none());
 }
 
 #[test]

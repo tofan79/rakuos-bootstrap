@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 mod catalog;
 mod install;
 mod log;
@@ -10,7 +11,7 @@ mod testing;
 use std::path::PathBuf;
 use std::process::Command;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use catalog::Catalog;
 use console::Term;
 use ui::{Cancelled, Confirm, Nav, Ui};
@@ -51,10 +52,10 @@ fn run() -> Result<()> {
         bail!("An interactive terminal (TTY) is required");
     }
 
-    if !opts.dry_run {
-        if let Err(msg) = log::init(&opts.log_file, &install::timestamp()) {
-            eprintln!("warning: {msg}; continuing without a log file");
-        }
+    if !opts.dry_run
+        && let Err(msg) = log::init(&opts.log_file, &install::timestamp())
+    {
+        eprintln!("warning: {msg}; continuing without a log file");
     }
 
     let catalog = Catalog::load(opts.catalog.as_deref())?;
@@ -108,10 +109,10 @@ fn run() -> Result<()> {
     while phase != PHASE_SUMMARY {
         // Jejak pilihan dari fase-fase sebelumnya, ditampilkan di bawah daftar.
         let mut picked: Vec<String> = Vec::new();
-        if phase > PHASE_DESKTOP {
-            if let Some(d) = desktop {
-                picked.push(catalog.desktops[d].name.clone());
-            }
+        if phase > PHASE_DESKTOP
+            && let Some(d) = desktop
+        {
+            picked.push(catalog.desktops[d].name.clone());
         }
         if phase > PHASE_TERMINAL {
             picked.extend(names(&catalog.terminals, &terminals));

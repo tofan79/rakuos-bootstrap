@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 use anyhow::{Context, Result};
 use serde::Deserialize;
 

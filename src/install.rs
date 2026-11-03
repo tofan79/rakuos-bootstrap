@@ -1,17 +1,17 @@
+// SPDX-License-Identifier: MIT
 use std::collections::BTreeSet;
 use std::fs;
 use std::io::{Read, Write};
-use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::OnceLock;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use console::style;
 
 use crate::catalog::{Catalog, Choice};
 use crate::log;
-use crate::verify::{verify, Check};
+use crate::verify::{Check, verify};
 
 /// Peringatan: tampil di layar dan masuk log.
 macro_rules! warn {
@@ -88,7 +88,6 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
         // KineticWE is published by its upstream COPR. Keep the standard
         // Terra/RPM Fusion repos available for the separately chosen apps,
         // but do not enable Mindset-Apps for this desktop.
-        disable_mindset_copr(dry_run)?;
         enable_kineticwe_repo(dry_run)?;
         enable_repos(cat, dry_run, &["mindset"])?;
     } else {
@@ -104,14 +103,6 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
         resolve_greeter_conflict(login, dry_run)?;
         resolve_dms_quickshell(login, dry_run)?;
     }
-    let disabled_repos: &[&str] = if picks.desktop.id == "kineticwe" {
-        // The Mindset COPR may already be enabled from an earlier setup and
-        // its old greeter build requires kineticwe-git. Resolve both packages
-        // exclusively against the upstream KineticWE COPR for this transaction.
-        &["copr:copr.fedorainfracloud.org:mindset:Mindset-Apps"]
-    } else {
-        &[]
-    };
     let excluded_packages: &[&str] = if picks.desktop.id == "miraclewm" {
         // RakuOS release-common already provides fedora-release-common and
         // owns the release identity. Do not pull Fedora's generic common RPM,
@@ -121,13 +112,7 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
     } else {
         &[]
     };
-    install_packages(
-        &pkgs,
-        no_recommends,
-        disabled_repos,
-        excluded_packages,
-        dry_run,
-    )?;
+    install_packages(&pkgs, no_recommends, excluded_packages, dry_run)?;
 
     heading("Set up desktop configuration");
     install_skel(
@@ -169,23 +154,12 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
     Ok(checks)
 }
 
-fn run_as_user(user: &str, home: &Path, command: &[String]) -> Result<()> {
-    if command.is_empty() {
-        bail!("cannot run an empty command as {user}");
-    }
-    let mut args = vec!["-u".to_string(), user.to_string(), "--".to_string()];
-    args.push("env".into());
-    args.push(format!("HOME={}", home.display()));
-    args.extend(command.iter().cloned());
-    run("runuser", &args, false)
-}
-
 /// Menyalakan repo pihak ketiga yang diminta katalog.
 ///
 /// Terra dan RPM Fusion dibawa image dalam keadaan `enabled=0`. Perilakunya
 /// disamakan dengan rakuos-welcome: Terra cukup satu id, RPM Fusion memakai
 /// daftar di `/usr/share/rakuos/rpmfusion-default-repos` (ditulis
-/// rakuos-base), sambil memastikan repo updates-testing tetap nonaktif.
+/// rakuos-base). Repo updates-testing tidak pernah diaktifkan di sini.
 fn enable_repos(cat: &Catalog, dry_run: bool, excluded: &[&str]) -> Result<()> {
     if cat.repos.is_empty() {
         println!("  (No third-party repositories requested)");
@@ -208,19 +182,7 @@ fn enable_repos(cat: &Catalog, dry_run: bool, excluded: &[&str]) -> Result<()> {
                 "--set-enabled".into(),
                 "terra".into(),
             ],
-            "rpmfusion" => {
-                run(
-                    "rum",
-                    &[
-                        "config-manager".into(),
-                        "--set-disabled".into(),
-                        "rpmfusion-free-updates-testing".into(),
-                        "rpmfusion-nonfree-updates-testing".into(),
-                    ],
-                    dry_run,
-                )?;
-                rpmfusion_args()
-            }
+            "rpmfusion" => rpmfusion_args(),
             "mindset" => vec![
                 "copr".into(),
                 "enable".into(),
@@ -231,42 +193,6 @@ fn enable_repos(cat: &Catalog, dry_run: bool, excluded: &[&str]) -> Result<()> {
             other => bail!("unknown third-party repository: {other}"),
         };
         run("rum", &args, dry_run)?;
-    }
-    Ok(())
-}
-
-/// Permanently disable Mindset-Apps for KineticWE, if it is currently enabled.
-fn disable_mindset_copr(dry_run: bool) -> Result<()> {
-    const REPO_ID: &str = "copr:copr.fedorainfracloud.org:mindset:Mindset-Apps";
-    if !command_exists("rum") {
-        bail!("rum is required to disable COPR mindset/Mindset-Apps for KineticWE");
-    }
-    if dry_run {
-        println!("  + Disable COPR mindset/Mindset-Apps if currently enabled");
-        return Ok(());
-    }
-
-    let output = Command::new("rum")
-        .args(["repolist", "--all"])
-        .output()
-        .context("check whether COPR mindset/Mindset-Apps is enabled")?;
-    if !output.status.success() {
-        bail!("could not list repositories before configuring KineticWE");
-    }
-    let enabled = String::from_utf8_lossy(&output.stdout).lines().any(|line| {
-        let mut columns = line.split_whitespace();
-        columns.next() == Some(REPO_ID) && columns.any(|column| column == "enabled")
-    });
-    if enabled {
-        run(
-            "rum",
-            &[
-                "config-manager".into(),
-                "--set-disabled".into(),
-                REPO_ID.into(),
-            ],
-            false,
-        )?;
     }
     Ok(())
 }
@@ -307,7 +233,10 @@ fn rpmfusion_args() -> Vec<String> {
         .map(str::to_string)
         .collect();
     if defaults.is_empty() {
-        args.push("rpmfusion-*".into());
+        // Fallback aman: jangan pakai glob `rpmfusion-*` karena ikut
+        // mengaktifkan repo updates-testing.
+        args.push("rpmfusion-free".into());
+        args.push("rpmfusion-nonfree".into());
     } else {
         args.extend(defaults);
     }
@@ -317,7 +246,6 @@ fn rpmfusion_args() -> Vec<String> {
 fn install_packages(
     pkgs: &BTreeSet<String>,
     no_recommends: &[String],
-    disabled_repos: &[&str],
     excluded_packages: &[&str],
     dry_run: bool,
 ) -> Result<()> {
@@ -343,24 +271,10 @@ fn install_packages(
         .collect();
 
     if !khusus.is_empty() {
-        install_set(
-            pm,
-            &khusus,
-            true,
-            disabled_repos,
-            excluded_packages,
-            dry_run,
-        )?;
+        install_set(pm, &khusus, true, excluded_packages, dry_run)?;
     }
     if !biasa.is_empty() {
-        install_set(
-            pm,
-            &biasa,
-            false,
-            disabled_repos,
-            excluded_packages,
-            dry_run,
-        )?;
+        install_set(pm, &biasa, false, excluded_packages, dry_run)?;
     }
     Ok(())
 }
@@ -377,7 +291,6 @@ fn install_set(
     pm: &str,
     pkgs: &[String],
     no_recommends: bool,
-    disabled_repos: &[&str],
     excluded_packages: &[&str],
     dry_run: bool,
 ) -> Result<()> {
@@ -385,11 +298,6 @@ fn install_set(
     if no_recommends {
         args.push("--no-recommends".into());
     }
-    args.extend(
-        disabled_repos
-            .iter()
-            .map(|repo| format!("--disablerepo={repo}")),
-    );
     args.extend(
         excluded_packages
             .iter()
@@ -583,23 +491,25 @@ fn install_session_file(desktop: &Choice, base_dir: &Path, dry_run: bool) -> Res
         return Ok(());
     }
 
-    if let Some(parent) = dst.parent() {
-        if let Err(err) = fs::create_dir_all(parent) {
-            if is_immutable_fs_error(&err) {
-                warn!("session file {} could not be installed to {} because {} (immutable root filesystem); keeping the packaged version",
-                    name,
-                    dst.display(),
-                    err
-                );
-                return Ok(());
-            }
-            return Err(err).with_context(|| format!("unable to create {}", parent.display()));
+    if let Some(parent) = dst.parent()
+        && let Err(err) = fs::create_dir_all(parent)
+    {
+        if is_immutable_fs_error(&err) {
+            warn!(
+                "session file {} could not be installed to {} because {} (immutable root filesystem); keeping the packaged version",
+                name,
+                dst.display(),
+                err
+            );
+            return Ok(());
         }
+        return Err(err).with_context(|| format!("unable to create {}", parent.display()));
     }
     if let Err(err) = fs::copy(&src, &dst) {
         if is_immutable_fs_error(&err) {
-            warn!("session file {} could not modify {} because {} (immutable root filesystem); keeping the packaged version",
-                    name,
+            warn!(
+                "session file {} could not modify {} because {} (immutable root filesystem); keeping the packaged version",
+                name,
                 dst.display(),
                 err
             );
@@ -651,13 +561,17 @@ fn use_builtin_login(dry_run: bool) -> Result<()> {
         "greetd.service",
     ];
     if dry_run {
-        println!("  + Use the display manager provided by the desktop (installed LightDM, SDDM, GDM, or greetd)");
+        println!(
+            "  + Use the display manager provided by the desktop (installed LightDM, SDDM, GDM, or greetd)"
+        );
         return Ok(());
     }
     match CANDIDATES.iter().find(|u| unit_exists(u)) {
         Some(unit) => activate_display_manager(unit, false),
         None => {
-            warn!("This desktop does not provide a display manager; leaving the login configuration unchanged",);
+            warn!(
+                "This desktop does not provide a display manager; leaving the login configuration unchanged",
+            );
             Ok(())
         }
     }

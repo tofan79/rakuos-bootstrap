@@ -17,10 +17,10 @@
 # halaman "Third-Party Repositories" di rakuos-welcome:
 #   terra     -> `rum config-manager --set-enabled terra`
 #   rpmfusion -> id yang tercatat di /usr/share/rakuos/rpmfusion-default-repos,
-#                fallback `rumfusion-*`
+#                fallback `rpmfusion-free` + `rpmfusion-nonfree`
 #   mindset   -> COPR `mindset/Mindset-Apps` (`framework` + `umbriel-git`)
 # KineticWE mengecualikan COPR Mindset-Apps dan mengaktifkan
-# `theblackdon/kwee` secara khusus; Ryoku memakai repo khususnya sendiri.
+# `theblackdon/kwee` secara khusus.
 # Kosongkan daftar ini kalau tidak ingin repo pihak ketiga disentuh.
 repos = ["terra", "rpmfusion", "mindset"]
 
@@ -159,7 +159,7 @@ default = true
 [[desktops]]
 id = "hyprland"
 name = "Hyprland"
-description = "Dynamic tiling with a minimal configuration and no panel"
+description = "Dynamic-tiling compositor with smooth animations; no panel, highly customizable"
 packages = ["hyprland", "hyprland-guiutils", "hyprland-uwsm", "xdg-desktop-portal-hyprland", "hyprland-preview-share-picker"]
 session_file = "hyprland-uwsm.desktop"
 autologin_cmd = "Hyprland"
@@ -183,7 +183,7 @@ autologin_cmd = "startlxqtwayland"
 [[desktops]]
 id = "mangowm"
 name = "MangoWM"
-description = "Lightweight tiling compositor based on dwl (wlroots)"
+description = "Lightweight dwl-based tiling compositor with a bundled minimal configuration"
 packages = ["mangowm", "scenefx", "wlroots", "xcb-util-wm", "xdg-desktop-portal-wlr", "slurp"]
 skel = "mango"
 autologin_cmd = "mango"
@@ -196,12 +196,10 @@ description = "Wayland compositor with a familiar desktop workflow and tiling"
 packages = ["@miraclewm-desktop"]
 login_override = "miraclewm-sddm"
 
-
-
 [[desktops]]
 id = "sway"
 name = "Sway"
-description = "Lightweight Wayland tiling desktop with a minimal configuration and no panel"
+description = "i3-compatible tiling Wayland compositor, configured with a plain text file"
 packages = ["@swaywm"]
 autologin_cmd = "sway"
 choose_login = true
@@ -308,7 +306,6 @@ description = "Wayland SDDM from the Fedora MiracleWM desktop group"
 packages = []
 unit = "sddm.service"
 hidden = true
-
 
 [[logins]]
 id = "sysc-greet"
