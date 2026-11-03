@@ -64,10 +64,6 @@ impl Picks<'_> {
 
 /// Semua paket RPM: lapisan dasar + paket dari tiap pilihan.
 pub fn packages(cat: &Catalog, p: &Picks) -> BTreeSet<String> {
-    if p.desktop.is_ryoku() {
-        return p.desktop.packages.iter().cloned().collect();
-    }
-
     let mut set: BTreeSet<String> = cat.base.iter().cloned().collect();
     for choice in p
         .terminals
@@ -88,9 +84,7 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
     let pkgs = packages(cat, picks);
 
     heading("Enable package repositories");
-    if picks.desktop.is_ryoku() {
-        enable_ryoku_repos(dry_run)?;
-    } else if picks.desktop.id == "kineticwe" {
+    if picks.desktop.id == "kineticwe" {
         // KineticWE is published by its upstream COPR. Keep the standard
         // Terra/RPM Fusion repos available for the separately chosen apps,
         // but do not enable Mindset-Apps for this desktop.
@@ -135,29 +129,6 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
         dry_run,
     )?;
 
-    if picks.desktop.is_ryoku() {
-        setup_ryoku(picks.desktop, &user, dry_run)?;
-        heading("Verification");
-        if dry_run {
-            println!("  + Check Ryoku RPMs, SDDM, and installed Wayland sessions");
-            return Ok(Vec::new());
-        }
-        let checks = verify(cat, picks, &user, base_dir);
-        for c in &checks {
-            let mark = if c.ok {
-                style("✔").green()
-            } else {
-                style("✘").red().bold()
-            };
-            println!("  {mark} {}", c.label);
-            log::note(&format!(
-                "Verification: {} {}",
-                if c.ok { "OK  " } else { "FAILED" },
-                c.label
-            ));
-        }
-        return Ok(checks);
-    }
 
     heading("Set up desktop configuration");
     install_skel(
@@ -197,209 +168,6 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
         ));
     }
     Ok(checks)
-}
-
-const RYOKU_FEDORA_KEY_URL: &str = "https://repo.ryoku.dev/stable/ryoku-release-key.pub.asc";
-const RYOKU_FEDORA_KEY_FINGERPRINT: &str = "EB6D3C0F55A7B3CABA6B2838847B274F025DD6E3";
-const RYOKU_FEDORA_REPO: &str = "https://repo.ryoku.dev/stable/fedora/$releasever/x86_64";
-const RYOKU_COPRS: &[(&str, &str, &str)] = &[
-    ("atim/lazygit", "lazygit", "atim-lazygit"),
-    ("atim/starship", "starship", "atim-starship"),
-    ("lihaohong/yazi", "resvg yazi", "lihaohong-yazi"),
-    (
-        "sdegler/hyprland",
-        "aquamarine hyprcursor hyprgraphics hypridle hyprland hyprland-guiutils hyprland-qt-support hyprland-uwsm hyprlang hyprpicker hyprpolkitagent hyprsunset hyprtoolkit hyprutils hyprwire uwsm xdg-desktop-portal-hyprland",
-        "sdegler-hyprland",
-    ),
-];
-
-fn enable_ryoku_repos(dry_run: bool) -> Result<()> {
-    let fedora = Command::new("rpm").args(["-E", "%fedora"]).output()?;
-    let fedora = String::from_utf8_lossy(&fedora.stdout).trim().to_string();
-    if !["44", "45"].contains(&fedora.as_str()) {
-        bail!("Ryoku RPMs are currently published for Fedora 44 and 45; detected Fedora {fedora}");
-    }
-
-    let key_path = Path::new("/etc/pki/rpm-gpg/RPM-GPG-KEY-ryoku");
-    let repo_path = Path::new("/etc/rum.repos.d/ryoku.repo");
-    let repo = format!(
-        "[ryoku]\nname=Ryoku Fedora $releasever\nbaseurl={RYOKU_FEDORA_REPO}\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=0\ngpgkey=file://{}\n",
-        key_path.display()
-    );
-    if dry_run {
-        println!(
-            "  + Verify and import the Ryoku RPM signing key ({RYOKU_FEDORA_KEY_FINGERPRINT})"
-        );
-        println!("  + Write {}", repo_path.display());
-        for (_, _, slug) in RYOKU_COPRS {
-            println!("  + Write /etc/rum.repos.d/ryoku-copr-{slug}.repo (restricted package list)");
-        }
-        return Ok(());
-    }
-
-    let temp_key = std::env::temp_dir().join(format!("ryoku-rpm-key-{}", std::process::id()));
-    let download = Command::new("curl")
-        .args([
-            "--fail",
-            "--location",
-            "--retry",
-            "3",
-            "--proto",
-            "=https",
-            "--proto-redir",
-            "=https",
-            "--output",
-        ])
-        .arg(&temp_key)
-        .arg(RYOKU_FEDORA_KEY_URL)
-        .output()
-        .context("download Ryoku RPM signing key")?;
-    if !download.status.success() {
-        let _ = fs::remove_file(&temp_key);
-        bail!(
-            "could not download the Ryoku RPM signing key: {}",
-            String::from_utf8_lossy(&download.stderr).trim()
-        );
-    }
-
-    let listing = Command::new("gpg")
-        .args(["--batch", "--with-colons", "--show-keys", "--fingerprint"])
-        .arg(&temp_key)
-        .output()
-        .context("inspect Ryoku RPM signing key (gpg is required)")?;
-    if !listing.status.success() {
-        let _ = fs::remove_file(&temp_key);
-        bail!("could not inspect the downloaded Ryoku RPM signing key");
-    }
-    let key_listing = String::from_utf8_lossy(&listing.stdout);
-    if primary_rpm_fingerprint(&key_listing).as_deref() != Some(RYOKU_FEDORA_KEY_FINGERPRINT) {
-        let _ = fs::remove_file(&temp_key);
-        bail!("Ryoku RPM key fingerprint mismatch; refusing to add the repository");
-    }
-
-    fs::create_dir_all(key_path.parent().unwrap())?;
-    write_managed_file(key_path, &fs::read(&temp_key)?)?;
-    let _ = fs::remove_file(&temp_key);
-    run(
-        "rpm",
-        &["--import".into(), key_path.display().to_string()],
-        false,
-    )?;
-    fs::create_dir_all(repo_path.parent().unwrap())?;
-    write_managed_file(repo_path, repo.as_bytes())?;
-    for (project, includepkgs, slug) in RYOKU_COPRS {
-        let base = format!("https://download.copr.fedorainfracloud.org/results/{project}");
-        let repo_id = format!("ryoku-copr-{slug}");
-        let copr = format!(
-            "[{repo_id}]\nname=Ryoku dependency: {project}\nbaseurl={base}/fedora-$releasever-$basearch/\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=0\ngpgkey={base}/pubkey.gpg\nincludepkgs={includepkgs}\nskip_if_unavailable=1\n"
-        );
-        let path = repo_path.parent().unwrap().join(format!("{repo_id}.repo"));
-        write_managed_file(&path, copr.as_bytes())?;
-    }
-    Ok(())
-}
-
-fn setup_ryoku(desktop: &Choice, user: &str, dry_run: bool) -> Result<()> {
-    // SDDM's theme is installed by the Ryoku desktop RPM. Materialize the
-    // shipped compositor config into the selected user's home after install.
-    if desktop.login_override.as_deref() != Some("ryoku-sddm") {
-        bail!("Ryoku desktop must select the Ryoku SDDM configuration");
-    }
-    configure_sddm(Some("ryoku"), dry_run)?;
-    activate_display_manager("sddm.service", dry_run)?;
-    let home = home_for(user)?;
-    if dry_run {
-        println!(
-            "  + Run `ryoku materialize` as {user} (home {})",
-            home.display()
-        );
-        println!("  + Set {user}'s login shell to /usr/bin/fish");
-        println!("  + Configure the Ryoku Fish shell loader");
-        println!("  + Set Firefox and Nautilus as the default applications");
-        println!("  + Run `ryoku doctor`");
-        return Ok(());
-    }
-    run(
-        "usermod",
-        &["-s".into(), "/usr/bin/fish".into(), user.into()],
-        false,
-    )?;
-    run_as_user(user, &home, &["ryoku".into(), "materialize".into()])?;
-    run_as_user(
-        user,
-        &home,
-        &[
-            "ryoku-hub".into(),
-            "shell".into(),
-            "loaders".into(),
-            "fish".into(),
-        ],
-    )?;
-    for (desktop_entry, mime) in [
-        ("firefox.desktop", "x-scheme-handler/http"),
-        ("firefox.desktop", "x-scheme-handler/https"),
-        ("firefox.desktop", "text/html"),
-        ("org.gnome.Nautilus.desktop", "inode/directory"),
-    ] {
-        run_as_user(
-            user,
-            &home,
-            &[
-                "xdg-mime".into(),
-                "default".into(),
-                desktop_entry.into(),
-                mime.into(),
-            ],
-        )?;
-    }
-    if let Err(err) = run_as_user(user, &home, &["ryoku".into(), "doctor".into()]) {
-        warn!("ryoku doctor reported findings: {err:#}");
-    }
-    Ok(())
-}
-
-pub(crate) fn primary_rpm_fingerprint(listing: &str) -> Option<String> {
-    let mut primary_count = 0;
-    let mut primary_fingerprint = None;
-    let mut after_primary = false;
-    for line in listing.lines() {
-        if line.starts_with("pub:") {
-            primary_count += 1;
-            after_primary = true;
-        } else if line.starts_with("sub:") {
-            after_primary = false;
-        } else if after_primary && line.starts_with("fpr:") {
-            primary_fingerprint = line.split(':').nth(9).map(str::to_string);
-            after_primary = false;
-        }
-    }
-    (primary_count == 1)
-        .then_some(primary_fingerprint)
-        .flatten()
-}
-
-fn write_managed_file(path: &Path, contents: &[u8]) -> Result<()> {
-    match fs::read(path) {
-        Ok(existing) if existing == contents => return Ok(()),
-        Ok(_) => bail!(
-            "{} already exists with different contents; refusing to overwrite it",
-            path.display()
-        ),
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
-        Err(err) => return Err(err).with_context(|| format!("read {}", path.display())),
-    }
-    let parent = path
-        .parent()
-        .with_context(|| format!("{} has no parent directory", path.display()))?;
-    fs::create_dir_all(parent)?;
-    let temp = parent.join(format!(
-        ".{}.{}.tmp",
-        path.file_name().unwrap().to_string_lossy(),
-        std::process::id()
-    ));
-    fs::write(&temp, contents)?;
-    fs::set_permissions(&temp, fs::Permissions::from_mode(0o644))?;
-    fs::rename(&temp, path).with_context(|| format!("write {}", path.display()))
 }
 
 fn run_as_user(user: &str, home: &Path, command: &[String]) -> Result<()> {

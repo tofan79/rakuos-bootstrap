@@ -74,10 +74,6 @@ pub struct Choice {
 }
 
 impl Choice {
-    pub fn is_ryoku(&self) -> bool {
-        matches!(self.id.as_str(), "ryoku-niri" | "ryoku-hyprland")
-    }
-
     /// Nama binary yang dipakai di skel. Sebagian pilihan punya id yang
     /// berbeda dari nama binary (mis. `superfile` -> `spf`).
     pub fn command(&self) -> &str {

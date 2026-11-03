@@ -52,9 +52,9 @@ fn dbus_tools_di_base_dan_dbus_daemon_hanya_autologin() {
     assert!(none.packages.iter().any(|p| p == "dbus-daemon"));
 
     for paket in [
-        "rakuos-software-qt",
-        "rakuos-system-qt",
-        "rakuos-welcome-qt",
+        "rakuos-software-gtk",
+        "rakuos-system-gtk",
+        "rakuos-welcome-gtk",
     ] {
         assert!(
             cat.base.iter().any(|p| p == paket),
@@ -146,43 +146,6 @@ fn umbriel_memaksa_greeter_noctalia() {
         .unwrap();
     let login = cat.effective_login(desktop, Some(noctalia)).unwrap();
     assert_eq!(login.id, "noctalia-greeter");
-}
-
-#[test]
-fn pilihan_ryoku_memisahkan_sesi_dan_memakai_sddm_sendiri() {
-    let cat = Catalog::load(None).unwrap();
-    let niri = cat.desktops.iter().find(|d| d.id == "ryoku-niri").unwrap();
-    let hyprland = cat
-        .desktops
-        .iter()
-        .find(|d| d.id == "ryoku-hyprland")
-        .unwrap();
-    for ryoku in [niri, hyprland] {
-        assert!(!ryoku.choose_login);
-        assert_eq!(ryoku.login_override.as_deref(), Some("ryoku-sddm"));
-    }
-    for package in [
-        "ryoku",
-        "ryoku-keyring",
-        "ryoku-desktop",
-        "kitty",
-        "nautilus",
-        "firefox",
-        "fish",
-    ] {
-        assert!(niri.packages.iter().any(|p| p == package), "{package}");
-    }
-    assert!(niri.packages.iter().any(|p| p == "ryoku-desktop-niri"));
-    assert!(!niri.packages.iter().any(|p| p == "ryoku-desktop-hyprland"));
-    assert!(hyprland
-        .packages
-        .iter()
-        .any(|p| p == "ryoku-desktop-hyprland"));
-    assert!(!hyprland.packages.iter().any(|p| p == "ryoku-desktop-niri"));
-    let sddm = cat.logins.iter().find(|l| l.id == "ryoku-sddm").unwrap();
-    assert!(sddm.hidden);
-    assert_eq!(sddm.unit.as_deref(), Some("sddm.service"));
-    assert_eq!(sddm.sddm_theme.as_deref(), Some("ryoku"));
 }
 
 #[test]

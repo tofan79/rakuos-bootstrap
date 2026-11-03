@@ -42,19 +42,19 @@ last visible selection step.
 ```text
 Desktop → Terminal → File Manager → Browser → [Login Manager when needed]
    ↓                                      ↓
-Ryoku setup                          Review your setup
+
                                            ↓
                               Install, configure, and verify
 ```
 
-Ryoku skips the generic app and login selections and uses its own setup path.
+
 For other desktops, login is skipped when the desktop provides its own login
 manager or the catalog sets `login_override`. On terminals under 72 columns,
 the stepper shows only the active step name.
 
 KineticWE disables `mindset/Mindset-Apps` if it is already enabled, then enables
 the `theblackdon/kwee` COPR for its desktop package. Terra and RPM Fusion can
-still be enabled for separately selected apps. Ryoku uses only its dedicated
+still be enabled for separately selected apps.
 RPM and dependency COPR setup.
 
 ## Example screens
@@ -109,16 +109,10 @@ highlighted package; narrow terminals use the compact list layout.
    LXQt                            │ configuration and no panel
    MangoWM                         │ Selected
    MiracleWM                       │ Packages
-   Ryoku (Hyprland)                │ Hyprland session
-   Ryoku (Niri)                    │ Niri session
    Sway                            │ + 4 more
 
  ↑↓ Move  Enter Continue  Esc/← Back  1-9 Jump  Ctrl-C Quit
 ```
-
-Selecting either Ryoku option skips the generic terminal, file manager, browser,
-and login manager screens. Each Ryoku choice installs its shared default apps and SDDM
-theme plus only the selected compositor component: Niri or Hyprland.
 
 ### Review your setup
 

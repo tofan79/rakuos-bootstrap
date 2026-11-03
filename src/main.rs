@@ -137,11 +137,7 @@ fn run() -> Result<()> {
                     Nav::Next(i) => {
                         desktop = Some(i);
                         login = None;
-                        phase = if catalog.desktops[i].is_ryoku() {
-                            PHASE_SUMMARY
-                        } else {
-                            PHASE_TERMINAL
-                        };
+                        phase = PHASE_TERMINAL;
                     }
                     Nav::Back => {}
                 }
@@ -247,9 +243,7 @@ fn run() -> Result<()> {
                 }
                 Confirm::Back => {
                     let d = desktop.expect("desktop has been selected");
-                    phase = if catalog.desktops[d].is_ryoku() {
-                        PHASE_DESKTOP
-                    } else if catalog.desktops[d].choose_login {
+                    phase = if catalog.desktops[d].choose_login {
                         PHASE_LOGIN
                     } else {
                         PHASE_BROWSER
@@ -343,9 +337,7 @@ fn summarize(
     };
 
     let packages: Vec<String> = install::packages(catalog, &picks).into_iter().collect();
-    let repos = if desktop_choice.is_ryoku() {
-        "Ryoku RPM, restricted dependency COPRs".to_string()
-    } else if desktop_choice.id == "kineticwe" {
+    let repos = if desktop_choice.id == "kineticwe" {
         catalog
             .repos
             .iter()
@@ -367,27 +359,15 @@ fn summarize(
     let rows = [
         (
             "Terminal",
-            if desktop_choice.is_ryoku() {
-                "Kitty (Ryoku default)".to_string()
-            } else {
-                chosen(&catalog.terminals, terminals)
-            },
+            chosen(&catalog.terminals, terminals),
         ),
         (
             "File Manager",
-            if desktop_choice.is_ryoku() {
-                "Nautilus (Ryoku default)".to_string()
-            } else {
-                chosen(&catalog.file_managers, file_managers)
-            },
+            chosen(&catalog.file_managers, file_managers),
         ),
         (
             "Browser",
-            if desktop_choice.is_ryoku() {
-                "Firefox (Ryoku default)".to_string()
-            } else {
-                chosen(&catalog.browsers, browsers)
-            },
+            chosen(&catalog.browsers, browsers),
         ),
         ("Desktop", desktop_choice.name.clone()),
         ("Login", login_text),
