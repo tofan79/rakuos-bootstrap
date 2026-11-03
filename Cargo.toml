@@ -1,6 +1,6 @@
 [package]
 name = "rakuos-bootstrap"
-version = "0.5.3"
+version = "1.0.0"
 edition = "2024"
 description = "Post-install setup wizard for RakuOS minimal images (desktop, apps, and login manager)"
 license = "MIT"

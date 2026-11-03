@@ -70,6 +70,13 @@ packages = ["brave-browser"]
 command = "brave-browser"
 
 [[browsers]]
+id = "brave-origin"
+name = "Brave Origin"
+description = "Privacy-focused Brave build, without the rewards and services of standard Brave"
+packages = ["brave-origin"]
+command = "brave-origin"
+
+[[browsers]]
 id = "chromium"
 name = "Chromium"
 description = "Open source, without Google account sync"
