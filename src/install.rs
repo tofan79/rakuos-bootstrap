@@ -130,6 +130,16 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
     heading("Configure the login manager");
     configure_login(picks.login, picks.desktop, &user, dry_run)?;
 
+    if picks.desktop.id == "hyprland" {
+        heading("Remove unused packages");
+        if package_installed("wofi") {
+            let (pm, _) = package_manager();
+            run(pm, &["remove".into(), "-y".into(), "wofi".into()], dry_run)?;
+        } else {
+            println!("  (wofi is not installed, nothing to remove)");
+        }
+    }
+
     write_state(cat, picks, &user, dry_run)?;
 
     heading("Verification");
