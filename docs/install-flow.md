@@ -148,7 +148,12 @@ tty1 and launches the desktop with `dbus-run-session <autologin_cmd>`. The
 current catalog marks this entry `available = false` and `hidden = true`, so it
 is not offered.
 
-## 6. State
+## 5.5 Remove unused packages
+
+When the selected desktop is Hyprland and `wofi` happens to be installed, the
+wizard removes it before verification so an unused launcher cannot be picked
+over the selected one. The check uses both the base and overlay RPM databases,
+so the removal also covers packages installed through `rum`.\n\n## 6. State
 
 Two files are written:
 
