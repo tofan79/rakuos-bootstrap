@@ -78,9 +78,9 @@ agar dokumentasi tidak menyalin metadata yang bisa berubah.
 | Desktop | Budgie, Hyprland, KineticWE, LXQt, MangoWM, MiracleWM, Sway, Umbriel | Budgie |
 | Login manager | DMS Greeter, Noctalia Greeter, SDDM, sysc-greet | SDDM |
 
-Login manager hanya ditanyakan untuk Budgie, Hyprland, MangoWM, dan Sway; SDDM
-menjadi pilihan awal. Kombinasi awalnya adalah Budgie + SDDM, dengan sesi
-Budgie Wayland. MiracleWM memakai grup desktop Fedora dan SDDM Wayland-nya,
+Login manager hanya ditanyakan untuk Hyprland, MangoWM, dan Sway; SDDM menjadi
+pilihan awal. Budgie memakai SDDM Wayland yang dibawa grup desktopnya, dengan
+sesi Budgie Wayland. MiracleWM memakai grup desktop Fedora dan SDDM Wayland-nya,
 tetapi melewati RPM generik `fedora-release-common` yang meminta identitas
 rilis Fedora dengan versi persis; `rakuos-release-common` menyediakan
 kapabilitas penggantinya, sedangkan paket `fedora-release-miraclewm` dari grup

@@ -46,8 +46,8 @@ Desktop → Terminal → File Manager → Browser → [Login Manager bila perlu]
                               Install, configure, and verify
 ```
 
-Untuk desktop lain, layar login dilewati bila desktop sudah membawa login
-manager sendiri atau katalog menetapkan `login_override`. Di terminal dengan
+Layar login dilewati bila desktop sudah membawa login manager sendiri
+(misalnya Budgie dan LXQt) atau katalog menetapkan `login_override`. Di terminal dengan
 lebar di bawah 72 kolom, stepper hanya menampilkan nama langkah aktif.
 
 KineticWE mengaktifkan COPR `theblackdon/kwee` untuk paket desktopnya dan tidak
@@ -133,7 +133,7 @@ maksimal dua baris.
  Terminal               Kitty
  File Manager           Nautilus
  Browser                Firefox
- Login                  SDDM
+ Login                  built-in for Budgie
  Repositories           terra, rpmfusion, mindset
  Target user            mindset
  RPM packages (…)

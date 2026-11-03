@@ -124,7 +124,7 @@ fn login_hanya_ditanya_untuk_desktop_yang_memilih_login() {
         .map(|d| d.id.as_str())
         .collect();
     ids.sort();
-    assert_eq!(ids, ["budgie", "hyprland", "mangowm", "sway"]);
+    assert_eq!(ids, ["hyprland", "mangowm", "sway"]);
 }
 
 #[test]
@@ -153,9 +153,11 @@ fn umbriel_memaksa_greeter_noctalia() {
 #[test]
 fn desktop_bawaan_tidak_punya_login() {
     let cat = Catalog::load(None).unwrap();
-    let d = cat.desktops.iter().find(|d| d.id == "lxqt").unwrap();
-    assert!(!d.choose_login);
-    assert!(cat.effective_login(d, None).is_none());
+    for id in ["budgie", "lxqt"] {
+        let d = cat.desktops.iter().find(|d| d.id == id).unwrap();
+        assert!(!d.choose_login);
+        assert!(cat.effective_login(d, None).is_none());
+    }
 }
 
 #[test]

@@ -153,7 +153,6 @@ name = "Budgie"
 description = "Modern traditional desktop with Wayland support through Budgie Labwc"
 packages = ["@budgie-desktop"]
 autologin_cmd = "startbudgielabwc"
-choose_login = true
 default = true
 
 [[desktops]]
@@ -260,8 +259,9 @@ packages = ["yazi"]
 
 # ------------------------------------------------------------------- login ---
 # Pilihan login hanya ditawarkan untuk desktop dengan `choose_login = true`
-# (Budgie, Hyprland, MangoWM, Sway). Desktop lain memakai login bawaannya
-# sendiri atau login yang ditetapkan katalog.
+# (Hyprland, MangoWM, Sway). Desktop lain memakai login bawaannya sendiri
+# (Budgie dan LXQt membawa SDDM di grup desktopnya) atau login yang
+# ditetapkan katalog.
 # Empat greeter resmi rakuos-hyprland. Perilaku paket dan config-nya diambil
 # dari `system_files/usr/libexec/rakuos-hyprland-greeter`; UI-nya tidak.
 [[logins]]

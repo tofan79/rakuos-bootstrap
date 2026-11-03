@@ -81,9 +81,10 @@ A desktop with `choose_login = true` asks the user for a login manager. Without
 it, the desktop keeps the display manager that ships with its package group, or
 the hidden `login_override` entry.
 
-The current catalog asks for a login manager for Budgie, Hyprland, MangoWM, and
-Sway. KineticWE and Umbriel have `login_override`; MiracleWM uses a hidden SDDM
-entry; LXQt uses the display manager installed with its desktop group.
+The current catalog asks for a login manager for Hyprland, MangoWM, and Sway.
+Budgie and LXQt use the display manager that ships with their desktop group;
+KineticWE and Umbriel have `login_override`; MiracleWM uses a hidden SDDM
+entry.
 
 ## Login managers
 
