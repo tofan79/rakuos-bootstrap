@@ -5,9 +5,9 @@
 //!
 //! | Charset | Kapan                              | Kotak | Penanda      |
 //! |---------|------------------------------------|-------|--------------|
-//! | Full    | terminal emulator UTF-8            | ╭─╮   | ✔ ● ○ ❯      |
-//! | Tty     | `TERM=linux` + UTF-8 (console VT)  | ┌─┐   | [x] [>] [ ]  |
-//! | Ascii   | locale bukan UTF-8 / `--ascii`     | +-+   | [x] [>] [ ]  |
+//! | Full    | terminal emulator UTF-8            | ╭─╮   | ✔ ● ○ ■ □ ❯  |
+//! | Tty     | `TERM=linux` + UTF-8 (console VT)  | ┌─┐   | [x] (*) [ ]  |
+//! | Ascii   | locale bukan UTF-8 / `--ascii`     | +-+   | [x] (*) [ ]  |
 //!
 //! Warna: 256 (cyan terang) kalau terminal mendukung, 16 warna ANSI di console
 //! VT, dan polos kalau output bukan TTY atau `NO_COLOR` aktif.
@@ -21,7 +21,7 @@ use console::{measure_text_width, truncate_str, Key, Style, Term};
 use crate::catalog::Choice;
 
 /// Nama pendek tiap fase untuk stepper.
-const STEPS: [&str; 5] = ["Desktop", "Terminal", "File Manager", "Browser", "Sign-in"];
+const STEPS: [&str; 5] = ["Desktop", "Terminal", "File Manager", "Browser", "Login"];
 
 /// Hasil satu layar pilihan: lanjut dengan pilihan, atau mundur satu fase.
 pub enum Nav<T> {
@@ -81,6 +81,12 @@ struct Glyphs {
     done: &'static str,
     current: &'static str,
     todo: &'static str,
+    brand: &'static str,
+    radio_on: &'static str,
+    radio_off: &'static str,
+    check_on: &'static str,
+    check_off: &'static str,
+    left: &'static str,
     link: &'static str,
     dot: &'static str,
     ellipsis: &'static str,
@@ -103,6 +109,12 @@ impl Glyphs {
                 done: "✔",
                 current: "●",
                 todo: "○",
+                brand: "◆",
+                radio_on: "●",
+                radio_off: "○",
+                check_on: "■",
+                check_off: "□",
+                left: "←",
                 link: "──",
                 dot: "·",
                 ellipsis: "…",
@@ -121,6 +133,12 @@ impl Glyphs {
                 done: "[x]",
                 current: "[>]",
                 todo: "[ ]",
+                brand: "*",
+                radio_on: "(*)",
+                radio_off: "( )",
+                check_on: "[x]",
+                check_off: "[ ]",
+                left: "←",
                 link: "──",
                 dot: "·",
                 ellipsis: "...",
@@ -139,6 +157,12 @@ impl Glyphs {
                 done: "[x]",
                 current: "[>]",
                 todo: "[ ]",
+                brand: "*",
+                radio_on: "(*)",
+                radio_off: "( )",
+                check_on: "[x]",
+                check_off: "[ ]",
+                left: "<-",
                 link: "--",
                 dot: "-",
                 ellipsis: "...",
@@ -158,6 +182,9 @@ struct Palette {
     warn: Style,
     dim: Style,
     bold: Style,
+    sel: Style,  // baris yang sedang disorot
+    key: Style,  // tombol di footer
+    pill: Style, // lencana (DRY-RUN, FIRST BOOT)
 }
 
 impl Palette {
@@ -170,6 +197,9 @@ impl Palette {
                 warn: Style::new(),
                 dim: Style::new(),
                 bold: Style::new().bold(),
+                sel: Style::new().bold(),
+                key: Style::new().bold(),
+                pill: Style::new().bold(),
             },
             // Console VT: bright cyan (VGA #00FFFF). Dim text uses bright black
             // (abu-abu tua) supaya tetap terbaca di latar hitam.
@@ -180,6 +210,9 @@ impl Palette {
                 warn: Style::new().yellow().bold(),
                 dim: Style::new().black().bright(),
                 bold: Style::new().white().bold(),
+                sel: Style::new().black().on_cyan().on_bright(),
+                key: Style::new().white().bold(),
+                pill: Style::new().black().on_yellow().bold(),
             },
             ColorLevel::Xterm256 => Palette {
                 accent: Style::new().color256(51),
@@ -188,6 +221,9 @@ impl Palette {
                 warn: Style::new().color256(220),
                 dim: Style::new().color256(245),
                 bold: Style::new().bold(),
+                sel: Style::new().color256(51).on_color256(237).bold(),
+                key: Style::new().color256(255).bold(),
+                pill: Style::new().color256(16).on_color256(220).bold(),
             },
         }
     }
@@ -238,6 +274,7 @@ fn wrap_words(text: &str, width: usize) -> Vec<String> {
 }
 
 pub struct Ui {
+    color: ColorLevel,
     pal: Palette,
     g: Glyphs,
     width: usize,
@@ -280,6 +317,7 @@ impl Ui {
         let height = (rows as usize).max(12);
 
         Ui {
+            color,
             pal: Palette::for_level(color),
             g: Glyphs::for_charset(charset),
             width,
@@ -342,29 +380,40 @@ impl Ui {
         out
     }
 
+    /// Lencana kecil; di terminal tanpa warna jadi `[TEKS]`.
+    fn pill(&self, text: &str) -> String {
+        if self.color == ColorLevel::None {
+            format!("[{text}]")
+        } else {
+            self.pal.pill.apply_to(format!(" {text} ")).to_string()
+        }
+    }
+
     fn header(&self) -> Vec<String> {
         let inner = self.width - 4;
         let p = &self.pal;
 
         let brand = format!(
-            "{}{} {}",
-            p.accent_b.apply_to("RAKU"),
-            p.bold.apply_to("OS"),
-            p.dim.apply_to("setup")
+            "{} {}{}",
+            p.accent_b.apply_to(self.g.brand),
+            p.accent_b.apply_to("Raku"),
+            p.bold.apply_to("OS Setup")
         );
         let ver = p.dim.apply_to(format!("v{}", self.version)).to_string();
         let gap = inner.saturating_sub(measure_text_width(&brand) + measure_text_width(&ver));
         let line1 = format!("{brand}{}{ver}", " ".repeat(gap));
 
-        let tagline = p.dim.apply_to("Set up your RakuOS desktop").to_string();
+        let tagline_text = "Post-install setup: choose your desktop and apps";
         let line2 = match &self.badge {
             Some(b) => {
-                let b = p.warn.apply_to(b).to_string();
+                let b = self.pill(b);
+                let room = inner.saturating_sub(measure_text_width(&b) + 1);
+                let tagline = p.dim.apply_to(self.fit(tagline_text, room)).to_string();
                 let gap =
                     inner.saturating_sub(measure_text_width(&tagline) + measure_text_width(&b));
                 format!("{tagline}{}{b}", " ".repeat(gap))
             }
-            None => tagline,
+            None => p.dim.apply_to(self.fit(tagline_text, inner)).to_string(),
         };
 
         self.boxed(&[line1, line2])
@@ -389,13 +438,19 @@ impl Ui {
                 out.push_str(&name_style.apply_to(name).to_string());
             }
             if i + 1 < STEPS.len() {
-                out.push_str(&format!(" {} ", p.dim.apply_to(self.g.link)));
+                // Garis penghubung ikut berwarna untuk langkah yang sudah lewat.
+                let link_style = if phase >= 5 || i < phase {
+                    &p.ok
+                } else {
+                    &p.dim
+                };
+                out.push_str(&format!(" {} ", link_style.apply_to(self.g.link)));
             }
         }
         out
     }
 
-    fn frame(&self, phase: usize, body: Vec<String>, footer: &str) -> Vec<String> {
+    fn frame(&self, phase: usize, body: Vec<String>, footer: String) -> Vec<String> {
         let mut lines = vec![String::new()];
         lines.extend(self.header());
         lines.push(String::new());
@@ -403,10 +458,7 @@ impl Ui {
         lines.push(String::new());
         lines.extend(body);
         lines.push(String::new());
-        lines.push(format!(
-            " {}",
-            self.pal.dim.apply_to(self.fit(footer, self.width - 2))
-        ));
+        lines.push(format!(" {footer}"));
         lines
     }
 
@@ -424,18 +476,50 @@ impl Ui {
         Ok(())
     }
 
+    /// Footer: tombol tebal, keterangan redup. Kalau terminal sempit, petunjuk
+    /// dibuang dari kanan supaya yang terpenting tetap terlihat.
+    fn hints(&self, hints: &[(&str, &str)]) -> String {
+        let max = self.width - 2;
+        let mut shown = hints.len();
+        loop {
+            let text = hints[..shown]
+                .iter()
+                .map(|(key, label)| {
+                    format!(
+                        "{} {}",
+                        self.pal.key.apply_to(key),
+                        self.pal.dim.apply_to(label)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("  ");
+            if shown <= 1 || measure_text_width(&text) <= max {
+                return text;
+            }
+            shown -= 1;
+        }
+    }
+
     fn footer_select(&self) -> String {
-        format!(
-            "{} Move  Enter Continue  Esc/← Back  1-9 Jump  Ctrl-C Quit",
-            self.g.updown
-        )
+        let back = format!("Esc/{}", self.g.left);
+        self.hints(&[
+            (self.g.updown, "Move"),
+            ("Enter", "Continue"),
+            (&back, "Back"),
+            ("1-9", "Jump"),
+            ("Ctrl-C", "Quit"),
+        ])
     }
 
     fn footer_multi(&self) -> String {
-        format!(
-            "{} Move  Space Toggle  Enter Continue  Esc/← Back  Ctrl-C Quit",
-            self.g.updown
-        )
+        let back = format!("Esc/{}", self.g.left);
+        self.hints(&[
+            (self.g.updown, "Move"),
+            ("Space", "Toggle"),
+            ("Enter", "Continue"),
+            (&back, "Back"),
+            ("Ctrl-C", "Quit"),
+        ])
     }
 
     // ------------------------------------------------------------- layar ---
@@ -474,7 +558,7 @@ impl Ui {
                 msg.as_deref(),
                 None,
             );
-            let lines = self.frame(phase, body, &self.footer_select());
+            let lines = self.frame(phase, body, self.footer_select());
             self.paint(term, &lines)?;
 
             let key = term.read_key()?;
@@ -559,7 +643,7 @@ impl Ui {
                 msg.as_deref(),
                 Some(&checked),
             );
-            let lines = self.frame(phase, body, &self.footer_multi());
+            let lines = self.frame(phase, body, self.footer_multi());
             self.paint(term, &lines)?;
 
             let key = term.read_key()?;
@@ -617,8 +701,68 @@ impl Ui {
         }
     }
 
+    /// Sel awal satu baris daftar (kursor, nomor lompat, penanda) sebagai
+    /// `(polos, berwarna)`. Versi polos dipakai saat baris disorot.
+    fn row_lead(
+        &self,
+        index: usize,
+        active: bool,
+        multi: bool,
+        on: bool,
+        available: bool,
+    ) -> (String, String) {
+        let p = &self.pal;
+        let cursor = if active {
+            self.g.cursor.to_string()
+        } else {
+            " ".repeat(measure_text_width(self.g.cursor))
+        };
+        let num = if index < 9 {
+            (index + 1).to_string()
+        } else {
+            " ".to_string()
+        };
+        let mark = match (multi, on) {
+            (true, true) => self.g.check_on,
+            (true, false) => self.g.check_off,
+            (false, true) => self.g.radio_on,
+            (false, false) => self.g.radio_off,
+        };
+        let mark_style = if !available {
+            &p.dim
+        } else if multi && on {
+            &p.ok
+        } else if on {
+            &p.accent
+        } else {
+            &p.dim
+        };
+        let plain = format!("{cursor} {num} {mark} ");
+        let styled = format!(
+            "{cursor} {} {} ",
+            p.dim.apply_to(&num),
+            mark_style.apply_to(mark)
+        );
+        (plain, styled)
+    }
+
+    /// Baris jejak di bawah daftar (pesan kesalahan menggantikan jejak).
+    fn trail_line(&self, msg: Option<&str>, parts: &[String]) -> String {
+        let p = &self.pal;
+        let budget = self.width.saturating_sub(2);
+        match msg {
+            Some(message) => format!(" {}", p.warn.apply_to(self.fit(message, budget))),
+            None if !parts.is_empty() => format!(
+                " {}",
+                p.dim
+                    .apply_to(self.fit(&parts.join(&format!("  {}  ", self.g.dot)), budget))
+            ),
+            None => String::new(),
+        }
+    }
+
     /// Wide terminals use a list pane and a detail pane, similar to the
-    /// greeter picker. Narrow TTYs retain the existing inline layout.
+    /// greeter picker. Narrow TTYs retain the compact inline layout.
     fn split_select_body(
         &self,
         choices: &[Choice],
@@ -627,26 +771,32 @@ impl Ui {
         msg: Option<&str>,
         checked: Option<&[bool]>,
     ) -> Vec<String> {
+        // Tinggi panel tetap (tidak bergantung pada item yang disorot) supaya
+        // layar tidak melompat saat berpindah pilihan.
+        const DETAIL_ROWS: usize = 12;
+
         let p = &self.pal;
+        let multi = checked.is_some();
         let budget = self.width.saturating_sub(2);
         let panes = budget.saturating_sub(4);
-        let left_w = panes.div_ceil(2);
+        let left_w = (panes * 2 / 5).clamp(24, 30);
         let right_w = panes.saturating_sub(left_w);
         let max_rows = self.height.saturating_sub(17).max(3);
-        let start = if choices.len() > max_rows {
-            sel.saturating_sub(max_rows / 2)
-                .min(choices.len().saturating_sub(max_rows))
+        let rows = choices.len().max(DETAIL_ROWS).min(max_rows);
+        let start = if choices.len() > rows {
+            sel.saturating_sub(rows / 2)
+                .min(choices.len().saturating_sub(rows))
         } else {
             0
         };
-        let end = (start + max_rows).min(choices.len());
+        let end = (start + rows).min(choices.len());
 
         let mut options_title = "Options".to_string();
         if start > 0 {
-            options_title.push_str(&format!("  ↑{start}"));
+            options_title.push_str(&format!("  {}{start}", self.g.up));
         }
         if end < choices.len() {
-            options_title.push_str(&format!("  ↓{}", choices.len() - end));
+            options_title.push_str(&format!("  {}{}", self.g.down, choices.len() - end));
         }
         let mut body = vec![format!(
             " {} {} {}",
@@ -655,60 +805,83 @@ impl Ui {
             p.accent_b.apply_to(self.pad("Details", right_w))
         )];
         body.push(format!(
-            " {} {} {}",
-            p.dim.apply_to(self.rule(left_w)),
-            p.dim.apply_to(self.g.v),
-            p.dim.apply_to(self.rule(right_w))
+            " {}{}{}",
+            p.dim.apply_to(self.rule(left_w + 1)),
+            p.dim.apply_to(if self.g.v == "|" { "+" } else { "┼" }),
+            p.dim.apply_to(self.rule(right_w + 1)),
         ));
 
+        // --- panel detail untuk pilihan yang disorot ---
         let choice = &choices[sel];
-        let mut details = vec![p.bold.apply_to(&choice.name).to_string(), String::new()];
-        details.extend(
-            wrap_words(&choice.description, right_w)
-                .into_iter()
-                .take(4)
-                .map(|line| p.dim.apply_to(line).to_string()),
-        );
-        details.push(if !choice.available {
-            p.warn.apply_to("Not available").to_string()
-        } else if checked.map_or(true, |state| state[sel]) {
-            p.ok.apply_to("Selected").to_string()
+        let mut details = vec![p
+            .accent_b
+            .apply_to(self.fit(&choice.name, right_w))
+            .to_string()];
+        let mut tags: Vec<String> = Vec::new();
+        if !choice.available {
+            tags.push(p.warn.apply_to("Not available").to_string());
         } else {
-            p.dim.apply_to("Not selected").to_string()
-        });
-        if !choice.packages.is_empty() {
-            details.push(p.bold.apply_to("Packages").to_string());
-            for package in choice.packages.iter().take(3) {
-                details.push(p.dim.apply_to(self.fit(package, right_w)).to_string());
+            if let Some(state) = checked {
+                tags.push(if state[sel] {
+                    p.ok.apply_to(format!("{} Selected", self.g.done))
+                        .to_string()
+                } else {
+                    p.dim.apply_to("Not selected").to_string()
+                });
             }
-            if choice.packages.len() > 3 {
-                details.push(
-                    p.dim
-                        .apply_to(format!("+ {} more", choice.packages.len() - 3))
-                        .to_string(),
-                );
+            if choice.default {
+                tags.push(p.accent.apply_to("Default").to_string());
             }
         }
-        details.truncate(max_rows);
+        if !tags.is_empty() {
+            details.push(tags.join(&format!("  {}  ", self.g.dot)));
+        }
+        details.push(String::new());
+        details.extend(wrap_words(&choice.description, right_w).into_iter().take(4));
+        if !choice.packages.is_empty() {
+            details.push(String::new());
+            details.push(format!(
+                "{} {}",
+                p.bold.apply_to("Packages"),
+                p.dim.apply_to(format!("({})", choice.packages.len()))
+            ));
+            let room = rows.saturating_sub(details.len());
+            if room > 0 {
+                for line in self.wrap_list(&choice.packages, right_w.saturating_sub(2), room.min(3))
+                {
+                    details.push(p.dim.apply_to(self.fit(&line, right_w)).to_string());
+                }
+            }
+        }
+        details.truncate(rows);
 
-        for row in 0..max_rows {
+        for row in 0..rows {
             let left = if let Some(index) = (start..end).nth(row) {
                 let item = &choices[index];
-                let cursor = if index == sel { self.g.cursor } else { " " };
-                let mark = match checked {
-                    Some(state) if state[index] => "[x]",
-                    Some(_) => "[ ]",
-                    None => "   ",
+                let active = index == sel;
+                let on = match checked {
+                    Some(state) => state[index],
+                    None => active,
                 };
-                let label = self.fit(&format!("{cursor} {mark} {}", item.name), left_w);
-                let styled = if !item.available {
-                    p.dim.apply_to(label).to_string()
-                } else if index == sel {
-                    p.accent_b.apply_to(label).to_string()
+                let (lead_plain, lead_styled) =
+                    self.row_lead(index, active, multi, on, item.available);
+                if active {
+                    let text = self.fit(&format!("{lead_plain}{}", item.name), left_w);
+                    p.sel.apply_to(self.pad(&text, left_w)).to_string()
                 } else {
-                    p.dim.apply_to(label).to_string()
-                };
-                self.pad(&styled, left_w)
+                    let name = self.fit(
+                        &item.name,
+                        left_w.saturating_sub(measure_text_width(&lead_plain)),
+                    );
+                    let name = if !item.available {
+                        p.dim.apply_to(name).to_string()
+                    } else if multi && on {
+                        p.bold.apply_to(name).to_string()
+                    } else {
+                        name
+                    };
+                    self.pad(&format!("{lead_styled}{name}"), left_w)
+                }
             } else {
                 " ".repeat(left_w)
             };
@@ -720,22 +893,14 @@ impl Ui {
         }
 
         let mut trail = Vec::new();
-        if !picked.is_empty() {
-            trail.push(picked.join(&format!("  {}  ", self.g.dot)));
-        }
         if let Some(state) = checked {
             let count = state.iter().filter(|&&selected| selected).count();
             trail.push(format!("{count} selected"));
         }
-        body.push(match msg {
-            Some(message) => format!(" {}", p.warn.apply_to(self.fit(message, budget))),
-            None if !trail.is_empty() => format!(
-                " {}",
-                p.dim
-                    .apply_to(self.fit(&trail.join(&format!("  {}  ", self.g.dot)), budget))
-            ),
-            None => String::new(),
-        });
+        if !picked.is_empty() {
+            trail.push(format!("So far: {}", picked.join(", ")));
+        }
+        body.push(self.trail_line(msg, &trail));
         body
     }
 
@@ -752,29 +917,36 @@ impl Ui {
         checked: Option<&[bool]>,
     ) -> Vec<String> {
         let p = &self.pal;
-        let mut body = Vec::new();
+        let inner = self.width - 2;
 
-        body.push(format!(
-            " {} {} {}",
-            p.accent_b
-                .apply_to(format!("STEP {} OF {}", phase + 1, STEPS.len())),
-            p.dim.apply_to(self.g.dot),
-            p.bold.apply_to(title)
-        ));
-        body.push(format!(
-            " {}",
-            p.dim.apply_to(self.fit(hint, self.width - 2))
-        ));
-        body.push(format!(" {}", p.dim.apply_to(self.rule(self.width - 2))));
+        let step = format!("Step {} of {}", phase + 1, STEPS.len());
+        let gap = inner.saturating_sub(measure_text_width(title) + measure_text_width(&step));
+        let mut body = vec![
+            format!(
+                " {}{}{}",
+                p.accent_b.apply_to(title),
+                " ".repeat(gap),
+                p.dim.apply_to(&step)
+            ),
+            format!(" {}", p.dim.apply_to(self.fit(hint, inner))),
+            format!(" {}", p.dim.apply_to(self.rule(inner))),
+        ];
 
         if self.width >= 68 {
             body.extend(self.split_select_body(choices, sel, picked, msg, checked));
             return body;
         }
 
-        let name_w = 20;
-        let mark_w = if checked.is_some() { 4 } else { 0 };
-        let desc_w = self.width.saturating_sub(name_w + 6 + mark_w);
+        // --- tata letak ringkas untuk terminal sempit ---
+        let multi = checked.is_some();
+        let name_w = 16;
+        let lead_w = measure_text_width(self.g.cursor)
+            + 1
+            + 1
+            + 1
+            + measure_text_width(self.g.check_on).max(measure_text_width(self.g.radio_on))
+            + 1;
+        let desc_w = inner.saturating_sub(lead_w + name_w + 1);
 
         // Jendela daftar: sisakan ruang untuk header, stepper, jejak, dan
         // footer, supaya layar 80x25 tidak menggulung saat pilihan banyak.
@@ -792,48 +964,42 @@ impl Ui {
         for i in start..end {
             let c = &choices[i];
             let active = i == sel;
-            let cursor = if active {
-                p.accent_b.apply_to(self.g.cursor).to_string()
+            let on = match checked {
+                Some(state) => state[i],
+                None => active,
+            };
+            let (lead_plain, lead_styled) = self.row_lead(i, active, multi, on, c.available);
+            let name = self.pad(&self.fit(&c.name, name_w), name_w);
+            let desc = if c.available {
+                self.fit(&c.description, desc_w)
             } else {
-                " ".repeat(measure_text_width(self.g.cursor))
-            };
-            let mark = match checked {
-                Some(ch) if ch[i] => p.ok.apply_to("[x] ").to_string(),
-                Some(_) => p.dim.apply_to("[ ] ").to_string(),
-                None => String::new(),
-            };
-            let (name, desc) = if !c.available {
-                (
-                    p.dim.apply_to(self.pad(&c.name, name_w)).to_string(),
-                    format!(
-                        "{} {}",
-                        p.warn.apply_to("(not available)"),
-                        p.dim
-                            .apply_to(self.fit(&c.description, desc_w.saturating_sub(17)))
-                    ),
+                format!(
+                    "(not available) {}",
+                    self.fit(&c.description, desc_w.saturating_sub(16))
                 )
-            } else if active {
-                (
-                    p.accent_b.apply_to(self.pad(&c.name, name_w)).to_string(),
-                    p.bold
-                        .apply_to(self.fit(&c.description, desc_w))
-                        .to_string(),
-                )
+            };
+            if active {
+                let text = self.fit(&format!("{lead_plain}{name} {desc}"), inner);
+                body.push(format!(" {}", p.sel.apply_to(self.pad(&text, inner))));
+            } else if !c.available {
+                body.push(format!(
+                    " {lead_styled}{} {}",
+                    p.dim.apply_to(&name),
+                    p.dim.apply_to(&desc)
+                ));
             } else {
-                (
-                    self.pad(&c.name, name_w),
-                    p.dim.apply_to(self.fit(&c.description, desc_w)).to_string(),
-                )
-            };
-            body.push(format!(" {cursor} {mark}{name} {desc}"));
+                let name = if multi && on {
+                    p.bold.apply_to(&name).to_string()
+                } else {
+                    name
+                };
+                body.push(format!(" {lead_styled}{name} {}", p.dim.apply_to(&desc)));
+            }
         }
 
         body.push(match choices.get(sel) {
             Some(c) if c.available && measure_text_width(&c.description) > desc_w => {
-                format!(
-                    " {}",
-                    p.dim.apply_to(self.fit(&c.description, self.width - 2))
-                )
+                format!("   {}", p.dim.apply_to(self.fit(&c.description, inner - 2)))
             }
             _ => String::new(),
         });
@@ -849,20 +1015,9 @@ impl Ui {
             trail_parts.push(format!("{count} selected"));
         }
         if !picked.is_empty() {
-            trail_parts.push(picked.join(&format!("  {}  ", self.g.dot)));
+            trail_parts.push(format!("So far: {}", picked.join(", ")));
         }
-
-        body.push(match msg {
-            Some(m) => format!(" {}", p.warn.apply_to(m)),
-            None if !trail_parts.is_empty() => format!(
-                " {}",
-                p.dim.apply_to(self.fit(
-                    &trail_parts.join(&format!("  {}  ", self.g.dot)),
-                    self.width - 2
-                ))
-            ),
-            None => String::new(),
-        });
+        body.push(self.trail_line(msg, &trail_parts));
         body
     }
 
@@ -875,35 +1030,63 @@ impl Ui {
     ) -> Result<Confirm> {
         let _guard = CursorGuard::hide(term);
         let p = &self.pal;
+        let inner = self.width - 2;
+        let label_w = 14;
+        let value_w = inner.saturating_sub(label_w + 1);
+        let indent = " ".repeat(label_w);
+
         let mut body = vec![
             format!(" {}", p.accent_b.apply_to("Review your setup")),
-            format!(" {}", p.dim.apply_to(self.rule(self.width - 2))),
+            format!(" {}", p.dim.apply_to(self.rule(inner))),
         ];
         for (k, v) in rows {
-            body.push(format!(
-                " {} {}",
-                p.dim.apply_to(self.pad(k, 14)),
-                p.bold.apply_to(v)
-            ));
-        }
-        body.push(format!(
-            " {}",
-            p.dim.apply_to(format!("RPM packages ({})", packages.len()))
-        ));
-        for line in self.wrap_list(packages, self.width - 4, 2) {
-            body.push(format!("   {}", p.dim.apply_to(line)));
+            // Nilai panjang (mis. banyak browser) dibungkus, maksimal dua baris.
+            let mut lines = wrap_words(v, value_w);
+            if lines.len() > 2 {
+                lines.truncate(2);
+                if let Some(last) = lines.pop() {
+                    lines.push(self.fit(&format!("{last} {}", self.g.ellipsis), value_w));
+                }
+            }
+            if lines.is_empty() {
+                lines.push(String::new());
+            }
+            for (i, line) in lines.iter().enumerate() {
+                let label = if i == 0 {
+                    p.dim.apply_to(self.pad(k, label_w)).to_string()
+                } else {
+                    indent.clone()
+                };
+                body.push(format!(" {label} {}", p.bold.apply_to(line)));
+            }
         }
         body.push(format!(
             " {} {}",
+            p.dim.apply_to(self.pad("Packages", label_w)),
+            p.bold.apply_to(format!("{} RPM packages", packages.len()))
+        ));
+        for line in self.wrap_list(packages, value_w, 2) {
+            body.push(format!(
+                " {indent} {}",
+                p.dim.apply_to(self.fit(&line, value_w))
+            ));
+        }
+        body.push(String::new());
+        body.push(format!(
+            " {} {} {}",
             p.accent_b.apply_to("?"),
-            p.bold.apply_to("Continue with installation?")
+            p.bold.apply_to("Continue with installation?"),
+            p.dim.apply_to("[Y/n]")
         ));
 
-        let lines = self.frame(
-            5,
-            body,
-            "Y/Enter Continue  Esc/← Back  n Cancel  Ctrl-C Quit",
-        );
+        let back = format!("Esc/{}", self.g.left);
+        let footer = self.hints(&[
+            ("Enter/Y", "Continue"),
+            (&back, "Back"),
+            ("N", "Cancel"),
+            ("Ctrl-C", "Quit"),
+        ]);
+        let lines = self.frame(5, body, footer);
         self.paint(term, &lines)?;
         loop {
             let key = term.read_key()?;

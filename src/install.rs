@@ -129,7 +129,6 @@ pub fn apply(cat: &Catalog, picks: &Picks, dry_run: bool, base_dir: &Path) -> Re
         dry_run,
     )?;
 
-
     heading("Set up desktop configuration");
     install_skel(
         picks.desktop,

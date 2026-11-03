@@ -1,7 +1,6 @@
 use crate::catalog::Catalog;
 use crate::install::{
-    packages, parse_overlay_rpmdb, parse_regular_user, sddm_config_body,
-    sddm_sessions_body, Picks,
+    packages, parse_overlay_rpmdb, parse_regular_user, sddm_config_body, sddm_sessions_body, Picks,
 };
 
 #[test]
@@ -56,7 +55,6 @@ fn overlay_rpmdb_mengabaikan_keluaran_kosong_atau_sampah() {
     assert_eq!(parse_overlay_rpmdb("overlay rpmdb:\n"), None);
     assert_eq!(parse_overlay_rpmdb("overlay rpmdb:   \n"), None);
 }
-
 
 #[test]
 fn user_target_tanpa_sudo_user_adalah_user_biasa_bukan_root() {
