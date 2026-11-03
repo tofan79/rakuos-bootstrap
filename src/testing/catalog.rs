@@ -195,5 +195,7 @@ fn skel_umbriel_valid_toml_dan_pakai_terminal_pilihan() {
     let autostart = value["general"]["autostart"].as_array().unwrap();
     assert!(autostart.iter().any(|v| v.as_str() == Some("noctalia")));
     assert!(autostart.iter().any(|v| v.as_str() == Some("@TERMINAL@")));
-    assert_eq!(value["general"]["mod_key"].as_str().unwrap(), "Super");
+    assert!(value["keybinds"].is_table());
+    let action = value["keybinds"]["Mod+Return"]["action"].as_str().unwrap();
+    assert!(action.contains("@TERMINAL@"));
 }
